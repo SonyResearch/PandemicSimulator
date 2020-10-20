@@ -1,0 +1,166 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pandemic_simulator.environment.location.cemetery &#8212; pandemic_simulator  documentation</title>
+    <link rel="stylesheet" href="../../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pandemic_simulator.environment.location.cemetery</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.</span>
+
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">cast</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">.base</span> <span class="kn">import</span> <span class="n">BaseLocation</span>
+<span class="kn">from</span> <span class="nn">..interfaces</span> <span class="kn">import</span> <span class="n">LocationID</span><span class="p">,</span> <span class="n">LocationRule</span><span class="p">,</span> <span class="n">LocationState</span><span class="p">,</span> <span class="n">PersonID</span><span class="p">,</span> <span class="n">Registry</span><span class="p">,</span> <span class="n">ContactRate</span><span class="p">,</span> \
+    <span class="n">DEFAULT</span><span class="p">,</span> <span class="n">SimTimeTuple</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Cemetery&#39;</span><span class="p">,</span> <span class="s1">&#39;CemeteryRule&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="CemeteryRule"><a class="viewcode-back" href="../../../../sources/pandemic_simulator.environment.location.html#pandemic_simulator.environment.location.cemetery.CemeteryRule">[docs]</a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">CemeteryRule</span><span class="p">(</span><span class="n">LocationRule</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">contact_rate</span><span class="p">,</span> <span class="n">ContactRate</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">contact_rate</span><span class="o">.</span><span class="n">min_assignees</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">contact_rate</span><span class="o">.</span><span class="n">min_assignees_visitors</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">contact_rate</span><span class="o">.</span><span class="n">fraction_assignees</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">contact_rate</span><span class="o">.</span><span class="n">fraction_assignees_visitors</span> <span class="o">==</span> <span class="mi">0</span></div>
+
+
+<div class="viewcode-block" id="Cemetery"><a class="viewcode-back" href="../../../../sources/pandemic_simulator.environment.location.html#pandemic_simulator.environment.location.cemetery.Cemetery">[docs]</a><span class="k">class</span> <span class="nc">Cemetery</span><span class="p">(</span><span class="n">BaseLocation</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Class that implements a cemetery location. &quot;&quot;&quot;</span>
+
+    <span class="n">location_rule_type</span><span class="p">:</span> <span class="n">Type</span> <span class="o">=</span> <span class="n">CemeteryRule</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">registry</span><span class="p">:</span> <span class="n">Registry</span><span class="p">,</span>
+                 <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">road_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">LocationID</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">numpy_rng</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param registry: Registry instance to register the location and handle people exit from location</span>
+<span class="sd">        :param name: Name of the location</span>
+<span class="sd">        :param road_id: id of the road connected to the location</span>
+<span class="sd">        :param numpy_rng: Random number generator</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">init_state</span> <span class="o">=</span> <span class="n">LocationState</span><span class="p">(</span><span class="n">is_open</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">visitor_capacity</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+                                   <span class="n">contact_rate</span><span class="o">=</span><span class="n">ContactRate</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">))</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">registry</span><span class="o">=</span><span class="n">registry</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">road_id</span><span class="o">=</span><span class="n">road_id</span><span class="p">,</span> <span class="n">init_state</span><span class="o">=</span><span class="n">init_state</span><span class="p">,</span> <span class="n">numpy_rng</span><span class="o">=</span><span class="n">numpy_rng</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Cemetery.update_rules"><a class="viewcode-back" href="../../../../sources/pandemic_simulator.environment.location.html#pandemic_simulator.environment.location.cemetery.Cemetery.update_rules">[docs]</a>    <span class="k">def</span> <span class="nf">update_rules</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_rule</span><span class="p">:</span> <span class="n">LocationRule</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">rule</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">CemeteryRule</span><span class="p">,</span> <span class="n">new_rule</span><span class="p">)</span>
+        <span class="n">cr</span> <span class="o">=</span> <span class="n">rule</span><span class="o">.</span><span class="n">contact_rate</span>
+        <span class="k">if</span> <span class="n">cr</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">contact_rate</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_state</span><span class="o">.</span><span class="n">contact_rate</span> <span class="k">if</span> <span class="n">cr</span> <span class="o">==</span> <span class="n">DEFAULT</span>
+                                        <span class="k">else</span> <span class="n">cast</span><span class="p">(</span><span class="n">ContactRate</span><span class="p">,</span> <span class="n">cr</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">rule</span><span class="o">.</span><span class="n">visitor_time</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">visitor_time</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_state</span><span class="o">.</span><span class="n">visitor_time</span> <span class="k">if</span> <span class="n">rule</span><span class="o">.</span><span class="n">visitor_time</span> <span class="o">==</span> <span class="n">DEFAULT</span>
+                                        <span class="k">else</span> <span class="n">cast</span><span class="p">(</span><span class="n">SimTimeTuple</span><span class="p">,</span> <span class="n">rule</span><span class="o">.</span><span class="n">visitor_time</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">rule</span><span class="o">.</span><span class="n">visitor_capacity</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">visitor_capacity</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_state</span><span class="o">.</span><span class="n">visitor_capacity</span> <span class="k">if</span> <span class="n">rule</span><span class="o">.</span><span class="n">visitor_capacity</span> <span class="o">==</span> <span class="n">DEFAULT</span>
+                                            <span class="k">else</span> <span class="n">rule</span><span class="o">.</span><span class="n">visitor_capacity</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Cemetery.remove_person_from_location"><a class="viewcode-back" href="../../../../sources/pandemic_simulator.environment.location.html#pandemic_simulator.environment.location.cemetery.Cemetery.remove_person_from_location">[docs]</a>    <span class="k">def</span> <span class="nf">remove_person_from_location</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">person_id</span><span class="p">:</span> <span class="n">PersonID</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">person_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">assignees_in_location</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Person </span><span class="si">{</span><span class="n">person_id</span><span class="si">}</span><span class="s1"> is already cremated. Cannot remove!&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">person_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">visitors_in_location</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">visitors_in_location</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">person_id</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Person </span><span class="si">{</span><span class="n">person_id</span><span class="si">}</span><span class="s1"> not in location </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">pandemic_simulator</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../sources/modules.html">Python API Reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Sony AI.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

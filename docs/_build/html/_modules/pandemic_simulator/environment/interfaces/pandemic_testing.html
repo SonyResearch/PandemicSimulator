@@ -1,0 +1,139 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pandemic_simulator.environment.interfaces.pandemic_testing &#8212; pandemic_simulator  documentation</title>
+    <link rel="stylesheet" href="../../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pandemic_simulator.environment.interfaces.pandemic_testing</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
+
+<span class="kn">from</span> <span class="nn">.pandemic_testing_result</span> <span class="kn">import</span> <span class="n">PandemicTestResult</span>
+<span class="kn">from</span> <span class="nn">.infection_model</span> <span class="kn">import</span> <span class="n">InfectionSummary</span>
+<span class="kn">from</span> <span class="nn">.person</span> <span class="kn">import</span> <span class="n">PersonState</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;PandemicTesting&#39;</span><span class="p">,</span> <span class="s1">&#39;GlobalTestingState&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="GlobalTestingState"><a class="viewcode-back" href="../../../../sources/pandemic_simulator.environment.interfaces.html#pandemic_simulator.environment.interfaces.pandemic_testing.GlobalTestingState">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">GlobalTestingState</span><span class="p">:</span>
+    <span class="n">summary</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">InfectionSummary</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
+    <span class="n">num_tests</span><span class="p">:</span> <span class="nb">int</span></div>
+
+
+<div class="viewcode-block" id="PandemicTesting"><a class="viewcode-back" href="../../../../sources/pandemic_simulator.environment.interfaces.html#pandemic_simulator.environment.interfaces.pandemic_testing.PandemicTesting">[docs]</a><span class="k">class</span> <span class="nc">PandemicTesting</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;An interface for pandemic testing.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="PandemicTesting.admit_person"><a class="viewcode-back" href="../../../../sources/pandemic_simulator.environment.interfaces.html#pandemic_simulator.environment.interfaces.pandemic_testing.PandemicTesting.admit_person">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">admit_person</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">person_state</span><span class="p">:</span> <span class="n">PersonState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a bool whether to admit a person for testing.</span>
+
+<span class="sd">        :param person_state: Person&#39;s state</span>
+<span class="sd">        :return: bool</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="PandemicTesting.test_person"><a class="viewcode-back" href="../../../../sources/pandemic_simulator.environment.interfaces.html#pandemic_simulator.environment.interfaces.pandemic_testing.PandemicTesting.test_person">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">test_person</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">person_state</span><span class="p">:</span> <span class="n">PersonState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PandemicTestResult</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Test the given person and return the test result</span>
+<span class="sd">        :param person_state: Person&#39;s state</span>
+<span class="sd">        :return: PandemicTestResult instance</span>
+<span class="sd">        &quot;&quot;&quot;</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">pandemic_simulator</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../sources/modules.html">Python API Reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Sony AI.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

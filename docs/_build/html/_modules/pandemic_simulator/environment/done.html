@@ -1,0 +1,244 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pandemic_simulator.environment.done &#8212; pandemic_simulator  documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pandemic_simulator.environment.done</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.</span>
+
+<span class="kn">import</span> <span class="nn">enum</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABCMeta</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Any</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;DoneFunctionType&#39;</span><span class="p">,</span> <span class="s1">&#39;DoneFunctionFactory&#39;</span><span class="p">,</span> <span class="s1">&#39;ORDone&#39;</span><span class="p">,</span> <span class="s1">&#39;DoneFunction&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;InfectionSummaryAboveThresholdDone&#39;</span><span class="p">,</span> <span class="s1">&#39;NoMoreInfectionsDone&#39;</span><span class="p">,</span> <span class="s1">&#39;NoPandemicDone&#39;</span><span class="p">]</span>
+
+<span class="kn">from</span> <span class="nn">.interfaces</span> <span class="kn">import</span> <span class="n">PandemicObservation</span><span class="p">,</span> <span class="n">InfectionSummary</span><span class="p">,</span> <span class="n">sorted_infection_summary</span>
+
+
+<div class="viewcode-block" id="DoneFunction"><a class="viewcode-back" href="../../../sources/pandemic_simulator.environment.html#pandemic_simulator.environment.done.DoneFunction">[docs]</a><span class="k">class</span> <span class="nc">DoneFunction</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">ABCMeta</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+<div class="viewcode-block" id="DoneFunction.calculate_done"><a class="viewcode-back" href="../../../sources/pandemic_simulator.environment.html#pandemic_simulator.environment.done.DoneFunction.calculate_done">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">calculate_done</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obs</span><span class="p">:</span> <span class="n">PandemicObservation</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="DoneFunction.reset"><a class="viewcode-back" href="../../../sources/pandemic_simulator.environment.html#pandemic_simulator.environment.done.DoneFunction.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">pass</span></div></div>
+
+
+<div class="viewcode-block" id="DoneFunctionType"><a class="viewcode-back" href="../../../sources/pandemic_simulator.environment.html#pandemic_simulator.environment.done.DoneFunctionType">[docs]</a><span class="k">class</span> <span class="nc">DoneFunctionType</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">INFECTION_SUMMARY_ABOVE_THRESHOLD</span> <span class="o">=</span> <span class="s1">&#39;infection_summary_above_threshold&#39;</span>
+    <span class="n">NO_MORE_INFECTIONS</span> <span class="o">=</span> <span class="s1">&#39;no_more_infections&#39;</span>
+    <span class="n">NO_PANDEMIC</span> <span class="o">=</span> <span class="s1">&#39;no_pandemic&#39;</span>
+
+<div class="viewcode-block" id="DoneFunctionType.values"><a class="viewcode-back" href="../../../sources/pandemic_simulator.environment.html#pandemic_simulator.environment.done.DoneFunctionType.values">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">values</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">c</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">DoneFunctionType</span><span class="o">.</span><span class="n">__members__</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span></div></div>
+
+
+<span class="n">_DONE_REGISTRY</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">DoneFunctionType</span><span class="p">,</span> <span class="n">Type</span><span class="p">[</span><span class="n">DoneFunction</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+
+
+<span class="k">def</span> <span class="nf">_register_done</span><span class="p">(</span><span class="nb">type</span><span class="p">:</span> <span class="n">DoneFunctionType</span><span class="p">,</span> <span class="n">done_fun</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">DoneFunction</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_DONE_REGISTRY</span><span class="p">:</span>
+        <span class="n">_DONE_REGISTRY</span><span class="p">[</span><span class="nb">type</span><span class="p">]</span> <span class="o">=</span> <span class="n">done_fun</span>
+        <span class="k">return</span>
+
+    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Done type </span><span class="si">{</span><span class="nb">type</span><span class="si">}</span><span class="s1"> already registered&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="DoneFunctionFactory"><a class="viewcode-back" href="../../../sources/pandemic_simulator.environment.html#pandemic_simulator.environment.done.DoneFunctionFactory">[docs]</a><span class="k">class</span> <span class="nc">DoneFunctionFactory</span><span class="p">:</span>
+<div class="viewcode-block" id="DoneFunctionFactory.default"><a class="viewcode-back" href="../../../sources/pandemic_simulator.environment.html#pandemic_simulator.environment.done.DoneFunctionFactory.default">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="n">done_function_type</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">DoneFunctionType</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DoneFunction</span><span class="p">:</span>
+        <span class="n">df_type</span> <span class="o">=</span> <span class="n">DoneFunctionType</span><span class="p">(</span><span class="n">done_function_type</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">df_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_DONE_REGISTRY</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unknown done function type.&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">_DONE_REGISTRY</span><span class="p">[</span><span class="n">df_type</span><span class="p">](</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ORDone"><a class="viewcode-back" href="../../../sources/pandemic_simulator.environment.html#pandemic_simulator.environment.done.ORDone">[docs]</a><span class="k">class</span> <span class="nc">ORDone</span><span class="p">(</span><span class="n">DoneFunction</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Done function that takes logical OR of multiple done functions</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_done_fns</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">DoneFunction</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">done_fns</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">DoneFunction</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param done_fns: List of done functions to take logical OR.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_done_fns</span> <span class="o">=</span> <span class="n">done_fns</span>
+
+<div class="viewcode-block" id="ORDone.calculate_done"><a class="viewcode-back" href="../../../sources/pandemic_simulator.environment.html#pandemic_simulator.environment.done.ORDone.calculate_done">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_done</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obs</span><span class="p">:</span> <span class="n">PandemicObservation</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">([</span><span class="n">df</span><span class="o">.</span><span class="n">calculate_done</span><span class="p">(</span><span class="n">obs</span><span class="p">,</span> <span class="n">action</span><span class="p">)</span> <span class="k">for</span> <span class="n">df</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_done_fns</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="ORDone.reset"><a class="viewcode-back" href="../../../sources/pandemic_simulator.environment.html#pandemic_simulator.environment.done.ORDone.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">done_fn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_done_fns</span><span class="p">:</span>
+            <span class="n">done_fn</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="InfectionSummaryAboveThresholdDone"><a class="viewcode-back" href="../../../sources/pandemic_simulator.environment.html#pandemic_simulator.environment.done.InfectionSummaryAboveThresholdDone">[docs]</a><span class="k">class</span> <span class="nc">InfectionSummaryAboveThresholdDone</span><span class="p">(</span><span class="n">DoneFunction</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns True if the infection summary of the given type is above a threshold.&quot;&quot;&quot;</span>
+    <span class="n">_threshold</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">_index</span><span class="p">:</span> <span class="nb">int</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">summary_type</span><span class="p">:</span> <span class="n">InfectionSummary</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_threshold</span> <span class="o">=</span> <span class="n">threshold</span>
+        <span class="k">assert</span> <span class="n">summary_type</span> <span class="ow">in</span> <span class="p">[</span><span class="n">InfectionSummary</span><span class="o">.</span><span class="n">INFECTED</span><span class="p">,</span> <span class="n">InfectionSummary</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">,</span> <span class="n">InfectionSummary</span><span class="o">.</span><span class="n">DEAD</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_index</span> <span class="o">=</span> <span class="n">sorted_infection_summary</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">summary_type</span><span class="p">)</span>
+
+<div class="viewcode-block" id="InfectionSummaryAboveThresholdDone.calculate_done"><a class="viewcode-back" href="../../../sources/pandemic_simulator.environment.html#pandemic_simulator.environment.done.InfectionSummaryAboveThresholdDone.calculate_done">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_done</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obs</span><span class="p">:</span> <span class="n">PandemicObservation</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">obs</span><span class="o">.</span><span class="n">global_infection_summary</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index</span><span class="p">]</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_threshold</span><span class="p">))</span></div></div>
+
+
+<div class="viewcode-block" id="NoMoreInfectionsDone"><a class="viewcode-back" href="../../../sources/pandemic_simulator.environment.html#pandemic_simulator.environment.done.NoMoreInfectionsDone">[docs]</a><span class="k">class</span> <span class="nc">NoMoreInfectionsDone</span><span class="p">(</span><span class="n">DoneFunction</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns True if the number of infected and critical becomes zero and all have recovered.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_infected_index</span> <span class="o">=</span> <span class="n">sorted_infection_summary</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">InfectionSummary</span><span class="o">.</span><span class="n">INFECTED</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_recovered_index</span> <span class="o">=</span> <span class="n">sorted_infection_summary</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">InfectionSummary</span><span class="o">.</span><span class="n">RECOVERED</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dead_index</span> <span class="o">=</span> <span class="n">sorted_infection_summary</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">InfectionSummary</span><span class="o">.</span><span class="n">DEAD</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_critical_index</span> <span class="o">=</span> <span class="n">sorted_infection_summary</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">InfectionSummary</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cnt</span> <span class="o">=</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="NoMoreInfectionsDone.calculate_done"><a class="viewcode-back" href="../../../sources/pandemic_simulator.environment.html#pandemic_simulator.environment.done.NoMoreInfectionsDone.calculate_done">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_done</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obs</span><span class="p">:</span> <span class="n">PandemicObservation</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="n">no_infection</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">obs</span><span class="o">.</span><span class="n">global_infection_summary</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_infected_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_critical_index</span><span class="p">]])</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">no_infection</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cnt</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="n">no_infection</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cnt</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cnt</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="NoMoreInfectionsDone.reset"><a class="viewcode-back" href="../../../sources/pandemic_simulator.environment.html#pandemic_simulator.environment.done.NoMoreInfectionsDone.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cnt</span> <span class="o">=</span> <span class="mi">0</span></div></div>
+
+
+<div class="viewcode-block" id="NoPandemicDone"><a class="viewcode-back" href="../../../sources/pandemic_simulator.environment.html#pandemic_simulator.environment.done.NoPandemicDone">[docs]</a><span class="k">class</span> <span class="nc">NoPandemicDone</span><span class="p">(</span><span class="n">DoneFunction</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns True if the pandemic hasn&#39;t started within the specified number of days.&quot;&quot;&quot;</span>
+
+    <span class="n">_num_days</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">_pandemic_exists</span><span class="p">:</span> <span class="nb">bool</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_days</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param num_days: number of days to check if pandemic has started</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pandemic_exists</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_num_days</span> <span class="o">=</span> <span class="n">num_days</span>
+
+<div class="viewcode-block" id="NoPandemicDone.calculate_done"><a class="viewcode-back" href="../../../sources/pandemic_simulator.environment.html#pandemic_simulator.environment.done.NoPandemicDone.calculate_done">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_done</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obs</span><span class="p">:</span> <span class="n">PandemicObservation</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pandemic_exists</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pandemic_exists</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">obs</span><span class="o">.</span><span class="n">infection_above_threshold</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">obs</span><span class="o">.</span><span class="n">time_day</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_days</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pandemic_exists</span></div></div>
+
+
+<span class="n">_register_done</span><span class="p">(</span><span class="n">DoneFunctionType</span><span class="o">.</span><span class="n">INFECTION_SUMMARY_ABOVE_THRESHOLD</span><span class="p">,</span> <span class="n">InfectionSummaryAboveThresholdDone</span><span class="p">)</span>
+<span class="n">_register_done</span><span class="p">(</span><span class="n">DoneFunctionType</span><span class="o">.</span><span class="n">NO_MORE_INFECTIONS</span><span class="p">,</span> <span class="n">NoMoreInfectionsDone</span><span class="p">)</span>
+<span class="n">_register_done</span><span class="p">(</span><span class="n">DoneFunctionType</span><span class="o">.</span><span class="n">NO_PANDEMIC</span><span class="p">,</span> <span class="n">NoPandemicDone</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">pandemic_simulator</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../sources/modules.html">Python API Reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Sony AI.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

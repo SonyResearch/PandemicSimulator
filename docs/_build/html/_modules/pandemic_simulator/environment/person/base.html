@@ -1,0 +1,322 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pandemic_simulator.environment.person.base &#8212; pandemic_simulator  documentation</title>
+    <link rel="stylesheet" href="../../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pandemic_simulator.environment.person.base</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.</span>
+<span class="kn">import</span> <span class="nn">dataclasses</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">cast</span>
+<span class="kn">from</span> <span class="nn">uuid</span> <span class="kn">import</span> <span class="n">uuid4</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..interfaces</span> <span class="kn">import</span> <span class="n">Person</span><span class="p">,</span> <span class="n">PersonID</span><span class="p">,</span> <span class="n">PersonState</span><span class="p">,</span> <span class="n">LocationID</span><span class="p">,</span> <span class="n">Risk</span><span class="p">,</span> <span class="n">Registry</span><span class="p">,</span> <span class="n">PandemicRegulation</span><span class="p">,</span> \
+    <span class="n">SimTime</span><span class="p">,</span> <span class="n">NoOP</span><span class="p">,</span> <span class="n">NOOP</span><span class="p">,</span> <span class="n">SimTimeTuple</span><span class="p">,</span> <span class="n">PandemicTestResult</span><span class="p">,</span> <span class="n">ContactTracer</span>
+<span class="kn">from</span> <span class="nn">..location</span> <span class="kn">import</span> <span class="n">Cemetery</span><span class="p">,</span> <span class="n">Hospital</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;BasePerson&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="BasePerson"><a class="viewcode-back" href="../../../../sources/pandemic_simulator.environment.person.html#pandemic_simulator.environment.person.base.BasePerson">[docs]</a><span class="k">class</span> <span class="nc">BasePerson</span><span class="p">(</span><span class="n">Person</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Class that partially implements a sim person. &quot;&quot;&quot;</span>
+
+    <span class="n">_id</span><span class="p">:</span> <span class="n">PersonID</span>
+    <span class="n">_home</span><span class="p">:</span> <span class="n">LocationID</span>
+    <span class="n">_registry</span><span class="p">:</span> <span class="n">Registry</span>
+    <span class="n">_night_hours</span><span class="p">:</span> <span class="n">SimTimeTuple</span>
+    <span class="n">_init_state</span><span class="p">:</span> <span class="n">PersonState</span>
+    <span class="n">_numpy_rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span>
+
+    <span class="n">_state</span><span class="p">:</span> <span class="n">PersonState</span>
+    <span class="n">_cemetery_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LocationID</span><span class="p">]</span>
+    <span class="n">_hospital_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LocationID</span><span class="p">]</span>
+
+    <span class="n">_regulation_compliance_prob</span><span class="p">:</span> <span class="nb">float</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">age</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                 <span class="n">home</span><span class="p">:</span> <span class="n">LocationID</span><span class="p">,</span>
+                 <span class="n">registry</span><span class="p">:</span> <span class="n">Registry</span><span class="p">,</span>
+                 <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">risk</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Risk</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">regulation_compliance_prob</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+                 <span class="n">night_hours</span><span class="p">:</span> <span class="n">SimTimeTuple</span> <span class="o">=</span> <span class="n">SimTimeTuple</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">22</span><span class="p">,</span> <span class="mi">24</span><span class="p">))),</span>
+                 <span class="n">init_state</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PersonState</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">numpy_rng</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param age: Age of the person</span>
+<span class="sd">        :param home: Home location id</span>
+<span class="sd">        :param registry: Registry instance to register the person and handle peron&#39;s entry to a location</span>
+<span class="sd">        :param name: Optional name of the person</span>
+<span class="sd">        :param risk: Optional health risk of the person</span>
+<span class="sd">        :param night_hours: night hours - a person by default goes back home and stays at home</span>
+<span class="sd">        :param regulation_compliance_prob: probability of complying to a regulation</span>
+<span class="sd">        :param init_state: Optional initial state of the person</span>
+<span class="sd">        :param numpy_rng: Random number generator</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_id</span> <span class="o">=</span> <span class="n">PersonID</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid4</span><span class="p">()),</span> <span class="n">age</span><span class="o">=</span><span class="n">age</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_home</span> <span class="o">=</span> <span class="n">home</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_registry</span> <span class="o">=</span> <span class="n">registry</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_night_hours</span> <span class="o">=</span> <span class="n">night_hours</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_numpy_rng</span> <span class="o">=</span> <span class="n">numpy_rng</span> <span class="k">if</span> <span class="n">numpy_rng</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_state</span> <span class="o">=</span> <span class="n">init_state</span> <span class="ow">or</span> <span class="n">PersonState</span><span class="p">(</span><span class="n">infection_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                                     <span class="n">current_location</span><span class="o">=</span><span class="n">home</span><span class="p">,</span>
+                                                     <span class="n">risk</span><span class="o">=</span><span class="n">risk</span> <span class="k">if</span> <span class="n">risk</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_numpy_rng</span><span class="o">.</span><span class="n">choice</span><span class="p">([</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">Risk</span><span class="p">]))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_state</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_registry</span><span class="o">.</span><span class="n">register_person</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cemetery_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registry</span><span class="o">.</span><span class="n">location_ids_of_type</span><span class="p">(</span><span class="n">Cemetery</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_hospital_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registry</span><span class="o">.</span><span class="n">location_ids_of_type</span><span class="p">(</span><span class="n">Hospital</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_regulation_compliance_prob</span> <span class="o">=</span> <span class="n">regulation_compliance_prob</span>
+
+<div class="viewcode-block" id="BasePerson.enter_location"><a class="viewcode-back" href="../../../../sources/pandemic_simulator.environment.person.html#pandemic_simulator.environment.person.base.BasePerson.enter_location">[docs]</a>    <span class="k">def</span> <span class="nf">enter_location</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">location_id</span><span class="p">:</span> <span class="n">LocationID</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registry</span><span class="o">.</span><span class="n">register_person_entry_in_location</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">location_id</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PersonID</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_id</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PersonState</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">home</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LocationID</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_home</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">at_home</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Return True if the person is at home and False otherwise&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">current_location</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">home</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">assigned_locations</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">LocationID</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_home</span><span class="p">,</span>
+
+    <span class="k">def</span> <span class="nf">_sync</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim_time</span><span class="p">:</span> <span class="n">SimTime</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Sync sim time specific variables. Subclasses must implement this&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="k">def</span> <span class="nf">_set_is_hospitalized</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">inf_state_dict</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">infection_state</span><span class="p">)</span>
+        <span class="n">inf_state_dict</span><span class="p">[</span><span class="s1">&#39;is_hospitalized&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">infection_state</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">infection_state</span><span class="p">,</span> <span class="o">**</span><span class="n">inf_state_dict</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BasePerson.step"><a class="viewcode-back" href="../../../../sources/pandemic_simulator.environment.person.html#pandemic_simulator.environment.person.base.BasePerson.step">[docs]</a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim_time</span><span class="p">:</span> <span class="n">SimTime</span><span class="p">,</span> <span class="n">contact_tracer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ContactTracer</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NoOP</span><span class="p">]:</span>
+        <span class="c1"># sync sim time specific variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sync</span><span class="p">(</span><span class="n">sim_time</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_registry</span><span class="o">.</span><span class="n">clear_quarantined</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_id</span><span class="p">)</span>
+
+        <span class="c1"># the base person&#39;s policy includes whether to go to a hospital or a be transferred to a cemetery.</span>
+        <span class="n">curr_loc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">current_location</span>
+        <span class="n">test_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">test_result</span>
+        <span class="n">is_hospitalized</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">infection_state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">infection_state</span><span class="o">.</span><span class="n">is_hospitalized</span>
+        <span class="k">if</span> <span class="n">test_result</span> <span class="o">==</span> <span class="n">PandemicTestResult</span><span class="o">.</span><span class="n">DEAD</span><span class="p">:</span>
+            <span class="c1"># the person is dead - if there is a cemetery and the person is not there then move the person there.</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cemetery_ids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">curr_loc</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cemetery_ids</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">enter_location</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cemetery_ids</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_numpy_rng</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cemetery_ids</span><span class="p">))])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_set_is_hospitalized</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+            <span class="c1"># nothing more to do since the person is dead - return None</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="n">test_result</span> <span class="o">==</span> <span class="n">PandemicTestResult</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_hospital_ids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">is_hospitalized</span><span class="p">:</span>
+                    <span class="c1"># admit to a hospital</span>
+                    <span class="k">for</span> <span class="n">_hosp_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hospital_ids</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enter_location</span><span class="p">(</span><span class="n">_hosp_id</span><span class="p">):</span>
+                            <span class="c1"># admitted to a hospital</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_set_is_hospitalized</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+                            <span class="c1"># hospitalized - return None</span>
+                            <span class="k">return</span> <span class="kc">None</span>
+                    <span class="c1"># if control reached here then all hospitals are full, try again in the next step</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># already in a hospital, wait until recovered - return None</span>
+                    <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="n">is_hospitalized</span><span class="p">:</span>
+            <span class="c1"># recovered from illness</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_is_hospitalized</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+            <span class="c1"># if in a hospital - go home</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">current_location</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hospital_ids</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">enter_location</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">home</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="c1"># block further ops for night hours by returning None</span>
+        <span class="k">if</span> <span class="n">sim_time</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_night_hours</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">at_home</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">enter_location</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">home</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">comply_to_regulation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_numpy_rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">()</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_regulation_compliance_prob</span>
+        <span class="k">if</span> <span class="p">(</span>
+                <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registry</span><span class="o">.</span><span class="n">get_person_quarantined_state</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_id</span><span class="p">)</span> <span class="ow">and</span> <span class="n">comply_to_regulation</span> <span class="ow">and</span>
+
+                <span class="c1"># if you are tested sick and have to stay home</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">test_result</span> <span class="ow">in</span> <span class="p">{</span><span class="n">PandemicTestResult</span><span class="o">.</span><span class="n">POSITIVE</span><span class="p">,</span> <span class="n">PandemicTestResult</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">}</span> <span class="ow">and</span>
+                 <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">at_home</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">sick_at_home</span><span class="p">)</span> <span class="ow">or</span>
+
+                <span class="c1"># quarantine</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">quarantine</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">at_home</span><span class="p">)</span> <span class="ow">or</span>
+
+                <span class="c1"># quarantine if household positive</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">quarantine_if_household_quarantined</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">at_home</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_household_quarantined</span><span class="p">())</span>
+                <span class="ow">or</span>
+
+                <span class="c1"># quarantine if contact positive</span>
+                <span class="p">(</span><span class="n">contact_tracer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">quarantine_if_contact_positive</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">at_home</span> <span class="ow">and</span>
+                 <span class="bp">self</span><span class="o">.</span><span class="n">_contact_positive</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">contact_tracer</span><span class="o">.</span><span class="n">get_contacts</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+                <span class="p">)</span>
+        <span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">enter_location</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">home</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_registry</span><span class="o">.</span><span class="n">quarantine_person</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_id</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="n">NOOP</span></div>
+
+<div class="viewcode-block" id="BasePerson.receive_regulation"><a class="viewcode-back" href="../../../../sources/pandemic_simulator.environment.person.html#pandemic_simulator.environment.person.base.BasePerson.receive_regulation">[docs]</a>    <span class="k">def</span> <span class="nf">receive_regulation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">regulation</span><span class="p">:</span> <span class="n">PandemicRegulation</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">quarantine</span> <span class="o">=</span> <span class="n">regulation</span><span class="o">.</span><span class="n">quarantine</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">quarantine_if_contact_positive</span> <span class="o">=</span> <span class="n">regulation</span><span class="o">.</span><span class="n">quarantine_if_contact_positive</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">quarantine_if_household_quarantined</span> <span class="o">=</span> <span class="n">regulation</span><span class="o">.</span><span class="n">quarantine_if_household_quarantined</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">sick_at_home</span> <span class="o">=</span> <span class="n">regulation</span><span class="o">.</span><span class="n">stay_home_if_sick</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">avoid_gathering_size</span> <span class="o">=</span> <span class="n">regulation</span><span class="o">.</span><span class="n">risk_to_avoid_gathering_size</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">risk</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">avoid_location_types</span> <span class="o">=</span> <span class="p">(</span><span class="n">regulation</span><span class="o">.</span><span class="n">risk_to_avoid_location_types</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">risk</span><span class="p">]</span>
+                                            <span class="k">if</span> <span class="n">regulation</span><span class="o">.</span><span class="n">risk_to_avoid_location_types</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">infection_spread_multiplier</span> <span class="o">=</span> <span class="mf">0.8</span> <span class="k">if</span> <span class="n">regulation</span><span class="o">.</span><span class="n">practice_good_hygiene</span> <span class="k">else</span> <span class="mf">1.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">infection_spread_multiplier</span> <span class="o">*=</span> <span class="mf">0.6</span> <span class="k">if</span> <span class="n">regulation</span><span class="o">.</span><span class="n">wear_facial_coverings</span> <span class="k">else</span> <span class="mf">1.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">infection_spread_multiplier</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">infection_spread_multiplier</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_regulation_compliance_prob</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_contact_positive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">contacts</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">PersonID</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">contact</span> <span class="ow">in</span> <span class="n">contacts</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registry</span><span class="o">.</span><span class="n">get_person_test_result</span><span class="p">(</span><span class="n">contact</span><span class="p">)</span> <span class="ow">in</span> <span class="p">{</span><span class="n">PandemicTestResult</span><span class="o">.</span><span class="n">POSITIVE</span><span class="p">,</span>
+                                                                  <span class="n">PandemicTestResult</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">}:</span>
+                <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">_household_quarantined</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">hh</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registry</span><span class="o">.</span><span class="n">get_households</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_id</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registry</span><span class="o">.</span><span class="n">get_person_quarantined_state</span><span class="p">(</span><span class="n">hh</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">_get_social_gathering_location</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">LocationID</span><span class="p">]:</span>
+        <span class="c1"># social gathering</span>
+        <span class="n">ags</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">avoid_gathering_size</span>
+        <span class="n">loc_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registry</span><span class="o">.</span><span class="n">location_ids_with_social_events</span>
+        <span class="n">num_events</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">loc_ids</span><span class="p">)</span>
+        <span class="n">comply_to_regulation</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_numpy_rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">()</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_regulation_compliance_prob</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">num_events</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_numpy_rng</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="n">num_events</span><span class="p">):</span>
+                <span class="k">if</span> <span class="p">(</span>
+                        <span class="n">ags</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">or</span>
+                        <span class="ow">not</span> <span class="n">comply_to_regulation</span> <span class="ow">or</span>
+                        <span class="p">(</span><span class="n">comply_to_regulation</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_registry</span><span class="o">.</span><span class="n">get_persons_in_location</span><span class="p">(</span><span class="n">loc_ids</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span> <span class="o">&lt;</span> <span class="n">ags</span><span class="p">)</span>
+                <span class="p">):</span>
+                    <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">LocationID</span><span class="p">,</span> <span class="n">loc_ids</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="BasePerson.reset"><a class="viewcode-back" href="../../../../sources/pandemic_simulator.environment.person.html#pandemic_simulator.environment.person.base.BasePerson.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_state</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_registry</span><span class="o">.</span><span class="n">reassign_locations</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_registry</span><span class="o">.</span><span class="n">clear_quarantined</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_id</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enter_location</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">current_location</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">pandemic_simulator</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../sources/modules.html">Python API Reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Sony AI.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

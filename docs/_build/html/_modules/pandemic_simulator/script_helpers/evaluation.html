@@ -1,0 +1,252 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pandemic_simulator.script_helpers.evaluation &#8212; pandemic_simulator  documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pandemic_simulator.script_helpers.evaluation</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.</span>
+<span class="kn">import</span> <span class="nn">dataclasses</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">List</span>
+
+<span class="kn">from</span> <span class="nn">.experiments</span> <span class="kn">import</span> <span class="n">experiment_main</span>
+<span class="kn">from</span> <span class="nn">.population_params</span> <span class="kn">import</span> <span class="n">small_town_population_params</span><span class="p">,</span> \
+    <span class="n">medium_town_population_params</span><span class="p">,</span> <span class="n">above_medium_town_population_params</span>
+<span class="kn">from</span> <span class="nn">..data</span> <span class="kn">import</span> <span class="n">H5DataSaver</span><span class="p">,</span> <span class="n">StageSchedule</span>
+<span class="kn">from</span> <span class="nn">..environment</span> <span class="kn">import</span> <span class="n">PandemicSimOpts</span><span class="p">,</span> <span class="n">PandemicSimNonCLIOpts</span><span class="p">,</span> <span class="n">PandemicRegulation</span><span class="p">,</span> <span class="n">Risk</span><span class="p">,</span> <span class="n">PopulationParams</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;EvaluationOpts&#39;</span><span class="p">,</span> <span class="s1">&#39;evaluate_strategies&#39;</span><span class="p">,</span> <span class="s1">&#39;evaluate_spread_rates&#39;</span><span class="p">,</span> <span class="s1">&#39;evaluate_location_contact_rates&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;evaluate_population_sizes&#39;</span><span class="p">,</span> <span class="s1">&#39;evaluate_social_gatherings&#39;</span><span class="p">,</span> <span class="s1">&#39;evaluate_testing_rates&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;population_size_to_params&#39;</span><span class="p">]</span>
+
+<span class="n">population_size_to_params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">PopulationParams</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">pp</span><span class="o">.</span><span class="n">num_persons</span><span class="p">:</span> <span class="n">pp</span> <span class="k">for</span> <span class="n">pp</span> <span class="ow">in</span> <span class="p">[</span>
+    <span class="n">small_town_population_params</span><span class="p">,</span>
+    <span class="n">medium_town_population_params</span><span class="p">,</span>
+    <span class="n">above_medium_town_population_params</span><span class="p">]}</span>
+
+
+<div class="viewcode-block" id="EvaluationOpts"><a class="viewcode-back" href="../../../sources/pandemic_simulator.script_helpers.html#pandemic_simulator.script_helpers.evaluation.EvaluationOpts">[docs]</a><span class="nd">@dataclasses</span><span class="o">.</span><span class="n">dataclass</span>
+<span class="k">class</span> <span class="nc">EvaluationOpts</span><span class="p">:</span>
+    <span class="n">num_seeds</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">spread_rates</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">pandemic_test_rate_scales</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">avoid_gathering_sizes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">social_distancing</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">population_sizes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">strategies</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">StageSchedule</span><span class="p">]]]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">pandemic_regulations</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">PandemicRegulation</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">sim_opts</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">PandemicSimOpts</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">default_sim_non_cli_opts</span><span class="p">:</span> <span class="n">PandemicSimNonCLIOpts</span> <span class="o">=</span> <span class="n">PandemicSimNonCLIOpts</span><span class="p">(</span><span class="n">small_town_population_params</span><span class="p">)</span>
+
+    <span class="n">enable_warm_up</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">max_episode_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">120</span>
+    <span class="n">data_saver_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s1">&#39;../results/&#39;</span><span class="p">)</span>
+    <span class="n">data_filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">render_runs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_saver_path</span><span class="o">.</span><span class="n">absolute</span><span class="p">()),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="evaluate_strategies"><a class="viewcode-back" href="../../../sources/pandemic_simulator.script_helpers.html#pandemic_simulator.script_helpers.evaluation.evaluate_strategies">[docs]</a><span class="k">def</span> <span class="nf">evaluate_strategies</span><span class="p">(</span><span class="n">exp_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">eval_opts</span><span class="p">:</span> <span class="n">EvaluationOpts</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">eval_opts</span><span class="o">.</span><span class="n">strategies</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="n">data_saver</span> <span class="o">=</span> <span class="n">H5DataSaver</span><span class="p">(</span><span class="n">exp_name</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">data_saver_path</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">strategy</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">strategies</span><span class="p">):</span>
+        <span class="n">stage_schedule</span> <span class="o">=</span> <span class="p">[</span><span class="n">StageSchedule</span><span class="p">(</span><span class="n">stage</span><span class="o">=</span><span class="n">strategy</span><span class="p">,</span> <span class="n">end_day</span><span class="o">=</span><span class="kc">None</span><span class="p">)]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">strategy</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="k">else</span> <span class="n">strategy</span>
+
+        <span class="n">txt_strategy</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;(stage: </span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">stage</span><span class="si">}</span><span class="s1"> end: </span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">end_day</span><span class="si">}</span><span class="s1">)&#39;</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stage_schedule</span><span class="p">]</span>
+        <span class="n">sim_opts</span> <span class="o">=</span> <span class="n">eval_opts</span><span class="o">.</span><span class="n">sim_opts</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="n">eval_opts</span><span class="o">.</span><span class="n">sim_opts</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">PandemicSimOpts</span><span class="p">()</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Evaluating strategy - </span><span class="si">{</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">txt_strategy</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">experiment_main</span><span class="p">(</span><span class="n">sim_opts</span><span class="o">=</span><span class="n">sim_opts</span><span class="p">,</span>
+                        <span class="n">sim_non_cli_opts</span><span class="o">=</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">default_sim_non_cli_opts</span><span class="p">,</span>
+                        <span class="n">data_saver</span><span class="o">=</span><span class="n">data_saver</span><span class="p">,</span>
+                        <span class="n">pandemic_regulations</span><span class="o">=</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">pandemic_regulations</span><span class="p">,</span>
+                        <span class="n">stages_to_execute</span><span class="o">=</span><span class="n">strategy</span><span class="p">,</span>
+                        <span class="n">enable_warm_up</span><span class="o">=</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">enable_warm_up</span><span class="p">,</span>
+                        <span class="n">num_random_seeds</span><span class="o">=</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">num_seeds</span><span class="p">,</span>
+                        <span class="n">max_episode_length</span><span class="o">=</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">max_episode_length</span><span class="p">,</span>
+                        <span class="n">exp_id</span><span class="o">=</span><span class="n">i</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="evaluate_spread_rates"><a class="viewcode-back" href="../../../sources/pandemic_simulator.script_helpers.html#pandemic_simulator.script_helpers.evaluation.evaluate_spread_rates">[docs]</a><span class="k">def</span> <span class="nf">evaluate_spread_rates</span><span class="p">(</span><span class="n">exp_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">eval_opts</span><span class="p">:</span> <span class="n">EvaluationOpts</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">eval_opts</span><span class="o">.</span><span class="n">spread_rates</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="n">data_saver</span> <span class="o">=</span> <span class="n">H5DataSaver</span><span class="p">(</span><span class="n">exp_name</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">data_saver_path</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">spread_rate</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">spread_rates</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Evaluating spread_rate - </span><span class="si">{</span><span class="n">spread_rate</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">sim_opts</span> <span class="o">=</span> <span class="n">PandemicSimOpts</span><span class="p">(</span><span class="n">infection_spread_rate_mean</span><span class="o">=</span><span class="n">spread_rate</span><span class="p">)</span>
+        <span class="n">experiment_main</span><span class="p">(</span><span class="n">sim_opts</span><span class="o">=</span><span class="n">sim_opts</span><span class="p">,</span>
+                        <span class="n">sim_non_cli_opts</span><span class="o">=</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">default_sim_non_cli_opts</span><span class="p">,</span>
+                        <span class="n">data_saver</span><span class="o">=</span><span class="n">data_saver</span><span class="p">,</span>
+                        <span class="n">num_random_seeds</span><span class="o">=</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">num_seeds</span><span class="p">,</span>
+                        <span class="n">max_episode_length</span><span class="o">=</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">max_episode_length</span><span class="p">,</span>
+                        <span class="n">exp_id</span><span class="o">=</span><span class="n">i</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="evaluate_testing_rates"><a class="viewcode-back" href="../../../sources/pandemic_simulator.script_helpers.html#pandemic_simulator.script_helpers.evaluation.evaluate_testing_rates">[docs]</a><span class="k">def</span> <span class="nf">evaluate_testing_rates</span><span class="p">(</span><span class="n">exp_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">eval_opts</span><span class="p">:</span> <span class="n">EvaluationOpts</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">eval_opts</span><span class="o">.</span><span class="n">pandemic_test_rate_scales</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="n">data_saver</span> <span class="o">=</span> <span class="n">H5DataSaver</span><span class="p">(</span><span class="n">exp_name</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">data_saver_path</span><span class="p">)</span>
+    <span class="n">def_sim_opts</span> <span class="o">=</span> <span class="n">PandemicSimOpts</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">parameter_scale</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">pandemic_test_rate_scales</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Evaluating testing_rate_scale - </span><span class="si">{</span><span class="n">parameter_scale</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">sim_opts</span> <span class="o">=</span> <span class="n">PandemicSimOpts</span><span class="p">(</span><span class="n">spontaneous_testing_rate</span><span class="o">=</span><span class="n">def_sim_opts</span><span class="o">.</span><span class="n">spontaneous_testing_rate</span> <span class="o">*</span> <span class="n">parameter_scale</span><span class="p">,</span>
+                                   <span class="n">symp_testing_rate</span><span class="o">=</span><span class="n">def_sim_opts</span><span class="o">.</span><span class="n">symp_testing_rate</span> <span class="o">*</span> <span class="n">parameter_scale</span><span class="p">,</span>
+                                   <span class="n">retest_rate</span><span class="o">=</span><span class="n">def_sim_opts</span><span class="o">.</span><span class="n">retest_rate</span> <span class="o">*</span> <span class="n">parameter_scale</span><span class="p">)</span>
+        <span class="n">experiment_main</span><span class="p">(</span><span class="n">sim_opts</span><span class="o">=</span><span class="n">sim_opts</span><span class="p">,</span>
+                        <span class="n">sim_non_cli_opts</span><span class="o">=</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">default_sim_non_cli_opts</span><span class="p">,</span>
+                        <span class="n">data_saver</span><span class="o">=</span><span class="n">data_saver</span><span class="p">,</span>
+                        <span class="n">pandemic_regulations</span><span class="o">=</span><span class="p">[</span><span class="n">PandemicRegulation</span><span class="p">(</span><span class="n">stay_home_if_sick</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">stage</span><span class="o">=</span><span class="mi">0</span><span class="p">)],</span>
+                        <span class="n">stages_to_execute</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                        <span class="n">num_random_seeds</span><span class="o">=</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">num_seeds</span><span class="p">,</span>
+                        <span class="n">max_episode_length</span><span class="o">=</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">max_episode_length</span><span class="p">,</span>
+                        <span class="n">exp_id</span><span class="o">=</span><span class="n">i</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="evaluate_social_gatherings"><a class="viewcode-back" href="../../../sources/pandemic_simulator.script_helpers.html#pandemic_simulator.script_helpers.evaluation.evaluate_social_gatherings">[docs]</a><span class="k">def</span> <span class="nf">evaluate_social_gatherings</span><span class="p">(</span><span class="n">exp_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">eval_opts</span><span class="p">:</span> <span class="n">EvaluationOpts</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">eval_opts</span><span class="o">.</span><span class="n">avoid_gathering_sizes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="n">data_saver</span> <span class="o">=</span> <span class="n">H5DataSaver</span><span class="p">(</span><span class="n">exp_name</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">data_saver_path</span><span class="p">)</span>
+    <span class="n">pandemic_regulations</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">PandemicRegulation</span><span class="p">(</span><span class="n">risk_to_avoid_gathering_size</span><span class="o">=</span><span class="p">{</span><span class="n">Risk</span><span class="o">.</span><span class="n">LOW</span><span class="p">:</span> <span class="n">ags</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">HIGH</span><span class="p">:</span> <span class="n">ags</span><span class="p">},</span> <span class="n">stage</span><span class="o">=</span><span class="n">stage</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">stage</span><span class="p">,</span> <span class="n">ags</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">avoid_gathering_sizes</span><span class="p">)]</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">cr</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pandemic_regulations</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Evaluating social_gathering_size_to_avoid - </span><span class="si">{</span><span class="n">cr</span><span class="o">.</span><span class="n">risk_to_avoid_gathering_size</span><span class="p">[</span><span class="n">Risk</span><span class="o">.</span><span class="n">LOW</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">experiment_main</span><span class="p">(</span><span class="n">sim_opts</span><span class="o">=</span><span class="n">PandemicSimOpts</span><span class="p">(),</span>
+                        <span class="n">sim_non_cli_opts</span><span class="o">=</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">default_sim_non_cli_opts</span><span class="p">,</span>
+                        <span class="n">data_saver</span><span class="o">=</span><span class="n">data_saver</span><span class="p">,</span>
+                        <span class="n">pandemic_regulations</span><span class="o">=</span><span class="n">pandemic_regulations</span><span class="p">,</span>
+                        <span class="n">stages_to_execute</span><span class="o">=</span><span class="n">cr</span><span class="o">.</span><span class="n">stage</span><span class="p">,</span>
+                        <span class="n">num_random_seeds</span><span class="o">=</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">num_seeds</span><span class="p">,</span>
+                        <span class="n">max_episode_length</span><span class="o">=</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">max_episode_length</span><span class="p">,</span>
+                        <span class="n">exp_id</span><span class="o">=</span><span class="n">i</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="evaluate_location_contact_rates"><a class="viewcode-back" href="../../../sources/pandemic_simulator.script_helpers.html#pandemic_simulator.script_helpers.evaluation.evaluate_location_contact_rates">[docs]</a><span class="k">def</span> <span class="nf">evaluate_location_contact_rates</span><span class="p">(</span><span class="n">exp_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">eval_opts</span><span class="p">:</span> <span class="n">EvaluationOpts</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">eval_opts</span><span class="o">.</span><span class="n">social_distancing</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="n">data_saver</span> <span class="o">=</span> <span class="n">H5DataSaver</span><span class="p">(</span><span class="n">exp_name</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">data_saver_path</span><span class="p">)</span>
+    <span class="n">pandemic_regulations</span> <span class="o">=</span> <span class="p">[</span><span class="n">PandemicRegulation</span><span class="p">(</span><span class="n">social_distancing</span><span class="o">=</span><span class="n">sd</span><span class="p">,</span> <span class="n">stage</span><span class="o">=</span><span class="n">stage</span><span class="p">)</span>
+                            <span class="k">for</span> <span class="n">stage</span><span class="p">,</span> <span class="n">sd</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">social_distancing</span><span class="p">)]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">cr</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pandemic_regulations</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Evaluating social_distancing - </span><span class="si">{</span><span class="n">cr</span><span class="o">.</span><span class="n">social_distancing</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">experiment_main</span><span class="p">(</span><span class="n">sim_opts</span><span class="o">=</span><span class="n">PandemicSimOpts</span><span class="p">(),</span>
+                        <span class="n">sim_non_cli_opts</span><span class="o">=</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">default_sim_non_cli_opts</span><span class="p">,</span>
+                        <span class="n">data_saver</span><span class="o">=</span><span class="n">data_saver</span><span class="p">,</span>
+                        <span class="n">pandemic_regulations</span><span class="o">=</span><span class="n">pandemic_regulations</span><span class="p">,</span>
+                        <span class="n">stages_to_execute</span><span class="o">=</span><span class="n">cr</span><span class="o">.</span><span class="n">stage</span><span class="p">,</span>
+                        <span class="n">num_random_seeds</span><span class="o">=</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">num_seeds</span><span class="p">,</span>
+                        <span class="n">max_episode_length</span><span class="o">=</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">max_episode_length</span><span class="p">,</span>
+                        <span class="n">exp_id</span><span class="o">=</span><span class="n">i</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="evaluate_population_sizes"><a class="viewcode-back" href="../../../sources/pandemic_simulator.script_helpers.html#pandemic_simulator.script_helpers.evaluation.evaluate_population_sizes">[docs]</a><span class="k">def</span> <span class="nf">evaluate_population_sizes</span><span class="p">(</span><span class="n">exp_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">eval_opts</span><span class="p">:</span> <span class="n">EvaluationOpts</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">eval_opts</span><span class="o">.</span><span class="n">population_sizes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="n">data_saver</span> <span class="o">=</span> <span class="n">H5DataSaver</span><span class="p">(</span><span class="n">exp_name</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">data_saver_path</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">population_size</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">population_sizes</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Evaluating population_size - </span><span class="si">{</span><span class="n">population_size</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">experiment_main</span><span class="p">(</span><span class="n">sim_opts</span><span class="o">=</span><span class="n">PandemicSimOpts</span><span class="p">(),</span>
+                        <span class="n">sim_non_cli_opts</span><span class="o">=</span><span class="n">PandemicSimNonCLIOpts</span><span class="p">(</span><span class="n">population_size_to_params</span><span class="p">[</span><span class="n">population_size</span><span class="p">]),</span>
+                        <span class="n">data_saver</span><span class="o">=</span><span class="n">data_saver</span><span class="p">,</span>
+                        <span class="n">num_random_seeds</span><span class="o">=</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">num_seeds</span><span class="p">,</span>
+                        <span class="n">max_episode_length</span><span class="o">=</span><span class="n">eval_opts</span><span class="o">.</span><span class="n">max_episode_length</span><span class="p">,</span>
+                        <span class="n">exp_id</span><span class="o">=</span><span class="n">i</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">pandemic_simulator</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../sources/modules.html">Python API Reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Sony AI.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,409 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pandemic_simulator.environment.pandemic_sim &#8212; pandemic_simulator  documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pandemic_simulator.environment.pandemic_sim</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">product</span> <span class="k">as</span> <span class="n">cartesianproduct</span><span class="p">,</span> <span class="n">combinations</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">DefaultDict</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">cast</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">orderedset</span> <span class="kn">import</span> <span class="n">OrderedSet</span>
+
+<span class="kn">from</span> <span class="nn">.interfaces</span> <span class="kn">import</span> <span class="n">ContactRate</span><span class="p">,</span> <span class="n">ContactTracer</span><span class="p">,</span> <span class="n">PandemicRegulation</span><span class="p">,</span> <span class="n">PandemicSimState</span><span class="p">,</span> <span class="n">PandemicTesting</span><span class="p">,</span> \
+    <span class="n">PandemicTestResult</span><span class="p">,</span> \
+    <span class="n">DEFAULT</span><span class="p">,</span> <span class="n">GlobalTestingState</span><span class="p">,</span> <span class="n">InfectionModel</span><span class="p">,</span> <span class="n">InfectionSummary</span><span class="p">,</span> <span class="n">Location</span><span class="p">,</span> <span class="n">LocationID</span><span class="p">,</span> <span class="n">Person</span><span class="p">,</span> <span class="n">PersonID</span><span class="p">,</span> <span class="n">Registry</span><span class="p">,</span> \
+    <span class="n">SimTime</span><span class="p">,</span> <span class="n">SimTimeInterval</span><span class="p">,</span> <span class="n">sorted_infection_summary</span>
+<span class="kn">from</span> <span class="nn">.location</span> <span class="kn">import</span> <span class="n">Hospital</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;PandemicSim&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="PandemicSim"><a class="viewcode-back" href="../../../sources/pandemic_simulator.environment.html#pandemic_simulator.environment.pandemic_sim.PandemicSim">[docs]</a><span class="k">class</span> <span class="nc">PandemicSim</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Class that implements the pandemic simulator.&quot;&quot;&quot;</span>
+
+    <span class="n">_id_to_person</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">PersonID</span><span class="p">,</span> <span class="n">Person</span><span class="p">]</span>
+    <span class="n">_id_to_location</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">LocationID</span><span class="p">,</span> <span class="n">Location</span><span class="p">]</span>
+    <span class="n">_infection_model</span><span class="p">:</span> <span class="n">InfectionModel</span>
+    <span class="n">_pandemic_testing</span><span class="p">:</span> <span class="n">PandemicTesting</span>
+    <span class="n">_registry</span><span class="p">:</span> <span class="n">Registry</span>
+    <span class="n">_contact_tracer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ContactTracer</span><span class="p">]</span>
+    <span class="n">_new_time_slot_interval</span><span class="p">:</span> <span class="n">SimTimeInterval</span>
+    <span class="n">_infection_update_interval</span><span class="p">:</span> <span class="n">SimTimeInterval</span>
+    <span class="n">_infection_threshold</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">_numpy_rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span>
+
+    <span class="n">_type_to_locations</span><span class="p">:</span> <span class="n">DefaultDict</span>
+    <span class="n">_hospital_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LocationID</span><span class="p">]</span>
+    <span class="n">_state</span><span class="p">:</span> <span class="n">PandemicSimState</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">persons</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Person</span><span class="p">],</span>
+                 <span class="n">locations</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Location</span><span class="p">],</span>
+                 <span class="n">infection_model</span><span class="p">:</span> <span class="n">InfectionModel</span><span class="p">,</span>
+                 <span class="n">pandemic_testing</span><span class="p">:</span> <span class="n">PandemicTesting</span><span class="p">,</span>
+                 <span class="n">registry</span><span class="p">:</span> <span class="n">Registry</span><span class="p">,</span>
+                 <span class="n">contact_tracer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ContactTracer</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">new_time_slot_interval</span><span class="p">:</span> <span class="n">SimTimeInterval</span> <span class="o">=</span> <span class="n">SimTimeInterval</span><span class="p">(</span><span class="n">day</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+                 <span class="n">infection_update_interval</span><span class="p">:</span> <span class="n">SimTimeInterval</span> <span class="o">=</span> <span class="n">SimTimeInterval</span><span class="p">(</span><span class="n">day</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+                 <span class="n">infection_threshold</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+                 <span class="n">numpy_rng</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param persons: A sequence of Person instances.</span>
+<span class="sd">        :param locations: A sequence of Location instances.</span>
+<span class="sd">        :param infection_model: Infection model instance.</span>
+<span class="sd">        :param pandemic_testing: PandemicTesting instance.</span>
+<span class="sd">        :param registry: Registry instance.</span>
+<span class="sd">        :param contact_tracer: Optional ContactTracer instance.</span>
+<span class="sd">        :param new_time_slot_interval: interval for updating contact tracer if that is not None. Default is set daily.</span>
+<span class="sd">        :param infection_update_interval: interval for updating infection states. Default is set once daily.</span>
+<span class="sd">        :param infection_threshold: If the infection summary is greater than the specified threshold, a</span>
+<span class="sd">            boolean in PandemicSimState is set to True.</span>
+<span class="sd">        :param numpy_rng: Random number generator.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_id_to_person</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">({</span><span class="n">p</span><span class="o">.</span><span class="n">id</span><span class="p">:</span> <span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">persons</span><span class="p">})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_id_to_location</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">({</span><span class="n">loc</span><span class="o">.</span><span class="n">id</span><span class="p">:</span> <span class="n">loc</span> <span class="k">for</span> <span class="n">loc</span> <span class="ow">in</span> <span class="n">locations</span><span class="p">})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_infection_model</span> <span class="o">=</span> <span class="n">infection_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pandemic_testing</span> <span class="o">=</span> <span class="n">pandemic_testing</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_registry</span> <span class="o">=</span> <span class="n">registry</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_contact_tracer</span> <span class="o">=</span> <span class="n">contact_tracer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_new_time_slot_interval</span> <span class="o">=</span> <span class="n">new_time_slot_interval</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_infection_update_interval</span> <span class="o">=</span> <span class="n">infection_update_interval</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_infection_threshold</span> <span class="o">=</span> <span class="n">infection_threshold</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_numpy_rng</span> <span class="o">=</span> <span class="n">numpy_rng</span> <span class="k">if</span> <span class="n">numpy_rng</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_type_to_locations</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">loc</span> <span class="ow">in</span> <span class="n">locations</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_type_to_locations</span><span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="n">loc</span><span class="p">)]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loc</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_hospital_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">loc</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">loc</span> <span class="ow">in</span> <span class="n">locations</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">loc</span><span class="p">,</span> <span class="n">Hospital</span><span class="p">)]</span>
+
+        <span class="n">num_persons</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">persons</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">PandemicSimState</span><span class="p">(</span>
+            <span class="n">id_to_person_state</span><span class="o">=</span><span class="p">{</span><span class="n">person</span><span class="o">.</span><span class="n">id</span><span class="p">:</span> <span class="n">person</span><span class="o">.</span><span class="n">state</span> <span class="k">for</span> <span class="n">person</span> <span class="ow">in</span> <span class="n">persons</span><span class="p">},</span>
+            <span class="n">id_to_location_state</span><span class="o">=</span><span class="p">{</span><span class="n">location</span><span class="o">.</span><span class="n">id</span><span class="p">:</span> <span class="n">location</span><span class="o">.</span><span class="n">state</span> <span class="k">for</span> <span class="n">location</span> <span class="ow">in</span> <span class="n">locations</span><span class="p">},</span>
+            <span class="n">global_infection_summary</span><span class="o">=</span><span class="p">{</span><span class="n">s</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sorted_infection_summary</span><span class="p">},</span>
+            <span class="n">global_testing_state</span><span class="o">=</span><span class="n">GlobalTestingState</span><span class="p">(</span><span class="n">summary</span><span class="o">=</span><span class="p">{</span><span class="n">s</span><span class="p">:</span> <span class="n">num_persons</span> <span class="k">if</span> <span class="n">s</span> <span class="o">==</span> <span class="n">InfectionSummary</span><span class="o">.</span><span class="n">NONE</span> <span class="k">else</span> <span class="mi">0</span>
+                                                             <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sorted_infection_summary</span><span class="p">},</span>
+                                                    <span class="n">num_tests</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+            <span class="n">sim_time</span><span class="o">=</span><span class="n">SimTime</span><span class="p">(),</span>
+            <span class="n">regulation_stage</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">infection_above_threshold</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_compute_contacts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">location</span><span class="p">:</span> <span class="n">Location</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">OrderedSet</span><span class="p">:</span>
+        <span class="n">assignees</span> <span class="o">=</span> <span class="n">location</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">assignees_in_location</span>
+        <span class="n">visitors</span> <span class="o">=</span> <span class="n">location</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">visitors_in_location</span>
+        <span class="n">cr</span> <span class="o">=</span> <span class="n">location</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">contact_rate</span>
+
+        <span class="n">groups</span> <span class="o">=</span> <span class="p">[(</span><span class="n">assignees</span><span class="p">,</span> <span class="n">assignees</span><span class="p">),</span>
+                  <span class="p">(</span><span class="n">assignees</span><span class="p">,</span> <span class="n">visitors</span><span class="p">),</span>
+                  <span class="p">(</span><span class="n">visitors</span><span class="p">,</span> <span class="n">visitors</span><span class="p">)]</span>
+        <span class="n">constraints</span> <span class="o">=</span> <span class="p">[(</span><span class="n">cr</span><span class="o">.</span><span class="n">min_assignees</span><span class="p">,</span> <span class="n">cr</span><span class="o">.</span><span class="n">fraction_assignees</span><span class="p">),</span>
+                       <span class="p">(</span><span class="n">cr</span><span class="o">.</span><span class="n">min_assignees_visitors</span><span class="p">,</span> <span class="n">cr</span><span class="o">.</span><span class="n">fraction_assignees_visitors</span><span class="p">),</span>
+                       <span class="p">(</span><span class="n">cr</span><span class="o">.</span><span class="n">min_visitors</span><span class="p">,</span> <span class="n">cr</span><span class="o">.</span><span class="n">fraction_visitors</span><span class="p">)]</span>
+
+        <span class="n">contacts</span><span class="p">:</span> <span class="n">OrderedSet</span> <span class="o">=</span> <span class="n">OrderedSet</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">grp</span><span class="p">,</span> <span class="n">cst</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="n">constraints</span><span class="p">):</span>
+            <span class="n">grp1</span><span class="p">,</span> <span class="n">grp2</span> <span class="o">=</span> <span class="n">grp</span>
+            <span class="n">minimum</span><span class="p">,</span> <span class="n">fraction</span> <span class="o">=</span> <span class="n">cst</span>
+
+            <span class="n">possible_contacts</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">combinations</span><span class="p">(</span><span class="n">grp1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="k">if</span> <span class="n">grp1</span> <span class="o">==</span> <span class="n">grp2</span> <span class="k">else</span> <span class="n">cartesianproduct</span><span class="p">(</span><span class="n">grp1</span><span class="p">,</span> <span class="n">grp2</span><span class="p">))</span>
+            <span class="n">num_possible_contacts</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">possible_contacts</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">possible_contacts</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">fraction_sample</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_numpy_rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">fraction</span><span class="p">,</span> <span class="mf">1e-2</span><span class="p">)))</span>
+            <span class="n">real_fraction</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">minimum</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">fraction_sample</span> <span class="o">*</span> <span class="n">num_possible_contacts</span><span class="p">))</span>
+
+            <span class="c1"># we are using an orderedset, it&#39;s repeatable</span>
+            <span class="n">contact_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_numpy_rng</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_possible_contacts</span><span class="p">,</span> <span class="n">real_fraction</span><span class="p">)</span>
+            <span class="n">contacts</span><span class="o">.</span><span class="n">update</span><span class="p">([</span><span class="n">possible_contacts</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">contact_idx</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">contacts</span>
+
+    <span class="k">def</span> <span class="nf">_compute_infection_probabilities</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">contacts</span><span class="p">:</span> <span class="n">OrderedSet</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">infectious_states</span> <span class="o">=</span> <span class="p">{</span><span class="n">InfectionSummary</span><span class="o">.</span><span class="n">INFECTED</span><span class="p">,</span> <span class="n">InfectionSummary</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">}</span>
+
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">contacts</span><span class="p">:</span>
+            <span class="n">id_person1</span> <span class="o">=</span> <span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">id_person2</span> <span class="o">=</span> <span class="n">c</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">person1_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_id_to_person</span><span class="p">[</span><span class="n">id_person1</span><span class="p">]</span><span class="o">.</span><span class="n">state</span>
+            <span class="n">person2_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_id_to_person</span><span class="p">[</span><span class="n">id_person2</span><span class="p">]</span><span class="o">.</span><span class="n">state</span>
+            <span class="n">person1_inf_state</span> <span class="o">=</span> <span class="n">person1_state</span><span class="o">.</span><span class="n">infection_state</span>
+            <span class="n">person2_inf_state</span> <span class="o">=</span> <span class="n">person2_state</span><span class="o">.</span><span class="n">infection_state</span>
+
+            <span class="k">if</span> <span class="p">(</span>
+                    <span class="c1"># both are not infectious</span>
+                    <span class="p">(</span><span class="n">person1_inf_state</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">person2_inf_state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span>
+
+                    <span class="c1"># both are already infected</span>
+                    <span class="p">(</span><span class="n">person1_inf_state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">person2_inf_state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
+
+                     <span class="n">person1_inf_state</span><span class="o">.</span><span class="n">summary</span> <span class="ow">in</span> <span class="n">infectious_states</span> <span class="ow">and</span> <span class="n">person2_inf_state</span><span class="o">.</span><span class="n">summary</span> <span class="ow">in</span> <span class="n">infectious_states</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="k">elif</span> <span class="n">person1_inf_state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">person1_inf_state</span><span class="o">.</span><span class="n">summary</span> <span class="ow">in</span> <span class="n">infectious_states</span><span class="p">:</span>
+                <span class="n">spread_probability</span> <span class="o">=</span> <span class="p">(</span><span class="n">person1_inf_state</span><span class="o">.</span><span class="n">spread_probability</span> <span class="o">*</span>
+                                      <span class="n">person1_state</span><span class="o">.</span><span class="n">infection_spread_multiplier</span><span class="p">)</span>
+                <span class="n">person2_state</span><span class="o">.</span><span class="n">not_infection_probability</span> <span class="o">*=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">spread_probability</span>
+            <span class="k">elif</span> <span class="n">person2_inf_state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">person2_inf_state</span><span class="o">.</span><span class="n">summary</span> <span class="ow">in</span> <span class="n">infectious_states</span><span class="p">:</span>
+                <span class="n">spread_probability</span> <span class="o">=</span> <span class="p">(</span><span class="n">person2_inf_state</span><span class="o">.</span><span class="n">spread_probability</span> <span class="o">*</span>
+                                      <span class="n">person2_state</span><span class="o">.</span><span class="n">infection_spread_multiplier</span><span class="p">)</span>
+                <span class="n">person1_state</span><span class="o">.</span><span class="n">not_infection_probability</span> <span class="o">*=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">spread_probability</span>
+
+    <span class="k">def</span> <span class="nf">_update_global_testing_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_result</span><span class="p">:</span> <span class="n">PandemicTestResult</span><span class="p">,</span> <span class="n">prev_result</span><span class="p">:</span> <span class="n">PandemicTestResult</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">new_result</span> <span class="o">==</span> <span class="n">prev_result</span><span class="p">:</span>
+            <span class="c1"># nothing to update</span>
+            <span class="k">return</span>
+
+            <span class="c1"># person died - just update the test summary and __not__ the num_tests</span>
+        <span class="k">if</span> <span class="n">new_result</span> <span class="o">==</span> <span class="n">PandemicTestResult</span><span class="o">.</span><span class="n">DEAD</span> <span class="ow">and</span> <span class="n">prev_result</span> <span class="o">!=</span> <span class="n">PandemicTestResult</span><span class="o">.</span><span class="n">DEAD</span><span class="p">:</span>
+            <span class="n">prv</span> <span class="o">=</span> <span class="n">InfectionSummary</span><span class="o">.</span><span class="n">CRITICAL</span> <span class="k">if</span> <span class="n">prev_result</span> <span class="o">==</span> <span class="n">PandemicTestResult</span><span class="o">.</span><span class="n">CRITICAL</span> <span class="k">else</span> \
+                <span class="n">InfectionSummary</span><span class="o">.</span><span class="n">INFECTED</span> <span class="k">if</span> <span class="n">prev_result</span> <span class="o">==</span> <span class="n">PandemicTestResult</span><span class="o">.</span><span class="n">POSITIVE</span> <span class="k">else</span> <span class="n">InfectionSummary</span><span class="o">.</span><span class="n">NONE</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">global_testing_state</span><span class="o">.</span><span class="n">summary</span><span class="p">[</span><span class="n">InfectionSummary</span><span class="o">.</span><span class="n">DEAD</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">global_testing_state</span><span class="o">.</span><span class="n">summary</span><span class="p">[</span><span class="n">prv</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+
+        <span class="c1"># person tested positive/critical</span>
+        <span class="k">elif</span> <span class="p">(</span><span class="n">new_result</span> <span class="ow">in</span> <span class="p">{</span><span class="n">PandemicTestResult</span><span class="o">.</span><span class="n">POSITIVE</span><span class="p">,</span> <span class="n">PandemicTestResult</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">}</span> <span class="ow">and</span>
+              <span class="n">prev_result</span> <span class="ow">in</span> <span class="p">{</span><span class="n">PandemicTestResult</span><span class="o">.</span><span class="n">POSITIVE</span><span class="p">,</span> <span class="n">PandemicTestResult</span><span class="o">.</span><span class="n">NEGATIVE</span><span class="p">,</span> <span class="n">PandemicTestResult</span><span class="o">.</span><span class="n">UNTESTED</span><span class="p">}):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">InfectionSummary</span><span class="o">.</span><span class="n">CRITICAL</span> <span class="k">if</span> <span class="n">new_result</span> <span class="o">==</span> <span class="n">PandemicTestResult</span><span class="o">.</span><span class="n">CRITICAL</span> <span class="k">else</span> <span class="n">InfectionSummary</span><span class="o">.</span><span class="n">INFECTED</span>
+            <span class="n">prv</span> <span class="o">=</span> <span class="n">InfectionSummary</span><span class="o">.</span><span class="n">INFECTED</span> <span class="k">if</span> <span class="n">prev_result</span> <span class="o">==</span> <span class="n">PandemicTestResult</span><span class="o">.</span><span class="n">POSITIVE</span> <span class="k">else</span> <span class="n">InfectionSummary</span><span class="o">.</span><span class="n">NONE</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">global_testing_state</span><span class="o">.</span><span class="n">summary</span><span class="p">[</span><span class="n">new</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">global_testing_state</span><span class="o">.</span><span class="n">summary</span><span class="p">[</span><span class="n">prv</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">global_testing_state</span><span class="o">.</span><span class="n">num_tests</span> <span class="o">+=</span> <span class="mi">1</span>  <span class="c1"># update number of tests</span>
+
+        <span class="c1"># person tested negative after having tested as infected before</span>
+        <span class="k">elif</span> <span class="p">(</span><span class="n">new_result</span> <span class="o">==</span> <span class="n">PandemicTestResult</span><span class="o">.</span><span class="n">NEGATIVE</span> <span class="ow">and</span>
+              <span class="n">prev_result</span> <span class="ow">in</span> <span class="p">{</span><span class="n">PandemicTestResult</span><span class="o">.</span><span class="n">POSITIVE</span><span class="p">,</span> <span class="n">PandemicTestResult</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">}):</span>
+            <span class="n">prv</span> <span class="o">=</span> <span class="n">InfectionSummary</span><span class="o">.</span><span class="n">CRITICAL</span> <span class="k">if</span> <span class="n">prev_result</span> <span class="o">==</span> <span class="n">PandemicTestResult</span><span class="o">.</span><span class="n">CRITICAL</span> <span class="k">else</span> <span class="n">InfectionSummary</span><span class="o">.</span><span class="n">INFECTED</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">global_testing_state</span><span class="o">.</span><span class="n">summary</span><span class="p">[</span><span class="n">InfectionSummary</span><span class="o">.</span><span class="n">RECOVERED</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">global_testing_state</span><span class="o">.</span><span class="n">summary</span><span class="p">[</span><span class="n">prv</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">global_testing_state</span><span class="o">.</span><span class="n">num_tests</span> <span class="o">+=</span> <span class="mi">1</span>  <span class="c1"># update number of tests</span>
+
+<div class="viewcode-block" id="PandemicSim.step"><a class="viewcode-back" href="../../../sources/pandemic_simulator.environment.html#pandemic_simulator.environment.pandemic_sim.PandemicSim.step">[docs]</a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Method that advances one step through the simulator&quot;&quot;&quot;</span>
+        <span class="c1"># sync all locations</span>
+        <span class="k">for</span> <span class="n">location</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_id_to_location</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">location</span><span class="o">.</span><span class="n">sync</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">sim_time</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_registry</span><span class="o">.</span><span class="n">update_location_specific_information</span><span class="p">()</span>
+
+        <span class="c1"># call person steps</span>
+        <span class="k">for</span> <span class="n">person</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_id_to_person</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">person</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">sim_time</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_contact_tracer</span><span class="p">)</span>
+
+        <span class="c1"># update person contacts</span>
+        <span class="k">for</span> <span class="n">location</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_id_to_location</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">contacts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_contacts</span><span class="p">(</span><span class="n">location</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_contact_tracer</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_contact_tracer</span><span class="o">.</span><span class="n">add_contacts</span><span class="p">(</span><span class="n">contacts</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_compute_infection_probabilities</span><span class="p">(</span><span class="n">contacts</span><span class="p">)</span>
+
+        <span class="c1"># call infection model steps</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_infection_update_interval</span><span class="o">.</span><span class="n">trigger_at_interval</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">sim_time</span><span class="p">):</span>
+            <span class="n">global_infection_summary</span> <span class="o">=</span> <span class="p">{</span><span class="n">s</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sorted_infection_summary</span><span class="p">}</span>
+            <span class="k">for</span> <span class="n">person</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_id_to_person</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                <span class="c1"># infection model step</span>
+                <span class="n">person</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">infection_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_infection_model</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">person</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">infection_state</span><span class="p">,</span>
+                                                                          <span class="n">person</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">age</span><span class="p">,</span>
+                                                                          <span class="n">person</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">risk</span><span class="p">,</span>
+                                                                          <span class="mi">1</span> <span class="o">-</span> <span class="n">person</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">not_infection_probability</span><span class="p">)</span>
+
+                <span class="n">global_infection_summary</span><span class="p">[</span><span class="n">person</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">infection_state</span><span class="o">.</span><span class="n">summary</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">person</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">not_infection_probability</span> <span class="o">=</span> <span class="mf">1.</span>
+
+                <span class="c1"># test the person for infection</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pandemic_testing</span><span class="o">.</span><span class="n">admit_person</span><span class="p">(</span><span class="n">person</span><span class="o">.</span><span class="n">state</span><span class="p">):</span>
+                    <span class="n">new_test_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pandemic_testing</span><span class="o">.</span><span class="n">test_person</span><span class="p">(</span><span class="n">person</span><span class="o">.</span><span class="n">state</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_update_global_testing_state</span><span class="p">(</span><span class="n">new_test_result</span><span class="p">,</span> <span class="n">person</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">test_result</span><span class="p">)</span>
+                    <span class="n">person</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">test_result</span> <span class="o">=</span> <span class="n">new_test_result</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">global_infection_summary</span> <span class="o">=</span> <span class="n">global_infection_summary</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">infection_above_threshold</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">global_testing_state</span><span class="o">.</span><span class="n">summary</span><span class="p">[</span><span class="n">InfectionSummary</span><span class="o">.</span><span class="n">INFECTED</span><span class="p">]</span>
+                                                 <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_infection_threshold</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_contact_tracer</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_new_time_slot_interval</span><span class="o">.</span><span class="n">trigger_at_interval</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">sim_time</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_contact_tracer</span><span class="o">.</span><span class="n">new_time_slot</span><span class="p">()</span>
+
+        <span class="c1"># call sim time step</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">sim_time</span><span class="o">.</span><span class="n">step</span><span class="p">()</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_cr_from_social_distancing</span><span class="p">(</span><span class="n">location</span><span class="p">:</span> <span class="n">Location</span><span class="p">,</span>
+                                       <span class="n">social_distancing</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ContactRate</span><span class="p">:</span>
+        <span class="n">new_fraction</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">social_distancing</span>
+        <span class="n">cr</span> <span class="o">=</span> <span class="n">location</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">contact_rate</span>
+        <span class="n">init_cr</span> <span class="o">=</span> <span class="n">location</span><span class="o">.</span><span class="n">init_state</span><span class="o">.</span><span class="n">contact_rate</span>
+        <span class="n">new_cr</span> <span class="o">=</span> <span class="n">ContactRate</span><span class="p">(</span><span class="n">cr</span><span class="o">.</span><span class="n">min_assignees</span><span class="p">,</span>
+                             <span class="n">cr</span><span class="o">.</span><span class="n">min_assignees_visitors</span><span class="p">,</span>
+                             <span class="n">cr</span><span class="o">.</span><span class="n">min_visitors</span><span class="p">,</span>
+                             <span class="n">new_fraction</span> <span class="o">*</span> <span class="n">init_cr</span><span class="o">.</span><span class="n">fraction_assignees</span><span class="p">,</span>
+                             <span class="n">new_fraction</span> <span class="o">*</span> <span class="n">init_cr</span><span class="o">.</span><span class="n">fraction_assignees_visitors</span><span class="p">,</span>
+                             <span class="n">new_fraction</span> <span class="o">*</span> <span class="n">init_cr</span><span class="o">.</span><span class="n">fraction_visitors</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">new_cr</span>
+
+<div class="viewcode-block" id="PandemicSim.execute_regulation"><a class="viewcode-back" href="../../../sources/pandemic_simulator.environment.html#pandemic_simulator.environment.pandemic_sim.PandemicSim.execute_regulation">[docs]</a>    <span class="k">def</span> <span class="nf">execute_regulation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">regulation</span><span class="p">:</span> <span class="n">PandemicRegulation</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Receive a regulation that updates the simulator dynamics</span>
+
+<span class="sd">        :param regulation: a PandemicRegulation instance</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># update location rules</span>
+        <span class="n">sd</span> <span class="o">=</span> <span class="n">regulation</span><span class="o">.</span><span class="n">social_distancing</span>
+        <span class="n">loc_type_rk</span> <span class="o">=</span> <span class="n">regulation</span><span class="o">.</span><span class="n">location_type_to_rule_kwargs</span>
+
+        <span class="k">for</span> <span class="n">loc_type</span><span class="p">,</span> <span class="n">locations</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_type_to_locations</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">rule_kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">if</span> <span class="n">loc_type_rk</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">loc_type</span> <span class="ow">in</span> <span class="n">loc_type_rk</span><span class="p">:</span>
+                <span class="n">rule_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">loc_type_rk</span><span class="p">[</span><span class="n">loc_type</span><span class="p">])</span>
+
+            <span class="k">if</span> <span class="n">sd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># cr is the same for all locations of a given type. So just use one location to compute the new cr.</span>
+                <span class="n">cr</span> <span class="o">=</span> <span class="p">(</span><span class="n">DEFAULT</span> <span class="k">if</span> <span class="n">sd</span> <span class="o">==</span> <span class="n">DEFAULT</span>
+                      <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cr_from_social_distancing</span><span class="p">(</span><span class="n">locations</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">cast</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sd</span><span class="p">)))</span>
+                <span class="n">rule_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">contact_rate</span><span class="o">=</span><span class="n">cr</span><span class="p">))</span>
+
+            <span class="k">for</span> <span class="n">loc</span> <span class="ow">in</span> <span class="n">locations</span><span class="p">:</span>
+                <span class="n">loc</span><span class="o">.</span><span class="n">update_rules</span><span class="p">(</span><span class="n">loc</span><span class="o">.</span><span class="n">location_rule_type</span><span class="p">(</span><span class="o">**</span><span class="n">rule_kwargs</span><span class="p">))</span>
+
+        <span class="c1"># update person policy</span>
+        <span class="k">for</span> <span class="n">person</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_id_to_person</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">person</span><span class="o">.</span><span class="n">receive_regulation</span><span class="p">(</span><span class="n">regulation</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">regulation_stage</span> <span class="o">=</span> <span class="n">regulation</span><span class="o">.</span><span class="n">stage</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PandemicSimState</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Property that returns the current state of the simulator.</span>
+
+<span class="sd">        :return: Current state of the simulator.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span>
+
+<div class="viewcode-block" id="PandemicSim.reset"><a class="viewcode-back" href="../../../sources/pandemic_simulator.environment.html#pandemic_simulator.environment.pandemic_sim.PandemicSim.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">location</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_id_to_location</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">location</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">person</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_id_to_person</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">person</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_infection_model</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+        <span class="n">num_persons</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_id_to_person</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">PandemicSimState</span><span class="p">(</span>
+            <span class="n">id_to_person_state</span><span class="o">=</span><span class="p">{</span><span class="n">person_id</span><span class="p">:</span> <span class="n">person</span><span class="o">.</span><span class="n">state</span> <span class="k">for</span> <span class="n">person_id</span><span class="p">,</span> <span class="n">person</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_id_to_person</span><span class="o">.</span><span class="n">items</span><span class="p">()},</span>
+            <span class="n">id_to_location_state</span><span class="o">=</span><span class="p">{</span><span class="n">loc_id</span><span class="p">:</span> <span class="n">loc</span><span class="o">.</span><span class="n">state</span> <span class="k">for</span> <span class="n">loc_id</span><span class="p">,</span> <span class="n">loc</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_id_to_location</span><span class="o">.</span><span class="n">items</span><span class="p">()},</span>
+            <span class="n">global_infection_summary</span><span class="o">=</span><span class="p">{</span><span class="n">s</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sorted_infection_summary</span><span class="p">},</span>
+            <span class="n">global_testing_state</span><span class="o">=</span><span class="n">GlobalTestingState</span><span class="p">(</span><span class="n">summary</span><span class="o">=</span><span class="p">{</span><span class="n">s</span><span class="p">:</span> <span class="n">num_persons</span> <span class="k">if</span> <span class="n">s</span> <span class="o">==</span> <span class="n">InfectionSummary</span><span class="o">.</span><span class="n">NONE</span> <span class="k">else</span> <span class="mi">0</span>
+                                                             <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sorted_infection_summary</span><span class="p">},</span>
+                                                    <span class="n">num_tests</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+            <span class="n">sim_time</span><span class="o">=</span><span class="n">SimTime</span><span class="p">(),</span>
+            <span class="n">regulation_stage</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">infection_above_threshold</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">pandemic_simulator</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../sources/modules.html">Python API Reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Sony AI.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

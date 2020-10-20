@@ -1,0 +1,223 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pandemic_simulator.data.interfaces package &#8212; pandemic_simulator  documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="pandemic_simulator.environment package" href="pandemic_simulator.environment.html" />
+    <link rel="prev" title="pandemic_simulator.data package" href="pandemic_simulator.data.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-pandemic_simulator.data.interfaces">
+<span id="pandemic-simulator-data-interfaces-package"></span><h1>pandemic_simulator.data.interfaces package<a class="headerlink" href="#module-pandemic_simulator.data.interfaces" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-pandemic_simulator.data.interfaces.data_loader">
+<span id="pandemic-simulator-data-interfaces-data-loader-module"></span><h2>pandemic_simulator.data.interfaces.data_loader module<a class="headerlink" href="#module-pandemic_simulator.data.interfaces.data_loader" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="pandemic_simulator.data.interfaces.data_loader.ExperimentDataLoader">
+<em class="property">class </em><code class="sig-prename descclassname">pandemic_simulator.data.interfaces.data_loader.</code><code class="sig-name descname">ExperimentDataLoader</code><a class="reference internal" href="../_modules/pandemic_simulator/data/interfaces/data_loader.html#ExperimentDataLoader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandemic_simulator.data.interfaces.data_loader.ExperimentDataLoader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>An interface for a data loader.</p>
+<dl class="py method">
+<dt id="pandemic_simulator.data.interfaces.data_loader.ExperimentDataLoader.get_data">
+<code class="sig-name descname">get_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Sequence<span class="p">[</span><a class="reference internal" href="#pandemic_simulator.data.interfaces.data_loader.ExperimentResult" title="pandemic_simulator.data.interfaces.data_loader.ExperimentResult">pandemic_simulator.data.interfaces.data_loader.ExperimentResult</a><span class="p">]</span><a class="reference internal" href="../_modules/pandemic_simulator/data/interfaces/data_loader.html#ExperimentDataLoader.get_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandemic_simulator.data.interfaces.data_loader.ExperimentDataLoader.get_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return data as a sequence of ExperimentResult instances</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pandemic_simulator.data.interfaces.data_loader.ExperimentResult">
+<em class="property">class </em><code class="sig-prename descclassname">pandemic_simulator.data.interfaces.data_loader.</code><code class="sig-name descname">ExperimentResult</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim_opts</span><span class="p">:</span> <span class="n"><a class="reference internal" href="pandemic_simulator.environment.html#pandemic_simulator.environment.simulator_opts.PandemicSimOpts" title="pandemic_simulator.environment.simulator_opts.PandemicSimOpts">pandemic_simulator.environment.simulator_opts.PandemicSimOpts</a></span></em>, <em class="sig-param"><span class="n">seeds</span><span class="p">:</span> <span class="n">List<span class="p">[</span>Union<span class="p">[</span>int<span class="p">, </span>NoneType<span class="p">]</span><span class="p">]</span></span></em>, <em class="sig-param"><span class="n">obs_trajectories</span><span class="p">:</span> <span class="n"><a class="reference internal" href="pandemic_simulator.environment.interfaces.html#pandemic_simulator.environment.interfaces.pandemic_observation.PandemicObservation" title="pandemic_simulator.environment.interfaces.pandemic_observation.PandemicObservation">pandemic_simulator.environment.interfaces.pandemic_observation.PandemicObservation</a></span></em>, <em class="sig-param"><span class="n">reward_trajectories</span><span class="p">:</span> <span class="n">numpy.ndarray</span></em>, <em class="sig-param"><span class="n">strategy</span><span class="p">:</span> <span class="n">Sequence<span class="p">[</span><a class="reference internal" href="#pandemic_simulator.data.interfaces.data_loader.StageSchedule" title="pandemic_simulator.data.interfaces.data_loader.StageSchedule">pandemic_simulator.data.interfaces.data_loader.StageSchedule</a><span class="p">]</span></span></em>, <em class="sig-param"><span class="n">num_persons</span><span class="p">:</span> <span class="n">int</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandemic_simulator/data/interfaces/data_loader.html#ExperimentResult"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandemic_simulator.data.interfaces.data_loader.ExperimentResult" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt id="pandemic_simulator.data.interfaces.data_loader.ExperimentResult.num_persons">
+<code class="sig-name descname">num_persons</code><em class="property">: int</em><a class="headerlink" href="#pandemic_simulator.data.interfaces.data_loader.ExperimentResult.num_persons" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pandemic_simulator.data.interfaces.data_loader.ExperimentResult.obs_trajectories">
+<code class="sig-name descname">obs_trajectories</code><em class="property">: <a class="reference internal" href="pandemic_simulator.environment.interfaces.html#pandemic_simulator.environment.interfaces.pandemic_observation.PandemicObservation" title="pandemic_simulator.environment.interfaces.pandemic_observation.PandemicObservation">pandemic_simulator.environment.interfaces.pandemic_observation.PandemicObservation</a></em><a class="headerlink" href="#pandemic_simulator.data.interfaces.data_loader.ExperimentResult.obs_trajectories" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pandemic_simulator.data.interfaces.data_loader.ExperimentResult.reward_trajectories">
+<code class="sig-name descname">reward_trajectories</code><em class="property">: numpy.ndarray</em><a class="headerlink" href="#pandemic_simulator.data.interfaces.data_loader.ExperimentResult.reward_trajectories" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pandemic_simulator.data.interfaces.data_loader.ExperimentResult.seeds">
+<code class="sig-name descname">seeds</code><em class="property">: List<span class="p">[</span>Optional<span class="p">[</span>int<span class="p">]</span><span class="p">]</span></em><a class="headerlink" href="#pandemic_simulator.data.interfaces.data_loader.ExperimentResult.seeds" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pandemic_simulator.data.interfaces.data_loader.ExperimentResult.sim_opts">
+<code class="sig-name descname">sim_opts</code><em class="property">: <a class="reference internal" href="pandemic_simulator.environment.html#pandemic_simulator.environment.simulator_opts.PandemicSimOpts" title="pandemic_simulator.environment.simulator_opts.PandemicSimOpts">pandemic_simulator.environment.simulator_opts.PandemicSimOpts</a></em><a class="headerlink" href="#pandemic_simulator.data.interfaces.data_loader.ExperimentResult.sim_opts" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pandemic_simulator.data.interfaces.data_loader.ExperimentResult.strategy">
+<code class="sig-name descname">strategy</code><em class="property">: Sequence<span class="p">[</span><a class="reference internal" href="#pandemic_simulator.data.interfaces.data_loader.StageSchedule" title="pandemic_simulator.data.interfaces.data_loader.StageSchedule">pandemic_simulator.data.interfaces.data_loader.StageSchedule</a><span class="p">]</span></em><a class="headerlink" href="#pandemic_simulator.data.interfaces.data_loader.ExperimentResult.strategy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pandemic_simulator.data.interfaces.data_loader.StageSchedule">
+<em class="property">class </em><code class="sig-prename descclassname">pandemic_simulator.data.interfaces.data_loader.</code><code class="sig-name descname">StageSchedule</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">stage</span><span class="p">:</span> <span class="n">int</span></em>, <em class="sig-param"><span class="n">end_day</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>int<span class="p">, </span>NoneType<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pandemic_simulator/data/interfaces/data_loader.html#StageSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandemic_simulator.data.interfaces.data_loader.StageSchedule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt id="pandemic_simulator.data.interfaces.data_loader.StageSchedule.end_day">
+<code class="sig-name descname">end_day</code><em class="property">: Optional<span class="p">[</span>int<span class="p">]</span></em><em class="property"> = None</em><a class="headerlink" href="#pandemic_simulator.data.interfaces.data_loader.StageSchedule.end_day" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pandemic_simulator.data.interfaces.data_loader.StageSchedule.stage">
+<code class="sig-name descname">stage</code><em class="property">: int</em><a class="headerlink" href="#pandemic_simulator.data.interfaces.data_loader.StageSchedule.stage" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-pandemic_simulator.data.interfaces.data_saver">
+<span id="pandemic-simulator-data-interfaces-data-saver-module"></span><h2>pandemic_simulator.data.interfaces.data_saver module<a class="headerlink" href="#module-pandemic_simulator.data.interfaces.data_saver" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="pandemic_simulator.data.interfaces.data_saver.ExperimentDataSaver">
+<em class="property">class </em><code class="sig-prename descclassname">pandemic_simulator.data.interfaces.data_saver.</code><code class="sig-name descname">ExperimentDataSaver</code><a class="reference internal" href="../_modules/pandemic_simulator/data/interfaces/data_saver.html#ExperimentDataSaver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandemic_simulator.data.interfaces.data_saver.ExperimentDataSaver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>An interface for an experiment data saver.</p>
+<dl class="py method">
+<dt id="pandemic_simulator.data.interfaces.data_saver.ExperimentDataSaver.begin">
+<code class="sig-name descname">begin</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obs</span><span class="p">:</span> <span class="n"><a class="reference internal" href="pandemic_simulator.environment.interfaces.html#pandemic_simulator.environment.interfaces.pandemic_observation.PandemicObservation" title="pandemic_simulator.environment.interfaces.pandemic_observation.PandemicObservation">pandemic_simulator.environment.interfaces.pandemic_observation.PandemicObservation</a></span></em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../_modules/pandemic_simulator/data/interfaces/data_saver.html#ExperimentDataSaver.begin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandemic_simulator.data.interfaces.data_saver.ExperimentDataSaver.begin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Begin a saving episode</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pandemic_simulator.data.interfaces.data_saver.ExperimentDataSaver.close">
+<code class="sig-name descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../_modules/pandemic_simulator/data/interfaces/data_saver.html#ExperimentDataSaver.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandemic_simulator.data.interfaces.data_saver.ExperimentDataSaver.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform any closing operations.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pandemic_simulator.data.interfaces.data_saver.ExperimentDataSaver.finalize">
+<code class="sig-name descname">finalize</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span></em><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="../_modules/pandemic_simulator/data/interfaces/data_saver.html#ExperimentDataSaver.finalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandemic_simulator.data.interfaces.data_saver.ExperimentDataSaver.finalize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finalize saving the episode and return True if successful else False</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pandemic_simulator.data.interfaces.data_saver.ExperimentDataSaver.record">
+<code class="sig-name descname">record</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obs</span><span class="p">:</span> <span class="n"><a class="reference internal" href="pandemic_simulator.environment.interfaces.html#pandemic_simulator.environment.interfaces.pandemic_observation.PandemicObservation" title="pandemic_simulator.environment.interfaces.pandemic_observation.PandemicObservation">pandemic_simulator.environment.interfaces.pandemic_observation.PandemicObservation</a></span></em>, <em class="sig-param"><span class="n">reward</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>Union<span class="p">[</span>numpy.ndarray<span class="p">, </span>float<span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../_modules/pandemic_simulator/data/interfaces/data_saver.html#ExperimentDataSaver.record"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandemic_simulator.data.interfaces.data_saver.ExperimentDataSaver.record" title="Permalink to this definition">¶</a></dt>
+<dd><p>Record data from obs and optionally a reward</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">pandemic_simulator</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">Python API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="pandemic_simulator.html">pandemic_simulator package</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="modules.html">Python API Reference</a><ul>
+  <li><a href="pandemic_simulator.html">pandemic_simulator package</a><ul>
+  <li><a href="pandemic_simulator.data.html">pandemic_simulator.data package</a><ul>
+      <li>Previous: <a href="pandemic_simulator.data.html" title="previous chapter">pandemic_simulator.data package</a></li>
+      <li>Next: <a href="pandemic_simulator.environment.html" title="next chapter">pandemic_simulator.environment package</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Sony AI.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/sources/pandemic_simulator.data.interfaces.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,417 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pandemic_simulator.environment.infection_model.seir_infection_model &#8212; pandemic_simulator  documentation</title>
+    <link rel="stylesheet" href="../../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pandemic_simulator.environment.infection_model.seir_infection_model</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">cast</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">truncnorm</span>
+
+<span class="kn">from</span> <span class="nn">..interfaces</span> <span class="kn">import</span> <span class="n">IndividualInfectionState</span><span class="p">,</span> <span class="n">InfectionModel</span><span class="p">,</span> <span class="n">InfectionSummary</span><span class="p">,</span> <span class="n">Risk</span>
+<span class="kn">from</span> <span class="nn">...utils</span> <span class="kn">import</span> <span class="n">required</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;SEIRInfectionState&#39;</span><span class="p">,</span> <span class="s1">&#39;SEIRModel&#39;</span><span class="p">,</span> <span class="s1">&#39;SpreadProbabilityParams&#39;</span><span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">_SEIRLabel</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">susceptible</span> <span class="o">=</span> <span class="s1">&#39;susceptible&#39;</span>
+    <span class="n">exposed</span> <span class="o">=</span> <span class="s1">&#39;exposed&#39;</span>
+    <span class="n">pre_asymp</span> <span class="o">=</span> <span class="s1">&#39;pre_asymp&#39;</span>
+    <span class="n">pre_symp</span> <span class="o">=</span> <span class="s1">&#39;pre_symp&#39;</span>
+    <span class="n">asymp</span> <span class="o">=</span> <span class="s1">&#39;asymp&#39;</span>
+    <span class="n">symp</span> <span class="o">=</span> <span class="s1">&#39;symp&#39;</span>
+    <span class="n">needs_hospitalization</span> <span class="o">=</span> <span class="s1">&#39;needs_hospitalization&#39;</span>
+    <span class="n">hospitalized</span> <span class="o">=</span> <span class="s1">&#39;hospitalized&#39;</span>
+    <span class="n">recovered</span> <span class="o">=</span> <span class="s1">&#39;recovered&#39;</span>
+    <span class="n">deceased</span> <span class="o">=</span> <span class="s1">&#39;deceased&#39;</span>
+
+
+<span class="k">class</span> <span class="nc">_AgeLimit</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">_4</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">_17</span> <span class="o">=</span> <span class="mi">17</span>
+    <span class="n">_49</span> <span class="o">=</span> <span class="mi">49</span>
+    <span class="n">_64</span> <span class="o">=</span> <span class="mi">64</span>
+    <span class="n">_200</span> <span class="o">=</span> <span class="mi">200</span>
+
+
+<span class="n">_DEFAULT_HOSP_RATE_SYMP</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_4</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">LOW</span><span class="p">):</span> <span class="mf">0.0279</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_17</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">LOW</span><span class="p">):</span> <span class="mf">0.0215</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_49</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">LOW</span><span class="p">):</span> <span class="mf">1.3215</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_64</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">LOW</span><span class="p">):</span> <span class="mf">2.8563</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_200</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">LOW</span><span class="p">):</span> <span class="mf">3.3873</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_4</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">HIGH</span><span class="p">):</span> <span class="mf">0.2791</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_17</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">HIGH</span><span class="p">):</span> <span class="mf">0.2146</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_49</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">HIGH</span><span class="p">):</span> <span class="mf">13.2154</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_64</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">HIGH</span><span class="p">):</span> <span class="mf">28.5634</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_200</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">HIGH</span><span class="p">):</span> <span class="mf">33.8733</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">_DEFAULT_DEATH_RATE_NEEDS_HOSP</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_4</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">LOW</span><span class="p">):</span> <span class="mf">0.2390</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_17</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">LOW</span><span class="p">):</span> <span class="mf">0.3208</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_49</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">LOW</span><span class="p">):</span> <span class="mf">0.2304</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_64</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">LOW</span><span class="p">):</span> <span class="mf">0.3049</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_200</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">LOW</span><span class="p">):</span> <span class="mf">0.4269</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_4</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">HIGH</span><span class="p">):</span> <span class="mf">0.2390</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_17</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">HIGH</span><span class="p">):</span> <span class="mf">0.3208</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_49</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">HIGH</span><span class="p">):</span> <span class="mf">0.2304</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_64</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">HIGH</span><span class="p">):</span> <span class="mf">0.3049</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_200</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">HIGH</span><span class="p">):</span> <span class="mf">0.4269</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">_DEFAULT_DEATH_RATE_HOSP</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_4</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">LOW</span><span class="p">):</span> <span class="mf">0.0390</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_17</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">LOW</span><span class="p">):</span> <span class="mf">0.1208</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_49</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">LOW</span><span class="p">):</span> <span class="mf">0.0304</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_64</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">LOW</span><span class="p">):</span> <span class="mf">0.1049</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_200</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">LOW</span><span class="p">):</span> <span class="mf">0.2269</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_4</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">HIGH</span><span class="p">):</span> <span class="mf">0.0390</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_17</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">HIGH</span><span class="p">):</span> <span class="mf">0.1208</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_49</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">HIGH</span><span class="p">):</span> <span class="mf">0.0304</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_64</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">HIGH</span><span class="p">):</span> <span class="mf">0.1049</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_200</span><span class="p">,</span> <span class="n">Risk</span><span class="o">.</span><span class="n">HIGH</span><span class="p">):</span> <span class="mf">0.2269</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span> <span class="nf">_get_age_limit_from_age</span><span class="p">(</span><span class="n">age</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_AgeLimit</span><span class="p">:</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">_AgeLimit</span><span class="o">.</span><span class="n">_200</span>
+
+    <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">_AgeLimit</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">age</span> <span class="o">&lt;=</span> <span class="n">a</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">a</span>
+            <span class="k">break</span>
+
+    <span class="k">return</span> <span class="n">value</span>
+
+
+<div class="viewcode-block" id="SEIRInfectionState"><a class="viewcode-back" href="../../../../sources/pandemic_simulator.environment.infection_model.html#pandemic_simulator.environment.infection_model.seir_infection_model.SEIRInfectionState">[docs]</a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">SEIRInfectionState</span><span class="p">(</span><span class="n">IndividualInfectionState</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;State of the infection according to SEIR.&quot;&quot;&quot;</span>
+    <span class="n">label</span><span class="p">:</span> <span class="n">_SEIRLabel</span> <span class="o">=</span> <span class="n">required</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="SpreadProbabilityParams"><a class="viewcode-back" href="../../../../sources/pandemic_simulator.environment.infection_model.html#pandemic_simulator.environment.infection_model.seir_infection_model.SpreadProbabilityParams">[docs]</a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">SpreadProbabilityParams</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Parameters for individual spread probabilities.&quot;&quot;&quot;</span>
+    <span class="n">mean</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.03</span>
+    <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.03</span></div>
+
+
+<span class="n">_TransitionProbability</span> <span class="o">=</span> <span class="n">Dict</span><span class="p">[</span><span class="n">_SEIRLabel</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>
+<span class="n">_ModelDescriptionValue</span> <span class="o">=</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">_AgeLimit</span><span class="p">,</span> <span class="n">Risk</span><span class="p">]],</span> <span class="n">_TransitionProbability</span><span class="p">]</span>
+<span class="n">_ModelDescription</span> <span class="o">=</span> <span class="n">Dict</span><span class="p">[</span><span class="n">_SEIRLabel</span><span class="p">,</span> <span class="n">_ModelDescriptionValue</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="SEIRModel"><a class="viewcode-back" href="../../../../sources/pandemic_simulator.environment.infection_model.html#pandemic_simulator.environment.infection_model.seir_infection_model.SEIRModel">[docs]</a><span class="k">class</span> <span class="nc">SEIRModel</span><span class="p">(</span><span class="n">InfectionModel</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Model of the spreading of the infection.&quot;&quot;&quot;</span>
+
+    <span class="n">_model</span><span class="p">:</span> <span class="n">_ModelDescription</span>
+    <span class="n">_seir_to_summary</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">_SEIRLabel</span><span class="p">,</span> <span class="n">InfectionSummary</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">susceptible</span><span class="p">:</span> <span class="n">InfectionSummary</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span>
+        <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">exposed</span><span class="p">:</span> <span class="n">InfectionSummary</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span>
+        <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">pre_asymp</span><span class="p">:</span> <span class="n">InfectionSummary</span><span class="o">.</span><span class="n">INFECTED</span><span class="p">,</span>
+        <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">pre_symp</span><span class="p">:</span> <span class="n">InfectionSummary</span><span class="o">.</span><span class="n">INFECTED</span><span class="p">,</span>
+        <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">asymp</span><span class="p">:</span> <span class="n">InfectionSummary</span><span class="o">.</span><span class="n">INFECTED</span><span class="p">,</span>
+        <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">symp</span><span class="p">:</span> <span class="n">InfectionSummary</span><span class="o">.</span><span class="n">INFECTED</span><span class="p">,</span>
+        <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">needs_hospitalization</span><span class="p">:</span> <span class="n">InfectionSummary</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">,</span>
+        <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">hospitalized</span><span class="p">:</span> <span class="n">InfectionSummary</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">,</span>
+        <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">recovered</span><span class="p">:</span> <span class="n">InfectionSummary</span><span class="o">.</span><span class="n">RECOVERED</span><span class="p">,</span>
+        <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">deceased</span><span class="p">:</span> <span class="n">InfectionSummary</span><span class="o">.</span><span class="n">DEAD</span>
+    <span class="p">}</span>
+    <span class="n">_spread_probability</span><span class="p">:</span> <span class="n">Any</span>
+    <span class="n">_numpy_rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span>
+    <span class="n">_pandemic_started_counter</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">_pandemic_start_limit</span><span class="p">:</span> <span class="nb">int</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">symp_proportion</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.57</span><span class="p">,</span>
+                 <span class="n">exposed_rate</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">pre_asymp_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="mf">2.3</span><span class="p">,</span>
+                 <span class="n">pre_symp_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="mf">2.3</span><span class="p">,</span>
+                 <span class="n">recovery_rate_asymp</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">recovery_rate_symp_non_treated</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">recovery_rate_needs_hosp</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0214286</span><span class="p">,</span>
+                 <span class="n">recovery_rate_hosp</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">hosp_rate_symp</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">_AgeLimit</span><span class="p">,</span> <span class="n">Risk</span><span class="p">],</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">death_rate_hosp</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">_AgeLimit</span><span class="p">,</span> <span class="n">Risk</span><span class="p">],</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">death_rate_needs_hosp</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">_AgeLimit</span><span class="p">,</span> <span class="n">Risk</span><span class="p">],</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">from_symp_to_hosp_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1695</span><span class="p">,</span>
+                 <span class="n">from_needs_hosp_to_death_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.3</span><span class="p">,</span>
+                 <span class="n">from_hosp_to_death_rate</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">spread_probability_params</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SpreadProbabilityParams</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">pandemic_start_limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+                 <span class="n">numpy_rng</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_numpy_rng</span> <span class="o">=</span> <span class="n">numpy_rng</span> <span class="k">if</span> <span class="n">numpy_rng</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">()</span>
+
+        <span class="n">exposed_rate</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_numpy_rng</span><span class="o">.</span><span class="n">triangular</span><span class="p">(</span><span class="mf">1.9</span><span class="p">,</span> <span class="mf">2.9</span><span class="p">,</span> <span class="mf">3.9</span><span class="p">)</span> <span class="k">if</span> <span class="n">exposed_rate</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">exposed_rate</span>
+        <span class="n">recovery_rate_asymp</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_numpy_rng</span><span class="o">.</span><span class="n">triangular</span><span class="p">(</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">)</span> <span class="k">if</span> <span class="n">recovery_rate_asymp</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> \
+            <span class="n">recovery_rate_asymp</span>
+        <span class="n">recovery_rate_symp_non_treated</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_numpy_rng</span><span class="o">.</span><span class="n">triangular</span><span class="p">(</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">)</span> \
+            <span class="k">if</span> <span class="n">recovery_rate_symp_non_treated</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">recovery_rate_symp_non_treated</span>
+
+        <span class="n">recovery_rate_hosp</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_numpy_rng</span><span class="o">.</span><span class="n">triangular</span><span class="p">(</span><span class="mf">9.4</span><span class="p">,</span> <span class="mf">10.7</span><span class="p">,</span> <span class="mf">12.8</span><span class="p">)</span> <span class="k">if</span> <span class="n">recovery_rate_hosp</span> <span class="ow">is</span> <span class="kc">None</span> \
+            <span class="k">else</span> <span class="n">recovery_rate_hosp</span>
+        <span class="n">from_hosp_to_death_rate</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_numpy_rng</span><span class="o">.</span><span class="n">triangular</span><span class="p">(</span><span class="mf">5.2</span><span class="p">,</span> <span class="mf">8.1</span><span class="p">,</span> <span class="mf">10.1</span><span class="p">)</span> <span class="k">if</span> <span class="n">from_hosp_to_death_rate</span> <span class="ow">is</span> <span class="kc">None</span> \
+            <span class="k">else</span> <span class="n">from_hosp_to_death_rate</span>
+
+        <span class="n">hosp_rate_symp</span> <span class="o">=</span> <span class="n">hosp_rate_symp</span> <span class="k">if</span> <span class="n">hosp_rate_symp</span> <span class="k">else</span> <span class="n">_DEFAULT_HOSP_RATE_SYMP</span>
+        <span class="n">hosp_rate_symp</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">hosp_rate_symp</span><span class="p">)</span>
+
+        <span class="n">death_rate_hosp</span> <span class="o">=</span> <span class="n">death_rate_hosp</span> <span class="k">if</span> <span class="n">death_rate_hosp</span> <span class="k">else</span> <span class="n">_DEFAULT_DEATH_RATE_HOSP</span>
+        <span class="n">death_rate_hosp</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">death_rate_hosp</span><span class="p">)</span>
+
+        <span class="n">death_rate_needs_hosp</span> <span class="o">=</span> <span class="n">death_rate_needs_hosp</span> <span class="k">if</span> <span class="n">death_rate_needs_hosp</span> <span class="k">else</span> <span class="n">_DEFAULT_DEATH_RATE_NEEDS_HOSP</span>
+        <span class="n">death_rate_needs_hosp</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">death_rate_needs_hosp</span><span class="p">)</span>
+
+        <span class="n">symp_transition</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span> <span class="p">{</span>
+                <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">needs_hospitalization</span><span class="p">:</span> <span class="n">from_symp_to_hosp_rate</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_go_to_hospital_rate</span><span class="p">(</span>
+                    <span class="n">hosp_rate_symp</span><span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">)],</span>
+                    <span class="n">recovery_rate_symp_non_treated</span><span class="p">,</span>
+                    <span class="n">from_symp_to_hosp_rate</span><span class="p">),</span>
+                <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">recovered</span><span class="p">:</span> <span class="n">recovery_rate_symp_non_treated</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_go_to_hospital_rate</span><span class="p">(</span>
+                    <span class="n">hosp_rate_symp</span><span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">)],</span>
+                    <span class="n">recovery_rate_symp_non_treated</span><span class="p">,</span>
+                    <span class="n">from_symp_to_hosp_rate</span><span class="p">)),</span>
+            <span class="p">}</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">_AgeLimit</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">Risk</span>
+        <span class="p">}</span>
+
+        <span class="n">needs_hosp_transition</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span> <span class="p">{</span>
+                <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">recovered</span><span class="p">:</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">death_rate_needs_hosp</span><span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">)])</span> <span class="o">*</span> <span class="n">recovery_rate_needs_hosp</span><span class="p">,</span>
+                <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">deceased</span><span class="p">:</span> <span class="n">death_rate_needs_hosp</span><span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">)]</span> <span class="o">*</span> <span class="n">from_needs_hosp_to_death_rate</span>
+            <span class="p">}</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">_AgeLimit</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">Risk</span>
+        <span class="p">}</span>
+
+        <span class="n">hosp_transition</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span> <span class="p">{</span>
+                <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">recovered</span><span class="p">:</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">death_rate_hosp</span><span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">)])</span> <span class="o">*</span> <span class="n">recovery_rate_hosp</span><span class="p">,</span>
+                <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">deceased</span><span class="p">:</span> <span class="n">death_rate_hosp</span><span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">)]</span> <span class="o">*</span> <span class="n">from_hosp_to_death_rate</span>
+            <span class="p">}</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">_AgeLimit</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">Risk</span>
+        <span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">exposed</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_default</span><span class="p">(</span><span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">exposed</span><span class="p">,</span> <span class="p">{</span>
+                <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">exposed</span><span class="p">:</span> <span class="mf">1.</span> <span class="o">-</span> <span class="n">exposed_rate</span><span class="p">,</span>
+                <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">pre_asymp</span><span class="p">:</span> <span class="n">exposed_rate</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">symp_proportion</span><span class="p">),</span>
+                <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">pre_symp</span><span class="p">:</span> <span class="n">exposed_rate</span> <span class="o">*</span> <span class="n">symp_proportion</span>
+            <span class="p">}),</span>
+            <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">pre_asymp</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_default</span><span class="p">(</span><span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">pre_asymp</span><span class="p">,</span> <span class="p">{</span>
+                <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">pre_asymp</span><span class="p">:</span> <span class="mf">1.</span> <span class="o">-</span> <span class="n">pre_asymp_rate</span><span class="p">,</span>
+                <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">asymp</span><span class="p">:</span> <span class="n">pre_asymp_rate</span>
+            <span class="p">}),</span>
+            <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">pre_symp</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_default</span><span class="p">(</span><span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">pre_symp</span><span class="p">,</span> <span class="p">{</span>
+                <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">pre_symp</span><span class="p">:</span> <span class="mf">1.</span> <span class="o">-</span> <span class="n">pre_symp_rate</span><span class="p">,</span>
+                <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">symp</span><span class="p">:</span> <span class="n">pre_symp_rate</span>
+            <span class="p">}),</span>
+            <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">asymp</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_default</span><span class="p">(</span><span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">asymp</span><span class="p">,</span> <span class="p">{</span>
+                <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">asymp</span><span class="p">:</span> <span class="mf">1.</span> <span class="o">-</span> <span class="n">recovery_rate_asymp</span><span class="p">,</span>
+                <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">recovered</span><span class="p">:</span> <span class="n">recovery_rate_asymp</span>
+            <span class="p">}),</span>
+            <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">recovered</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_default</span><span class="p">(</span><span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">recovered</span><span class="p">,</span> <span class="p">{}),</span>
+            <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">deceased</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_default</span><span class="p">(</span><span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">deceased</span><span class="p">,</span> <span class="p">{}),</span>
+            <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">symp</span><span class="p">:</span> <span class="p">{</span>
+                <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span> <span class="p">{</span>
+                    <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">symp</span><span class="p">:</span> <span class="mf">1.</span> <span class="o">-</span> <span class="p">(</span>
+                        <span class="n">symp_transition</span><span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">)][</span><span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">needs_hospitalization</span><span class="p">]</span> <span class="o">+</span>
+                        <span class="n">symp_transition</span><span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">)][</span><span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">recovered</span><span class="p">]</span>
+                    <span class="p">),</span>
+                    <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">needs_hospitalization</span><span class="p">:</span> <span class="n">symp_transition</span><span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">)][</span><span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">needs_hospitalization</span><span class="p">],</span>
+                    <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">recovered</span><span class="p">:</span> <span class="n">symp_transition</span><span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">)][</span><span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">recovered</span><span class="p">],</span>
+                <span class="p">}</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">_AgeLimit</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">Risk</span>
+            <span class="p">},</span>
+            <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">needs_hospitalization</span><span class="p">:</span> <span class="p">{</span>
+                <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span> <span class="p">{</span>
+                    <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">needs_hospitalization</span><span class="p">:</span> <span class="mf">1.</span> <span class="o">-</span> <span class="p">(</span>
+                        <span class="n">needs_hosp_transition</span><span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">)][</span><span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">recovered</span><span class="p">]</span> <span class="o">+</span>
+                        <span class="n">needs_hosp_transition</span><span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">)][</span><span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">deceased</span><span class="p">]</span>
+                    <span class="p">),</span>
+                    <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">recovered</span><span class="p">:</span> <span class="n">needs_hosp_transition</span><span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">)][</span><span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">recovered</span><span class="p">],</span>
+                    <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">deceased</span><span class="p">:</span> <span class="n">needs_hosp_transition</span><span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">)][</span><span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">deceased</span><span class="p">]</span>
+                <span class="p">}</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">_AgeLimit</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">Risk</span>
+            <span class="p">},</span>
+            <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">hospitalized</span><span class="p">:</span> <span class="p">{</span>
+                <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span> <span class="p">{</span>
+                    <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">hospitalized</span><span class="p">:</span> <span class="mf">1.</span> <span class="o">-</span> <span class="p">(</span>
+                        <span class="n">hosp_transition</span><span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">)][</span><span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">recovered</span><span class="p">]</span> <span class="o">+</span>
+                        <span class="n">hosp_transition</span><span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">)][</span><span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">deceased</span><span class="p">]</span>
+                    <span class="p">),</span>
+                    <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">recovered</span><span class="p">:</span> <span class="n">hosp_transition</span><span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">)][</span><span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">recovered</span><span class="p">],</span>
+                    <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">deceased</span><span class="p">:</span> <span class="n">hosp_transition</span><span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">)][</span><span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">deceased</span><span class="p">]</span>
+                <span class="p">}</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">_AgeLimit</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">Risk</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+
+        <span class="n">spp</span> <span class="o">=</span> <span class="n">spread_probability_params</span> <span class="ow">or</span> <span class="n">SpreadProbabilityParams</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_spread_probability</span> <span class="o">=</span> <span class="n">truncnorm</span><span class="p">((</span><span class="mf">0.</span> <span class="o">-</span> <span class="n">spp</span><span class="o">.</span><span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="n">spp</span><span class="o">.</span><span class="n">sigma</span><span class="p">,</span>
+                                             <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">spp</span><span class="o">.</span><span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="n">spp</span><span class="o">.</span><span class="n">sigma</span><span class="p">,</span>
+                                             <span class="n">loc</span><span class="o">=</span><span class="n">spp</span><span class="o">.</span><span class="n">mean</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">spp</span><span class="o">.</span><span class="n">sigma</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pandemic_start_limit</span> <span class="o">=</span> <span class="n">pandemic_start_limit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pandemic_started_counter</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">_create_default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">_SEIRLabel</span><span class="p">,</span> <span class="n">probs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">_SEIRLabel</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">_ModelDescriptionValue</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">[</span><span class="n">state</span><span class="p">][</span><span class="kc">None</span><span class="p">],</span> <span class="p">{</span><span class="kc">None</span><span class="p">:</span> <span class="n">probs</span><span class="p">})</span>
+
+    <span class="k">def</span> <span class="nf">_get_go_to_hospital_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">yhr</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">recovery_rate_symp_non_treated</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+                                 <span class="n">from_symp_to_hosp_rate</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="n">yhr</span> <span class="o">=</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="n">yhr</span>
+        <span class="n">dividend</span> <span class="o">=</span> <span class="p">(</span><span class="n">recovery_rate_symp_non_treated</span> <span class="o">*</span> <span class="n">yhr</span><span class="p">)</span>
+        <span class="n">divisor</span> <span class="o">=</span> <span class="p">(</span><span class="n">recovery_rate_symp_non_treated</span> <span class="o">-</span> <span class="n">from_symp_to_hosp_rate</span><span class="p">)</span> <span class="o">*</span> <span class="n">yhr</span>
+        <span class="n">divisor</span> <span class="o">=</span> <span class="n">from_symp_to_hosp_rate</span> <span class="o">+</span> <span class="n">divisor</span>
+        <span class="k">return</span> <span class="n">dividend</span> <span class="o">/</span> <span class="n">divisor</span>
+
+<div class="viewcode-block" id="SEIRModel.step"><a class="viewcode-back" href="../../../../sources/pandemic_simulator.environment.infection_model.html#pandemic_simulator.environment.infection_model.seir_infection_model.SEIRModel.step">[docs]</a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subject_state</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">IndividualInfectionState</span><span class="p">],</span> <span class="n">subject_age</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+             <span class="n">subject_risk</span><span class="p">:</span> <span class="n">Risk</span><span class="p">,</span> <span class="n">infection_probability</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IndividualInfectionState</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This method implements the SEIR model for the infection.</span>
+<span class="sd">        :param subject_state: Current SEIR state for the subject.</span>
+<span class="sd">        :param subject_age: Age of the subject.</span>
+<span class="sd">        :param subject_risk: Health risk for the subject.</span>
+<span class="sd">        :param infection_probability: Probability of getting infected.</span>
+
+<span class="sd">        :return: New SEIR state of the subject.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">show_symptoms_states</span> <span class="o">=</span> <span class="p">{</span><span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">symp</span><span class="p">,</span> <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">hospitalized</span><span class="p">,</span> <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">needs_hospitalization</span><span class="p">}</span>
+        <span class="n">pandemic_started</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pandemic_started_counter</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pandemic_start_limit</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">susceptible</span> <span class="k">if</span> <span class="n">pandemic_started</span> <span class="k">else</span> <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">exposed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pandemic_started_counter</span> <span class="o">+=</span> <span class="mi">1</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">pandemic_started</span> <span class="k">else</span> <span class="mi">0</span>
+
+        <span class="n">subject_state</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">SEIRInfectionState</span><span class="p">,</span> <span class="n">subject_state</span><span class="p">)</span> <span class="k">if</span> <span class="n">subject_state</span> \
+            <span class="k">else</span> <span class="n">SEIRInfectionState</span><span class="p">(</span><span class="n">summary</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_seir_to_summary</span><span class="p">[</span><span class="n">label</span><span class="p">],</span>
+                                    <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
+                                    <span class="n">spread_probability</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_spread_probability</span><span class="o">.</span><span class="n">rvs</span><span class="p">(</span><span class="n">random_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_numpy_rng</span><span class="p">))</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="n">subject_state</span><span class="o">.</span><span class="n">label</span>
+
+        <span class="k">if</span> <span class="n">subject_state</span><span class="o">.</span><span class="n">label</span> <span class="o">==</span> <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">susceptible</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_numpy_rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">infection_probability</span><span class="p">:</span>
+                <span class="n">label</span> <span class="o">=</span> <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">exposed</span>
+        <span class="k">elif</span> <span class="n">subject_state</span><span class="o">.</span><span class="n">label</span> <span class="o">==</span> <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">needs_hospitalization</span> <span class="ow">and</span> <span class="n">subject_state</span><span class="o">.</span><span class="n">is_hospitalized</span><span class="p">:</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">hospitalized</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">state_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">[</span><span class="n">subject_state</span><span class="o">.</span><span class="n">label</span><span class="p">][(</span><span class="n">_get_age_limit_from_age</span><span class="p">(</span><span class="n">subject_age</span><span class="p">),</span> <span class="n">subject_risk</span><span class="p">)]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">state_probs</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">probs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">state_probs</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+                <span class="k">assert</span> <span class="nb">abs</span><span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="nb">sum</span><span class="p">(</span><span class="n">probs</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mf">1e-3</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;Probabilities </span><span class="si">{</span><span class="n">probs</span><span class="si">}</span><span class="s1"> do not sum to one&#39;</span>
+                <span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_numpy_rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">state_probs</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="n">p</span><span class="o">=</span><span class="n">probs</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">SEIRInfectionState</span><span class="p">(</span><span class="n">summary</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_seir_to_summary</span><span class="p">[</span><span class="n">label</span><span class="p">],</span>
+                                  <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
+                                  <span class="n">shows_symptoms</span><span class="o">=</span><span class="n">label</span> <span class="ow">in</span> <span class="n">show_symptoms_states</span><span class="p">,</span>
+                                  <span class="n">spread_probability</span><span class="o">=</span><span class="n">subject_state</span><span class="o">.</span><span class="n">spread_probability</span><span class="p">,</span>
+                                  <span class="n">is_hospitalized</span><span class="o">=</span><span class="n">subject_state</span><span class="o">.</span><span class="n">is_hospitalized</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SEIRModel.needs_contacts"><a class="viewcode-back" href="../../../../sources/pandemic_simulator.environment.infection_model.html#pandemic_simulator.environment.infection_model.seir_infection_model.SEIRModel.needs_contacts">[docs]</a>    <span class="k">def</span> <span class="nf">needs_contacts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subject_state</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">IndividualInfectionState</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="n">pandemic_started</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pandemic_started_counter</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pandemic_start_limit</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">susceptible</span> <span class="k">if</span> <span class="n">pandemic_started</span> <span class="k">else</span> <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">exposed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pandemic_started_counter</span> <span class="o">+=</span> <span class="mi">1</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">pandemic_started</span> <span class="k">else</span> <span class="mi">0</span>
+        <span class="n">subject_state</span> <span class="o">=</span> <span class="n">subject_state</span> <span class="k">if</span> <span class="n">subject_state</span> <span class="k">else</span> <span class="n">SEIRInfectionState</span><span class="p">(</span>
+            <span class="n">summary</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_seir_to_summary</span><span class="p">[</span><span class="n">label</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
+            <span class="n">spread_probability</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_spread_probability</span><span class="o">.</span><span class="n">rvs</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">SEIRInfectionState</span><span class="p">,</span> <span class="n">subject_state</span><span class="p">)</span><span class="o">.</span><span class="n">label</span> <span class="o">==</span> <span class="n">_SEIRLabel</span><span class="o">.</span><span class="n">exposed</span></div>
+
+<div class="viewcode-block" id="SEIRModel.reset"><a class="viewcode-back" href="../../../../sources/pandemic_simulator.environment.infection_model.html#pandemic_simulator.environment.infection_model.seir_infection_model.SEIRModel.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pandemic_started_counter</span> <span class="o">=</span> <span class="mi">0</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">pandemic_simulator</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../sources/modules.html">Python API Reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Sony AI.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

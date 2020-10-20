@@ -1,0 +1,157 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pandemic_simulator.environment.job_counselor &#8212; pandemic_simulator  documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pandemic_simulator.environment.job_counselor</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.</span>
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Dict</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">.city_registry</span> <span class="kn">import</span> <span class="n">CityRegistry</span>
+<span class="kn">from</span> <span class="nn">.interfaces</span> <span class="kn">import</span> <span class="n">LocationID</span>
+<span class="kn">from</span> <span class="nn">.location</span> <span class="kn">import</span> <span class="n">BusinessBaseLocation</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;JobCounselor&#39;</span><span class="p">,</span> <span class="s1">&#39;LocationParams&#39;</span><span class="p">,</span> <span class="s1">&#39;PopulationParams&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="LocationParams"><a class="viewcode-back" href="../../../sources/pandemic_simulator.environment.html#pandemic_simulator.environment.job_counselor.LocationParams">[docs]</a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">LocationParams</span><span class="p">:</span>
+    <span class="n">num</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">worker_capacity</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">visitor_capacity</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span></div>
+
+
+<div class="viewcode-block" id="PopulationParams"><a class="viewcode-back" href="../../../sources/pandemic_simulator.environment.html#pandemic_simulator.environment.job_counselor.PopulationParams">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">PopulationParams</span><span class="p">:</span>
+    <span class="n">num_persons</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">location_type_to_params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">type</span><span class="p">,</span> <span class="n">LocationParams</span><span class="p">]</span>
+    <span class="n">viz_scale</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span></div>
+
+
+<div class="viewcode-block" id="JobCounselor"><a class="viewcode-back" href="../../../sources/pandemic_simulator.environment.html#pandemic_simulator.environment.job_counselor.JobCounselor">[docs]</a><span class="k">class</span> <span class="nc">JobCounselor</span><span class="p">:</span>
+    <span class="n">_all_work_ids_vacant_pos</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">LocationID</span><span class="p">],</span> <span class="nb">int</span><span class="p">]]</span>
+    <span class="n">_numpy_rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">population_params</span><span class="p">:</span> <span class="n">PopulationParams</span><span class="p">,</span>
+                 <span class="n">registry</span><span class="p">:</span> <span class="n">CityRegistry</span><span class="p">,</span>
+                 <span class="n">numpy_rng</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_all_work_ids_vacant_pos</span> <span class="o">=</span> <span class="p">[(</span><span class="n">registry</span><span class="o">.</span><span class="n">location_ids_of_type</span><span class="p">(</span><span class="n">loc_type</span><span class="p">),</span> <span class="n">params</span><span class="o">.</span><span class="n">num</span> <span class="o">*</span> <span class="n">params</span><span class="o">.</span><span class="n">worker_capacity</span><span class="p">)</span>
+                                         <span class="k">for</span> <span class="n">loc_type</span><span class="p">,</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">population_params</span><span class="o">.</span><span class="n">location_type_to_params</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                                         <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">loc_type</span><span class="p">,</span> <span class="n">BusinessBaseLocation</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_numpy_rng</span> <span class="o">=</span> <span class="n">numpy_rng</span> <span class="k">if</span> <span class="n">numpy_rng</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">()</span>
+
+<div class="viewcode-block" id="JobCounselor.next_available_work_id"><a class="viewcode-back" href="../../../sources/pandemic_simulator.environment.html#pandemic_simulator.environment.job_counselor.JobCounselor.next_available_work_id">[docs]</a>    <span class="k">def</span> <span class="nf">next_available_work_id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">LocationID</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_all_work_ids_vacant_pos</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">work_type_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_numpy_rng</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_all_work_ids_vacant_pos</span><span class="p">))</span>
+        <span class="n">work_ids</span><span class="p">,</span> <span class="n">vacant_positions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_work_ids_vacant_pos</span><span class="p">[</span><span class="n">work_type_index</span><span class="p">]</span>
+
+        <span class="n">work_id</span><span class="p">:</span> <span class="n">LocationID</span> <span class="o">=</span> <span class="n">work_ids</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_numpy_rng</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">work_ids</span><span class="p">))]</span>
+        <span class="n">vacant_positions</span> <span class="o">-=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">vacant_positions</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_all_work_ids_vacant_pos</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">work_type_index</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_all_work_ids_vacant_pos</span><span class="p">[</span><span class="n">work_type_index</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">work_ids</span><span class="p">,</span> <span class="n">vacant_positions</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">work_id</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">pandemic_simulator</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../sources/modules.html">Python API Reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Sony AI.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
