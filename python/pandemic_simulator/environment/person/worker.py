@@ -68,6 +68,8 @@ class Worker(BasePerson):
 
         self._socializing_done = False
         self._to_social_at_hour_prob = 0.9
+        self._to_restaurant_at_lunch_prob = 0.2
+        self._to_bar_at_hour_prob = 0.3
 
         self._outside_work_routines = outside_work_routines
         self._outside_work_routines_due = [False] * len(self._outside_work_routines)
@@ -103,7 +105,21 @@ class Worker(BasePerson):
         if not self.at_work and sim_time in self._work_time and self._numpy_rng.uniform() < self._to_work_at_hour_prob:
             if self.enter_location(self.work):
                 return None
-
+        elif self.at_work and getattr(sim_time, 'hour') == 12 and \
+                self._numpy_rng.uniform() < self._to_restaurant_at_lunch_prob:
+        
+            index_of_restaurant = 0
+            restaurant_found = False
+            for i in self._outside_work_routines:
+                if 'restaurant' in getattr(getattr(i, 'end_loc'), 'name'):
+                    restaurant_found = True
+                    break
+                index_of_restaurant += 1
+            if restaurant_found:
+                restaurant_list = getattr(self._outside_work_routines[index_of_restaurant], 'end_locs')
+                if restaurant_list and \
+                        self.enter_location(restaurant_list[int(round(self._numpy_rng.uniform(0, len(restaurant_list)-1)))]):
+                    return None
         # outside work time
         if sim_time not in self._work_time:
             # execute due outside work routines
@@ -129,6 +145,18 @@ class Worker(BasePerson):
                     self._socializing_done = True
                     return None
 
+            if (getattr(sim_time, 'hour') >= 21 or getattr(sim_time, 'hour') <= 2) and \
+                    self._numpy_rng.uniform() < self._to_bar_at_hour_prob:
+
+                bar_idx = 0
+                while bar_idx < len(self._outside_work_routines) and \
+                        'bar' not in getattr(getattr(self._outside_work_routines[bar_idx], 'end_loc'), 'name'):
+                    bar_idx += 1
+                if bar_idx < len(self._outside_work_routines):
+                    if getattr(self._outside_work_routines[bar_idx], 'end_locs') \
+                            and self.enter_location(random.choice(getattr(self._outside_work_routines[bar_idx], 'end_locs'))):
+                        return None
+                        
             # if not at home go home
             if not self.at_home and self._numpy_rng.uniform() < self._to_home_hour_prob:
                 self.enter_location(self.home)

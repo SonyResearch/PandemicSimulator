@@ -7,3 +7,7 @@ __all__ = ['BarberShop']
 
 class BarberShop(NonEssentialBusinessBaseLocation):
     """Implements a barber shop."""
+
+class Restaurant(EssentialBusinessBaseLocation):
+    """Implements a restaurant location."""
+    pass

@@ -4,7 +4,7 @@ from typing import Sequence, Type, Optional
 import numpy as np
 
 from ..environment import LocationID, PersonRoutine, Registry, SimTimeInterval, GroceryStore, \
-    RetailStore, BarberShop, Retired
+    RetailStore, BarberShop, Retired, Restaurant, Bar
 
 __all__ = ['get_minor_routines', 'get_adult_routines']
 
@@ -20,7 +20,16 @@ def get_minor_routines(home_id: LocationID,
         routines.append(PersonRoutine(start_loc=home_id,
                                       end_loc=barber_shops[numpy_rng.randint(0, len(barber_shops))],
                                       trigger_interval=SimTimeInterval(day=30)))
-
+    restaurants = registry.location_ids_of_type(Restaurant)
+    if len(restaurants) > 0:
+        interval_in_days = 1
+        routines.append(PersonRoutine(start_loc=None,
+                                      end_loc=restaurants[numpy_rng.randint(0, len(restaurants))],
+                                      trigger_interval=SimTimeInterval(day=interval_in_days,
+                                                                       offset_day=numpy_rng.randint(0,
+                                                                                                    interval_in_days))
+                                      )
+                        )
     return routines
 
 
@@ -64,5 +73,17 @@ def get_adult_routines(person_type: Type,
                                                                                                     interval_in_days))
                                       )
                         )
+    bars = registry.location_ids_of_type(Bar)
+    if len(bars) > 0:
+        interval_in_days = 5
+        routines.append(PersonRoutine(start_loc=None,
+                                      end_loc=bars[numpy_rng.randint(0, len(bars))],
+                                      trigger_interval=SimTimeInterval(day=interval_in_days,
+                                                                       offset_day=numpy_rng.randint(0,
+                                                                                                    interval_in_days)),
+                                      end_locs=bars,
+                                      explore_probability=0.03
+                                      )
 
+                        )
     return routines
