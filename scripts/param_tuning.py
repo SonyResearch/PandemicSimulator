@@ -42,17 +42,27 @@ def real_world_data()-> np.ndarray:
     deaths_df = read_csv(deaths_url, header=0)
     test_data = deaths_df['Sweden'].values
 
-    #modify to start at first infection
+    #modify to start at first death
     test_data = np.trim_zeros(test_data, 'f')
+    test_data = test_data[~np.isnan(test_data)]
+
+    #calculate sliding average
+    ma_vec = np.cumsum(test_data, dtype=float)
+    ma_vec[5:] = ma_vec[5:] - ma_vec[:-5]
+    test_data = ma_vec[5 - 1:] / 5
 
     #calculate peak
-    test_peak = find_peaks(test_data, height=100, threshold=None, distance=5, prominence=None, width=None, wlen=None, rel_height=0.5, plateau_size=None)[0][0]
-    print('Sweden death peak: ', test_peak)
-    test_data /= test_data[test_peak] #normalize
-    test_data = test_data[test_peak:] #start at peak for tail fitting
+    # test_peak = find_peaks(test_data, height=100, threshold=None, distance=5, prominence=None, width=None, wlen=None, rel_height=0.5, plateau_size=None)[0][0]
+    test_peak = np.argmax(test_data).item()
+    
+    #normalize
+    test_data /= test_data[test_peak] 
+
+    #end at peak
+    test_data = test_data[:test_peak]    
     return test_data
 
-#take least difference score over tail
+#take least difference score over rise
 def least_diff(test_data: np.ndarray, sim_data: np.ndarray)-> float:
     score = 0
     arr_len = min(len(test_data), len(sim_data))
@@ -67,7 +77,12 @@ def treat_sim_data(data: np.ndarray, num_days: int) -> np.ndarray:
         temp[j+1]= temp[j+1]-data[j]
     data = copy.deepcopy(temp)
     index = next((i for i, x in enumerate(data) if x), None)
-    data = data[index:]
+    data = data[index:] #start at first death
+    
+    #calculate sliding average
+    ma_vec = np.cumsum(data, dtype=float)
+    ma_vec[5:] = ma_vec[5:] - ma_vec[:-5]
+    data = ma_vec[5 - 1:] / 5
     print(data)
     return data 
   
@@ -75,7 +90,7 @@ def treat_sim_data(data: np.ndarray, num_days: int) -> np.ndarray:
 def calc_score(params: np.ndarray) -> float:
     spread_rate = params[:, 0]
     contact_rate = params[:, 1]
-    num_days = 150
+    num_days = 130
     num_seeds = 30
     opts = EvaluationOpts(
         num_seeds = num_seeds,
@@ -95,23 +110,18 @@ def calc_score(params: np.ndarray) -> float:
     #calculate peak score
     sim_peak = np.argmax(sim_data).item()
     peak_score = abs(sim_peak - test_peak)
+    
+    #normalize
+    sim_data /= sim_data[sim_peak] 
+    
+    #end data at peak
+    sim_data = sim_data[:sim_peak] 
+   
+    rise_score = least_diff(test_data=test_data, sim_data=sim_data)
 
-    # print(sim_data)
-    # plt.plot(sim_data)
-    # plt.show()
-
-    sim_data /= sim_data[sim_peak] #normalize
-    sim_data = sim_data[sim_peak:] #start data at peak
-
-
-    #fit tail with least difference
-    tail_score = least_diff(test_data=test_data, sim_data=sim_data)
-
-    print('peak score: ', peak_score)
-    print('test score: ', tail_score)
-
-    #TODO: Need better weighing of scores
-    return tail_score + peak_score
+    print('score: ', rise_score+peak_score)
+    #TODO: Need better weighing of scores?
+    return rise_score+peak_score
 
 
 
@@ -120,12 +130,11 @@ if __name__ == '__main__':
     real_world_data()
 
     bounds2d = [{'name': 'spread rate', 'type': 'continuous', 'domain': (0.005,0.03)},
-                {'name': 'contact rate', 'type': 'continuous', 'domain': (0.,0.5)}]
+                {'name': 'contact rate', 'type': 'continuous', 'domain': (0.,0.8)}]
     maxiter = 20
 
     myBopt_2d = GPyOpt.methods.BayesianOptimization(calc_score, domain=bounds2d)
     myBopt_2d.run_optimization(max_iter = maxiter)
-
 
     print("="*20)
     print("Value of (spread rate, contact rate) that minimises the objective:"+str(myBopt_2d.x_opt))    
