@@ -29,7 +29,7 @@ def add_bar_routine(routines,
             numpy_rng: Optional[np.random.RandomState] = None):
     bars = registry.location_ids_of_type(Bar)
     if len(bars) > 0:
-        interval_in_days = 5
+        interval_in_days = 4
         routines.append(PersonRoutine(start_loc=None,
                                       end_loc=bars[numpy_rng.randint(0, len(bars))],
                                       trigger_interval=SimTimeInterval(day=interval_in_days,
@@ -100,9 +100,14 @@ def get_adult_routines(person_type: Type,
                                       )
                         )
 
-    # ALL BARS + RESTAURANTS CODE STARTS HERE
     add_bar_routine(routines, registry, numpy_rng)
+
+    return routines
+
+def get_during_work_routines(registry: Registry):
+    routines = []
+    numpy_rng = numpy_rng if numpy_rng is not None else np.random.RandomState()
+
     add_restaurant_routine(routines, registry, numpy_rng)
-    # ALL BARS + RESTAURANTS CODE ENDS HERE
 
     return routines

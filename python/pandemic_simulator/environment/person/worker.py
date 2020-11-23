@@ -9,7 +9,6 @@ from ..interfaces import PersonState, LocationID, Risk, Registry, SimTime, NoOP,
 
 __all__ = ['Worker']
 
-
 class Worker(BasePerson):
     """Class that implements a basic worker."""
 
@@ -31,6 +30,7 @@ class Worker(BasePerson):
                  registry: Registry,
                  work_time: Optional[SimTimeTuple] = None,
                  outside_work_routines: Sequence[PersonRoutine] = (),
+                 during_work_routines: Sequence[PersonRoutine] = (),
                  name: Optional[str] = None,
                  risk: Optional[Risk] = None,
                  night_hours: SimTimeTuple = SimTimeTuple(hours=tuple(range(0, 6)) + tuple(range(22, 24))),
@@ -69,11 +69,11 @@ class Worker(BasePerson):
         self._socializing_done = False
         self._to_social_at_hour_prob = 0.9
 
-        self._to_restaurant_at_lunch_prob = 0.2
-        self._to_bar_at_hour_prob = 0.3
-
         self._outside_work_routines = outside_work_routines
         self._outside_work_routines_due = [False] * len(self._outside_work_routines)
+
+        self._during_work_routines = during_work_routines
+        self._during_work_routines_due = [False] * len(self._during_work_routines)
 
         self._to_home_hour_prob = 0.5
 
@@ -97,40 +97,6 @@ class Worker(BasePerson):
         if sim_time.week_day == 0:
             self._socializing_done = False
 
-    # Helper method that encapsulates going to restaurants
-    def goToRestaurant(self, sim_time):
-        if self.at_work and getattr(sim_time, 'hour') == 12 and \
-                self._numpy_rng.uniform() < self._to_restaurant_at_lunch_prob:
-        
-            index_of_restaurant = 0
-            restaurant_found = False
-            for i in self._outside_work_routines:
-                if 'restaurant' in getattr(getattr(i, 'end_loc'), 'name'):
-                    restaurant_found = True
-                    break
-                index_of_restaurant += 1
-            if restaurant_found:
-                restaurant_list = getattr(self._outside_work_routines[index_of_restaurant], 'end_locs')
-                if restaurant_list and \
-                        self.enter_location(restaurant_list[int(round(self._numpy_rng.uniform(0, len(restaurant_list)-1)))]):
-                    return 1
-        return 0
-
-    # Helper method that encapsulates going to bars
-    def goToBar(self, sim_time):
-        if (getattr(sim_time, 'hour') >= 21 or getattr(sim_time, 'hour') <= 2) and \
-                    self._numpy_rng.uniform() < self._to_bar_at_hour_prob:
-
-                bar_idx = 0
-                while bar_idx < len(self._outside_work_routines) and \
-                        'bar' not in getattr(getattr(self._outside_work_routines[bar_idx], 'end_loc'), 'name'):
-                    bar_idx += 1
-                if bar_idx < len(self._outside_work_routines):
-                    if getattr(self._outside_work_routines[bar_idx], 'end_locs') \
-                            and self.enter_location(random.choice(getattr(self._outside_work_routines[bar_idx], 'end_locs'))):
-                        return 1
-        return 0 
-
     def step(self, sim_time: SimTime, contact_tracer: Optional[ContactTracer] = None) -> Optional[NoOP]:
         step_ret = super().step(sim_time, contact_tracer)
         if step_ret != NOOP:
@@ -141,9 +107,20 @@ class Worker(BasePerson):
             if self.enter_location(self.work):
                 return None
                 
-        # go to a restaurant
-        elif goToRestaurant(sim_time):
-            return None
+        if self.at_work and sim_time in self._work_time:
+            # execute due outside work routines
+            for i, (routine, routine_due) in enumerate(zip(self._during_work_routines,
+                                                           self._during_work_routines_due)):
+                if (routine_due and
+                        (routine.start_loc is None or routine.start_loc == self._state.current_location) and
+                        self._numpy_rng.uniform() < routine.trigger_hour_probability):
+                    end_loc = routine.end_loc
+                    if (len(routine.end_locs) > 0) and (self._numpy_rng.uniform() < routine.explore_probability):
+                        end_loc = routine.end_locs[self._numpy_rng.randint(0, len(routine.end_locs))]
+
+                    if self.enter_location(end_loc):
+                        self._during_work_routines_due[i] = False
+                        return None
         
         # outside work time
         if sim_time not in self._work_time:
@@ -169,10 +146,6 @@ class Worker(BasePerson):
                 if social_loc is not None and self.enter_location(social_loc):
                     self._socializing_done = True
                     return None
-
-            # go to a bar
-            if goToBar(sim_time):
-                return None
                         
             # if not at home go home
             if not self.at_home and self._numpy_rng.uniform() < self._to_home_hour_prob:

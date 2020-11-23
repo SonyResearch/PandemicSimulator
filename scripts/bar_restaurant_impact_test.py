@@ -2,18 +2,18 @@
 
 from matplotlib import pyplot as plt
 
-from covid19.data import H5DataSaver, StageSchedule
-from covid19.environment import CovidSimOpts, austin_regulations, CovidSimNonCLIOpts
-from covid19.script_helpers import EvaluationOpts, experiment_main, make_evaluation_plots, \
+from pandemic_simulator.data import H5DataSaver, StageSchedule
+from pandemic_simulator.environment import PandemicSimOpts, austin_regulations, PandemicSimNonCLIOpts
+from pandemic_simulator.script_helpers import EvaluationOpts, experiment_main, make_evaluation_plots, \
     medium_town_population_params
 
 
 def eval_government_strategies(experiment_name: str, opts: EvaluationOpts):
     data_saver = H5DataSaver(experiment_name, path=opts.data_saver_path)
-    experiment_main(sim_opts=CovidSimOpts(),
-                    sim_non_cli_opts=CovidSimNonCLIOpts(medium_town_population_params),
+    experiment_main(sim_opts=PandemicSimOpts(),
+                    sim_non_cli_opts=PandemicSimNonCLIOpts(medium_town_population_params),
                     data_saver=data_saver,
-                    covid_regulations=austin_regulations,
+                    pandemic_regulations=austin_regulations,
                     stages_to_execute=austin_strategy,
                     num_random_seeds=opts.num_seeds,
                     max_episode_length=opts.max_episode_length,

@@ -69,7 +69,7 @@ def make_standard_locations(population_params: PopulationParams,
                                               patient_capacity=location_type_to_params[Hospital].visitor_capacity),
                                           numpy_rng=numpy_rng
                                           ) for i in range(location_type_to_params[Hospital].num)]
-
+    # dfljasdf;laskdfjdfasdfasdfasdfadfasdfasdfadfs
     homes: List[Location] = [Home(registry=registry, name=f'house_{i}', road_id=road.id, numpy_rng=numpy_rng)
                              for i in range(location_type_to_params[Home].num)]
 
