@@ -1,17 +1,18 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
-from typing import Sequence, Type, Optional
+from typing import Sequence, Type, Optional, List
 
 import numpy as np
 
 from ..environment import LocationID, PersonRoutine, Registry, SimTimeInterval, GroceryStore, \
     RetailStore, BarberShop, Retired, Restaurant, Bar
 
-__all__ = ['get_minor_routines', 'get_adult_routines']
+__all__ = ['get_minor_routines', 'get_adult_routines', 'get_during_work_routines']
 
-# helper method that encapsulates adding restaurant routine 
-def add_restaurant_routine(routines,
-                    registry: Registry,
-                    numpy_rng: Optional[np.random.RandomState] = None):
+
+# helper method that encapsulates adding restaurant routine
+def add_restaurant_routine(routines: List[PersonRoutine],
+                           registry: Registry,
+                           numpy_rng: Optional[np.random.RandomState] = None):
     restaurants = registry.location_ids_of_type(Restaurant)
     if len(restaurants) > 0:
         interval_in_days = 1
@@ -23,10 +24,11 @@ def add_restaurant_routine(routines,
                                       )
                         )
 
-# helper method that encapsulates adding bar routine 
-def add_bar_routine(routines,
-            registry: Registry,
-            numpy_rng: Optional[np.random.RandomState] = None):
+
+# helper method that encapsulates adding bar routine
+def add_bar_routine(routines: List[PersonRoutine],
+                    registry: Registry,
+                    numpy_rng: Optional[np.random.RandomState] = None):
     bars = registry.location_ids_of_type(Bar)
     if len(bars) > 0:
         interval_in_days = 4
@@ -41,6 +43,7 @@ def add_bar_routine(routines,
 
                         )
 
+
 def get_minor_routines(home_id: LocationID,
                        registry: Registry,
                        numpy_rng: Optional[np.random.RandomState] = None) -> Sequence[PersonRoutine]:
@@ -54,7 +57,7 @@ def get_minor_routines(home_id: LocationID,
                                       trigger_interval=SimTimeInterval(day=30)))
 
     # add restaurant routine
-    add_restaurants(routines, registry, numpy_rng)
+    add_restaurant_routine(routines, registry, numpy_rng)
 
     return routines
 
@@ -104,7 +107,9 @@ def get_adult_routines(person_type: Type,
 
     return routines
 
-def get_during_work_routines(registry: Registry):
+
+def get_during_work_routines(registry: Registry,
+                             numpy_rng: Optional[np.random.RandomState] = None) -> Sequence[PersonRoutine]:
     routines = []
     numpy_rng = numpy_rng if numpy_rng is not None else np.random.RandomState()
 

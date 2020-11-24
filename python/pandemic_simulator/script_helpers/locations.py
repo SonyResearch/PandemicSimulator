@@ -6,44 +6,46 @@ import numpy as np
 
 from ..environment import Home, Location, CityRegistry, GroceryStore, Road, Cemetery, Hospital, \
     Office, School, Restaurant, SimTimeTuple, HospitalState, ContactRate, BusinessLocationState, \
-    NonEssentialBusinessLocationState, RetailStore, BarberShop, PopulationParams, Bar
+    NonEssentialBusinessLocationState, RetailStore, BarberShop, PopulationParams, Bar, LocationID
 
 __all__ = ['make_standard_locations']
 
-# helper method that encapsulates the addition of bars
-def add_bars(all_locs, location_type_to_params,
-            registry: CityRegistry,
-            road):
-    if Bar in location_type_to_params:
-        all_locs += [Bar(
-            registry=registry,
-            name=f'bar_{i}',
-            road_id=road.id,
-            init_state=NonEssentialBusinessLocationState(
-                is_open=True,
-                contact_rate=ContactRate(1, 1, 0, 0.7, 0.6, 0.7),
-                visitor_capacity=location_type_to_params[Bar].visitor_capacity,
-                open_time=SimTimeTuple(hours= \
-                    tuple([x for x in range(0,24) if x <= 2 or x >= 21]), week_days=tuple(range(1, 7)))),
-            numpy_rng=numpy_rng
-        ) for i in range(location_type_to_params[Bar].num)]
 
-# helper method
-def add_restaurants(all_locs, location_type_to_params,
-            registry: CityRegistry,
-            road):
-    if Restaurant in location_type_to_params:
-        all_locs += [Restaurant(
-            registry=registry,
-            name=f'restaurant_{i}',
-            road_id=road.id,
-            init_state=BusinessLocationState(
-                is_open=True,
-                contact_rate=ContactRate(1, 1, 0, .3, .35, .35),
-                visitor_capacity=location_type_to_params[Restaurant].visitor_capacity,
-                open_time=SimTimeTuple(hours=(12, 1, 20, 21, 22), week_days=tuple(range(1, 7)))),
-            numpy_rng=numpy_rng
-        ) for i in range(location_type_to_params[Restaurant].num)]
+# helper method that encapsulates the addition of bars
+def add_bars_restaurants(all_locations: List[Location],
+                         population_params: PopulationParams,
+                         registry: CityRegistry,
+                         numpy_rng: Optional[np.random.RandomState] = None,
+                         road_id: Optional[LocationID] = None):
+    location_type_to_params = population_params.location_type_to_params
+    assert Bar in location_type_to_params
+    assert Restaurant in location_type_to_params
+    all_locations += [Bar(
+        registry=registry,
+        name=f'bar_{i}',
+        road_id=road_id,
+        init_state=NonEssentialBusinessLocationState(
+            is_open=True,
+            contact_rate=ContactRate(1, 1, 0, 0.7, 0.6, 0.7),
+            visitor_capacity=location_type_to_params[Bar].visitor_capacity,
+            open_time=SimTimeTuple(hours=tuple([x for x in range(0, 24) if x <= 2 or x >= 21]),
+                                   week_days=tuple(range(1, 7)))),
+        numpy_rng=numpy_rng
+    ) for i in range(location_type_to_params[Bar].num)]
+
+    all_locations += [Restaurant(
+        registry=registry,
+        name=f'restaurant_{i}',
+        road_id=road_id,
+        init_state=NonEssentialBusinessLocationState(
+            is_open=True,
+            contact_rate=ContactRate(1, 1, 0, .3, .35, .35),
+            visitor_capacity=location_type_to_params[Restaurant].visitor_capacity,
+            open_time=SimTimeTuple(hours=(12, 1, 20, 21, 22), week_days=tuple(range(1, 7)))),
+        numpy_rng=numpy_rng
+    ) for i in range(location_type_to_params[Restaurant].num)]
+
+    return all_locations
 
 
 def make_standard_locations(population_params: PopulationParams,
@@ -69,7 +71,7 @@ def make_standard_locations(population_params: PopulationParams,
                                               patient_capacity=location_type_to_params[Hospital].visitor_capacity),
                                           numpy_rng=numpy_rng
                                           ) for i in range(location_type_to_params[Hospital].num)]
-    # dfljasdf;laskdfjdfasdfasdfasdfadfasdfasdfadfs
+
     homes: List[Location] = [Home(registry=registry, name=f'house_{i}', road_id=road.id, numpy_rng=numpy_rng)
                              for i in range(location_type_to_params[Home].num)]
 
@@ -137,9 +139,6 @@ def make_standard_locations(population_params: PopulationParams,
             numpy_rng=numpy_rng
         ) for i in range(location_type_to_params[BarberShop].num)]
 
-    # ALL BARS + RESTAURANTS CODE STARTS HERE
-    add_bars(all_locs, location_type_to_params, registry, road)
-    add_restaurants(all_locs, location_type_to_params, registry, road)
-    # ALL BAR + RESTAURANT CODE ENDS HERE
+    add_bars_restaurants(all_locs, population_params, registry, numpy_rng, road.id)
 
     return all_locs

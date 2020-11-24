@@ -27,4 +27,3 @@ class Bar(AgeRestrictedBusinessBaseLocation):
         """
         super().__init__(age_limits=(21, 65), registry=registry, name=name, road_id=road_id, init_state=init_state,
                          numpy_rng=numpy_rng)
-        

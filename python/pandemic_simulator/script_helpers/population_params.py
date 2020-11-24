@@ -1,7 +1,7 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 
 from ..environment import Home, GroceryStore, Office, School, Hospital, RetailStore, BarberShop, Restaurant, \
-LocationParams, PopulationParams, Bar
+    LocationParams, PopulationParams, Bar
 
 __all__ = ['town_population_params', 'small_town_population_params', 'test_population_params',
            'tiny_town_population_params', 'medium_town_population_params',

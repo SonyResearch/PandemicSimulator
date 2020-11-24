@@ -4,7 +4,7 @@ from typing import List, Optional
 
 import numpy as np
 
-from .person_routines import get_minor_routines, get_adult_routines
+from .person_routines import get_minor_routines, get_adult_routines, get_during_work_routines
 from ..environment import Home, CityRegistry, Person, Risk, Minor, School, Worker, Retired, JobCounselor, \
     PopulationParams
 
@@ -53,7 +53,7 @@ def make_us_age_population(population_params: PopulationParams,
         age = ages[age_iter]
         home_id = home_ids[numpy_rng.randint(0, family_homes)]
         risk = numpy_rng.choice([Risk.LOW, Risk.HIGH], p=[1 - age / age_group.stop, age / age_group.stop])
-        school_id = school_ids[numpy_rng.randiasdfasdfnt(0, len(school_ids))]
+        school_id = school_ids[numpy_rng.randint(0, len(school_ids))]
         persons.append(Minor(age, home_id, registry=registry, risk=risk, school=school_id,
                              outside_school_routines=get_minor_routines(home_id, registry, numpy_rng=numpy_rng),
                              regulation_compliance_prob=regulation_compliance_prob,
@@ -77,7 +77,7 @@ def make_us_age_population(population_params: PopulationParams,
             persons.append(Worker(age, home_id, registry=registry, risk=risk, work=work_id,
                                   outside_work_routines=get_adult_routines(Worker, home_id, registry,
                                                                            numpy_rng=numpy_rng),
-                                  during_work_routines=get_during_work_routines(registry),
+                                  during_work_routines=get_during_work_routines(registry, numpy_rng),
                                   regulation_compliance_prob=regulation_compliance_prob,
                                   numpy_rng=numpy_rng,
                                   name=f'worker_{age_iter}'))

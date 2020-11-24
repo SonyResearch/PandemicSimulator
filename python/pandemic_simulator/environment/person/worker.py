@@ -9,6 +9,7 @@ from ..interfaces import PersonState, LocationID, Risk, Registry, SimTime, NoOP,
 
 __all__ = ['Worker']
 
+
 class Worker(BasePerson):
     """Class that implements a basic worker."""
 
@@ -18,6 +19,9 @@ class Worker(BasePerson):
 
     _socializing_done: bool
     _to_social_at_hour_prob: float
+
+    _during_work_routines: Sequence[PersonRoutine]
+    _during_work_routines_due: List[bool]
 
     _outside_work_routines: Sequence[PersonRoutine]
     _outside_work_routines_due: List[bool]
@@ -29,8 +33,8 @@ class Worker(BasePerson):
                  work: LocationID,
                  registry: Registry,
                  work_time: Optional[SimTimeTuple] = None,
-                 outside_work_routines: Sequence[PersonRoutine] = (),
                  during_work_routines: Sequence[PersonRoutine] = (),
+                 outside_work_routines: Sequence[PersonRoutine] = (),
                  name: Optional[str] = None,
                  risk: Optional[Risk] = None,
                  night_hours: SimTimeTuple = SimTimeTuple(hours=tuple(range(0, 6)) + tuple(range(22, 24))),
@@ -43,6 +47,7 @@ class Worker(BasePerson):
         :param work: Work location id
         :param registry: Registry instance to register the person and handle peron's entry to a location
         :param work_time: Work time specified in SimTimeTuples. Default - 9am-5pm and Mon-Fri
+        :param during_work_routines: A sequence of person routines to run during work time
         :param outside_work_routines: A sequence of person routines to run outside work time
         :param name: Optional name of the person
         :param risk: Optional health risk of the person.
@@ -69,11 +74,11 @@ class Worker(BasePerson):
         self._socializing_done = False
         self._to_social_at_hour_prob = 0.9
 
-        self._outside_work_routines = outside_work_routines
-        self._outside_work_routines_due = [False] * len(self._outside_work_routines)
-
         self._during_work_routines = during_work_routines
         self._during_work_routines_due = [False] * len(self._during_work_routines)
+
+        self._outside_work_routines = outside_work_routines
+        self._outside_work_routines_due = [False] * len(self._outside_work_routines)
 
         self._to_home_hour_prob = 0.5
 
@@ -102,13 +107,14 @@ class Worker(BasePerson):
         if step_ret != NOOP:
             return step_ret
 
-        # work time - go to work
+        # work time - go to work if you are not at work
         if not self.at_work and sim_time in self._work_time and self._numpy_rng.uniform() < self._to_work_at_hour_prob:
             if self.enter_location(self.work):
                 return None
-                
+
+        # during work time
         if self.at_work and sim_time in self._work_time:
-            # execute due outside work routines
+            # execute due during work routines
             for i, (routine, routine_due) in enumerate(zip(self._during_work_routines,
                                                            self._during_work_routines_due)):
                 if (routine_due and
@@ -121,7 +127,7 @@ class Worker(BasePerson):
                     if self.enter_location(end_loc):
                         self._during_work_routines_due[i] = False
                         return None
-        
+
         # outside work time
         if sim_time not in self._work_time:
             # execute due outside work routines
@@ -146,7 +152,7 @@ class Worker(BasePerson):
                 if social_loc is not None and self.enter_location(social_loc):
                     self._socializing_done = True
                     return None
-                        
+
             # if not at home go home
             if not self.at_home and self._numpy_rng.uniform() < self._to_home_hour_prob:
                 self.enter_location(self.home)
