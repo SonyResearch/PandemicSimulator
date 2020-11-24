@@ -9,7 +9,6 @@ from ..interfaces import PersonState, LocationID, Risk, Registry, SimTime, NoOP,
 
 __all__ = ['Worker']
 
-
 class Worker(BasePerson):
     """Class that implements a basic worker."""
 
@@ -31,6 +30,7 @@ class Worker(BasePerson):
                  registry: Registry,
                  work_time: Optional[SimTimeTuple] = None,
                  outside_work_routines: Sequence[PersonRoutine] = (),
+                 during_work_routines: Sequence[PersonRoutine] = (),
                  name: Optional[str] = None,
                  risk: Optional[Risk] = None,
                  night_hours: SimTimeTuple = SimTimeTuple(hours=tuple(range(0, 6)) + tuple(range(22, 24))),
@@ -72,6 +72,9 @@ class Worker(BasePerson):
         self._outside_work_routines = outside_work_routines
         self._outside_work_routines_due = [False] * len(self._outside_work_routines)
 
+        self._during_work_routines = during_work_routines
+        self._during_work_routines_due = [False] * len(self._during_work_routines)
+
         self._to_home_hour_prob = 0.5
 
     @property
@@ -103,7 +106,22 @@ class Worker(BasePerson):
         if not self.at_work and sim_time in self._work_time and self._numpy_rng.uniform() < self._to_work_at_hour_prob:
             if self.enter_location(self.work):
                 return None
+                
+        if self.at_work and sim_time in self._work_time:
+            # execute due outside work routines
+            for i, (routine, routine_due) in enumerate(zip(self._during_work_routines,
+                                                           self._during_work_routines_due)):
+                if (routine_due and
+                        (routine.start_loc is None or routine.start_loc == self._state.current_location) and
+                        self._numpy_rng.uniform() < routine.trigger_hour_probability):
+                    end_loc = routine.end_loc
+                    if (len(routine.end_locs) > 0) and (self._numpy_rng.uniform() < routine.explore_probability):
+                        end_loc = routine.end_locs[self._numpy_rng.randint(0, len(routine.end_locs))]
 
+                    if self.enter_location(end_loc):
+                        self._during_work_routines_due[i] = False
+                        return None
+        
         # outside work time
         if sim_time not in self._work_time:
             # execute due outside work routines
@@ -128,7 +146,7 @@ class Worker(BasePerson):
                 if social_loc is not None and self.enter_location(social_loc):
                     self._socializing_done = True
                     return None
-
+                        
             # if not at home go home
             if not self.at_home and self._numpy_rng.uniform() < self._to_home_hour_prob:
                 self.enter_location(self.home)

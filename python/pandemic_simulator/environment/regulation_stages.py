@@ -1,62 +1,72 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 from typing import List
 
+from ..environment.interfaces import SimTimeTuple
 from .interfaces import PandemicRegulation, DEFAULT, Risk
-from .location import Office, School, BarberShop, RetailStore
+from .location import Office, School, BarberShop, RetailStore, Restaurant, Bar
 
 __all__ = ['DEFAULT_REGULATION', 'austin_regulations', 'italian_regulations', 'swedish_regulations']
 
 austin_regulations: List[PandemicRegulation] = [
     PandemicRegulation(stage=0),
     PandemicRegulation(stay_home_if_sick=True,
-                       practice_good_hygiene=True,
-                       wear_facial_coverings=False,
-                       social_distancing=DEFAULT,
-                       risk_to_avoid_gathering_size={Risk.HIGH: 25, Risk.LOW: 50},
-                       location_type_to_rule_kwargs={
-                           Office: {'lock': False},
-                           School: {'lock': False},
-                           BarberShop: {'lock': False},
-                           RetailStore: {'lock': False},
-                       },
-                       stage=1),
+                    practice_good_hygiene=True,
+                    wear_facial_coverings=False,
+                    social_distancing=DEFAULT,
+                    risk_to_avoid_gathering_size={Risk.HIGH: 25, Risk.LOW: 50},
+                    location_type_to_rule_kwargs={
+                        Office: {'lock': False},
+                        School: {'lock': False},
+                        BarberShop: {'lock': False},
+                        RetailStore: {'lock': False},
+                        Restaurant: {'lock': True},
+                        Bar: {'lock': False},
+                    },
+                    stage=1),
     PandemicRegulation(stay_home_if_sick=True,
-                       practice_good_hygiene=True,
-                       wear_facial_coverings=True,
-                       social_distancing=0.3,
-                       risk_to_avoid_gathering_size={Risk.HIGH: 10, Risk.LOW: 25},
-                       location_type_to_rule_kwargs={
-                           Office: {'lock': False},
-                           School: {'lock': True},
-                           BarberShop: {'lock': True},
-                           RetailStore: {'lock': False},
-                       },
-                       stage=2),
+                    practice_good_hygiene=True,
+                    wear_facial_coverings=True,
+                    social_distancing=0.3,
+                    risk_to_avoid_gathering_size={Risk.HIGH: 10, Risk.LOW: 25},
+                    location_type_to_rule_kwargs={
+                        Office: {'lock': False},
+                        School: {'lock': True},
+                        BarberShop: {'lock': True},
+                        RetailStore: {'lock': False},
+                        Restaurant: {'lock': True},
+                        Bar: {'lock': False},
+                    },
+                    stage=2),
     PandemicRegulation(stay_home_if_sick=True,
-                       practice_good_hygiene=True,
-                       wear_facial_coverings=True,
-                       social_distancing=0.5,
-                       risk_to_avoid_gathering_size={Risk.HIGH: 0, Risk.LOW: 0},
-                       location_type_to_rule_kwargs={
-                           Office: {'lock': False},
-                           School: {'lock': True},
-                           BarberShop: {'lock': True},
-                           RetailStore: {'lock': False},
-                       },
-                       stage=3),
+                    practice_good_hygiene=True,
+                    wear_facial_coverings=True,
+                    social_distancing=0.5,
+                    risk_to_avoid_gathering_size={Risk.HIGH: 0, Risk.LOW: 0},
+                    location_type_to_rule_kwargs={
+                        Office: {'lock': False},
+                        School: {'lock': True},
+                        BarberShop: {'lock': True},
+                        RetailStore: {'lock': False},
+                        Restaurant: {'lock': True},
+                        Bar: {'lock': True},
+                    },
+                    stage=3),
     PandemicRegulation(stay_home_if_sick=True,
-                       practice_good_hygiene=True,
-                       wear_facial_coverings=True,
-                       social_distancing=0.7,
-                       risk_to_avoid_gathering_size={Risk.HIGH: 0, Risk.LOW: 0},
-                       location_type_to_rule_kwargs={
-                           Office: {'lock': True},
-                           School: {'lock': True},
-                           BarberShop: {'lock': True},
-                           RetailStore: {'lock': True},
-                       },
-                       stage=4)
+                    practice_good_hygiene=True,
+                    wear_facial_coverings=True,
+                    social_distancing=0.7,
+                    risk_to_avoid_gathering_size={Risk.HIGH: 0, Risk.LOW: 0},
+                    location_type_to_rule_kwargs={
+                        Office: {'lock': True},
+                        School: {'lock': True},
+                        BarberShop: {'lock': True},
+                        RetailStore: {'lock': True},
+                        Restaurant: {'lock': True},
+                        Bar: {'lock': True},
+                    },
+                    stage=4)
 ]
+
 
 # https://en.wikipedia.org/wiki/COVID-19_pandemic_in_Italy#First_measures
 
@@ -105,80 +115,92 @@ austin_regulations: List[PandemicRegulation] = [
 italian_regulations: List[PandemicRegulation] = [
     PandemicRegulation(stage=0),
     PandemicRegulation(stay_home_if_sick=True,
-                       practice_good_hygiene=True,
-                       wear_facial_coverings=False,
-                       social_distancing=0.2,
-                       location_type_to_rule_kwargs={
-                           Office: {'lock': False},
-                           School: {'lock': False},
-                           BarberShop: {'lock': False},
-                           RetailStore: {'lock': False},
-                       },
-                       stage=1),
+                    practice_good_hygiene=True,
+                    wear_facial_coverings=False,
+                    social_distancing=0.2,
+                    location_type_to_rule_kwargs={
+                        Office: {'lock': False},
+                        School: {'lock': False},
+                        BarberShop: {'lock': False},
+                        RetailStore: {'lock': False},
+                        Restaurant: {'lock': False},
+                        Bar: {'lock': False},
+
+                    },
+                    stage=1),
     PandemicRegulation(stay_home_if_sick=True,
-                       practice_good_hygiene=True,
-                       wear_facial_coverings=False,
-                       social_distancing=0.25,
-                       location_type_to_rule_kwargs={
-                           Office: {'lock': False},
-                           School: {'lock': True},
-                           BarberShop: {'lock': False},
-                           RetailStore: {'lock': False},
-                       },
-                       stage=2),
+                    practice_good_hygiene=True,
+                    wear_facial_coverings=False,
+                    social_distancing=0.25,
+                    location_type_to_rule_kwargs={
+                        Office: {'lock': False},
+                        School: {'lock': True},
+                        BarberShop: {'lock': False},
+                        RetailStore: {'lock': False},
+                        Restaurant: {'lock': False},
+                        Bar: {'lock': False},
+                    },
+                    stage=2),
     PandemicRegulation(stay_home_if_sick=True,
-                       practice_good_hygiene=True,
-                       wear_facial_coverings=True,
-                       social_distancing=0.6,
-                       risk_to_avoid_gathering_size={Risk.HIGH: 0, Risk.LOW: 0},
-                       location_type_to_rule_kwargs={
-                           Office: {'lock': False},
-                           School: {'lock': True},
-                           BarberShop: {'lock': True},
-                           RetailStore: {'lock': True},
-                       },
-                       stage=3),
+                    practice_good_hygiene=True,
+                    wear_facial_coverings=True,
+                    social_distancing=0.6,
+                    risk_to_avoid_gathering_size={Risk.HIGH: 0, Risk.LOW: 0},
+                    location_type_to_rule_kwargs={
+                        Office: {'lock': False},
+                        School: {'lock': True},
+                        BarberShop: {'lock': True},
+                        RetailStore: {'lock': True},
+                        Restaurant: {'lock': True},
+                        Bar: {'lock': True},
+                    },
+                    stage=3),
     PandemicRegulation(stay_home_if_sick=True,
-                       practice_good_hygiene=True,
-                       wear_facial_coverings=True,
-                       social_distancing=0.8,
-                       risk_to_avoid_gathering_size={Risk.HIGH: 0, Risk.LOW: 0},
-                       location_type_to_rule_kwargs={
-                           Office: {'lock': True},
-                           School: {'lock': True},
-                           BarberShop: {'lock': True},
-                           RetailStore: {'lock': True},
-                       },
-                       stage=4)
+                    practice_good_hygiene=True,
+                    wear_facial_coverings=True,
+                    social_distancing=0.8,
+                    risk_to_avoid_gathering_size={Risk.HIGH: 0, Risk.LOW: 0},
+                    location_type_to_rule_kwargs={
+                        Office: {'lock': True},
+                        School: {'lock': True},
+                        BarberShop: {'lock': True},
+                        RetailStore: {'lock': True},
+                        Restaurant: {'lock': True},
+                        Bar: {
+                            'lock': True},
+                    },
+                    stage=4)
 ]
 
-# https://home.kpmg/xx/en/home/insights/2020/04/sweden-government-and-institution-measures-in-response-to-pandemic.html
+# https://home.kpmg/xx/en/home/insights/2020/04/sweden-government-and-institution-measures-in-response-to-covid.html
 # Sweden took no nationwide lockdown; Remote work *recommended*;
 # Schools are open; Restaurants are open.
 # Travel ban.
 
-# https://www.folkhalsomyndigheten.se/the-public-health-agency-of-sweden/communicable-disease-control/pandemic-19/prevention/
+# https://www.folkhalsomyndigheten.se/the-public-health-agency-of-sweden/communicable-disease-control/covid-19/prevention/
 # We do not currently recommend face masks in public settings since the scientific evidence
 # around the effectiveness of face masks in combatting the spread of infection is unclear.
 # https://www.folkhalsomyndigheten.se/the-public-health-agency-of-sweden/communicable-disease-control/
-# pandemic-19--the-swedish-strategy/
+# covid-19--the-swedish-strategy/
 
 # Anders Tegnell says his modelling indicates that, on average, Swedes have around 30% of the social interactions they
 # did prior to the pandemic.
 swedish_regulations: List[PandemicRegulation] = [
     PandemicRegulation(stage=0),
     PandemicRegulation(stay_home_if_sick=True,
-                       practice_good_hygiene=True,
-                       wear_facial_coverings=False,
-                       social_distancing=0.70,
-                       risk_to_avoid_gathering_size={Risk.HIGH: 50, Risk.LOW: 50},
-                       location_type_to_rule_kwargs={
-                           Office: {'lock': False},
-                           School: {'lock': False},
-                           BarberShop: {'lock': False},
-                           RetailStore: {'lock': False},
-                       },
-                       stage=1),
+                    practice_good_hygiene=True,
+                    wear_facial_coverings=False,
+                    social_distancing=0.70,
+                    risk_to_avoid_gathering_size={Risk.HIGH: 50, Risk.LOW: 50},
+                    location_type_to_rule_kwargs={
+                        Office: {'lock': False},
+                        School: {'lock': False},
+                        BarberShop: {'lock': False},
+                        RetailStore: {'lock': False},
+                        Bar: {'lock': False},
+                        Restaurant: {'lock': False},                        
+                    },
+                    stage=1),
 ]
 
 DEFAULT_REGULATION = PandemicRegulation(
@@ -192,5 +214,7 @@ DEFAULT_REGULATION = PandemicRegulation(
         School: {'lock': False},
         BarberShop: {'lock': False},
         RetailStore: {'lock': False},
+        Bar: {'lock': False},
+        Restaurant: {'lock': False},  
     },
     stage=0)
