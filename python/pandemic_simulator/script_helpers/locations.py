@@ -29,7 +29,8 @@ def make_standard_locations(population_params: PopulationParams,
                                           road_id=road.id,
                                           init_state=HospitalState(
                                               is_open=True,
-                                              contact_rate=ContactRate(0, 3, 1, 0.1, 0., 0.),
+                                            #   contact_rate=ContactRate(0, 3, 1, 0.1, 0., 0.),
+                                              contact_rate=ContactRate(0, 3, 1, 0.15, 0., 0.),
                                               visitor_capacity=location_type_to_params[Hospital].visitor_capacity,
                                               patient_capacity=location_type_to_params[Hospital].visitor_capacity),
                                           numpy_rng=numpy_rng
@@ -44,7 +45,8 @@ def make_standard_locations(population_params: PopulationParams,
         road_id=road.id,
         init_state=BusinessLocationState(
             is_open=True,
-            contact_rate=ContactRate(0, 1, 0, 0.2, 0.25, 0.3),
+            # contact_rate=ContactRate(0, 1, 0, 0.2, 0.25, 0.3),
+            contact_rate=ContactRate(0, 1, 0, 0.3, 0.375, 0.45),
             visitor_capacity=location_type_to_params[GroceryStore].visitor_capacity,
             open_time=SimTimeTuple(hours=tuple(range(7, 21)), week_days=tuple(range(0, 6)))),
         numpy_rng=numpy_rng
@@ -56,7 +58,8 @@ def make_standard_locations(population_params: PopulationParams,
         road_id=road.id,
         init_state=NonEssentialBusinessLocationState(
             is_open=True,
-            contact_rate=ContactRate(2, 1, 0, 0.1, 0.01, 0.01),
+            # contact_rate=ContactRate(2, 1, 0, 0.1, 0.01, 0.01),
+            contact_rate=ContactRate(2, 1, 0, 0.15, 0.015, 0.015),
             visitor_capacity=location_type_to_params[Office].visitor_capacity,
             open_time=SimTimeTuple(hours=tuple(range(9, 17)), week_days=tuple(range(0, 5)))),
         numpy_rng=numpy_rng
@@ -68,7 +71,8 @@ def make_standard_locations(population_params: PopulationParams,
         road_id=road.id,
         init_state=NonEssentialBusinessLocationState(
             is_open=True,
-            contact_rate=ContactRate(5, 1, 0, 0.1, 0., 0.1),
+            # contact_rate=ContactRate(5, 1, 0, 0.1, 0., 0.1),
+            contact_rate=ContactRate(5, 1, 0, 0.15, 0., 0.15),
             visitor_capacity=location_type_to_params[School].visitor_capacity,
             open_time=SimTimeTuple(hours=tuple(range(7, 15)), week_days=tuple(range(0, 5)))),
         numpy_rng=numpy_rng
@@ -83,7 +87,8 @@ def make_standard_locations(population_params: PopulationParams,
             road_id=road.id,
             init_state=NonEssentialBusinessLocationState(
                 is_open=True,
-                contact_rate=ContactRate(0, 1, 0, 0.2, 0.25, 0.3),
+                # contact_rate=ContactRate(0, 1, 0, 0.2, 0.25, 0.3),
+                contact_rate=ContactRate(0, 1, 0, 0.3, 0.375, 0.45),
                 visitor_capacity=location_type_to_params[RetailStore].visitor_capacity,
                 open_time=SimTimeTuple(hours=tuple(range(7, 21)), week_days=tuple(range(0, 6)))),
             numpy_rng=numpy_rng
@@ -96,7 +101,8 @@ def make_standard_locations(population_params: PopulationParams,
             road_id=road.id,
             init_state=NonEssentialBusinessLocationState(
                 is_open=True,
-                contact_rate=ContactRate(1, 1, 0, 0.5, 0.3, 0.1),
+                # contact_rate=ContactRate(1, 1, 0, 0.5, 0.3, 0.1),
+                contact_rate=ContactRate(1, 1, 0, 0.75, 0.45, 0.15),
                 visitor_capacity=location_type_to_params[BarberShop].visitor_capacity,
                 open_time=SimTimeTuple(hours=tuple(range(9, 17)), week_days=tuple(range(1, 7)))),
             numpy_rng=numpy_rng

@@ -52,7 +52,6 @@ def real_world_data()-> np.ndarray:
     test_data = ma_vec[5 - 1:] / 5
 
     #calculate peak
-    # test_peak = find_peaks(test_data, height=100, threshold=None, distance=5, prominence=None, width=None, wlen=None, rel_height=0.5, plateau_size=None)[0][0]
     test_peak = np.argmax(test_data).item()
     
     #normalize
@@ -90,7 +89,7 @@ def treat_sim_data(data: np.ndarray, num_days: int) -> np.ndarray:
 def calc_score(params: np.ndarray) -> float:
     spread_rate = params[:, 0]
     contact_rate = params[:, 1]
-    num_days = 130
+    num_days = 110
     num_seeds = 30
     opts = EvaluationOpts(
         num_seeds = num_seeds,
