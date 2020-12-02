@@ -32,7 +32,7 @@ def make_evaluation_plots_from_data(data: Sequence[ExperimentResult],
                                     show_pandemic_duration: bool = True,
                                     show_stage_trials: bool = False,
                                     annotate_stages: Union[bool, Sequence[bool]] = False,
-                                    figsize: Optional[Tuple[int, int]] = None):
+                                    figsize: Optional[Tuple[int, int]] = None) -> None:
     n_params = len(param_labels)
     os.makedirs(str(fig_save_path.absolute()), exist_ok=True)
     annotate_stages = [annotate_stages] * n_params if isinstance(annotate_stages, bool) else annotate_stages
@@ -176,7 +176,7 @@ def make_evaluation_plots(exp_name: str,
                           show_pandemic_duration: bool = True,
                           show_stage_trials: bool = False,
                           annotate_stages: Union[bool, Sequence[bool]] = False,
-                          figsize: Optional[Tuple[int, int]] = None):
+                          figsize: Optional[Tuple[int, int]] = None) -> None:
     loader = H5DataLoader(exp_name, path=data_saver_path)
     data: Sequence[ExperimentResult] = loader.get_data()[:len(param_labels)]
     make_evaluation_plots_from_data(data=data,

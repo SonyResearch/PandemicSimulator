@@ -141,7 +141,7 @@ class CityRegistry(Registry):
         home = self._location_register[home_id]
         assignees = home.state.assignees
 
-        return assignees
+        return cast(Set, assignees)
 
     def get_person_infection_summary(self, person_id: PersonID) -> Optional[InfectionSummary]:
         if self._person_register[person_id].state.infection_state is not None:

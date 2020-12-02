@@ -228,7 +228,9 @@ def plot_cumulative_reward(exp_result: ExperimentResult,
     ax.set_xlabel('time (days)')
 
 
-def _get_ylims(avgs: List[Sequence[float]], stds: List[Sequence[float]], ylim_max_offset=0.) -> Tuple[float, float]:
+def _get_ylims(avgs: List[Sequence[float]],
+               stds: List[Sequence[float]],
+               ylim_max_offset: float = 0.) -> Tuple[float, float]:
     ylim_min = np.inf
     ylim_max = 0
     for avg, std in zip(avgs, stds):

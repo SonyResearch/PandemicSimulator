@@ -127,7 +127,8 @@ class InfectionSummaryAboveThresholdReward(RewardFunction):
         self._index = sorted_infection_summary.index(summary_type)
 
     def calculate_reward(self, prev_obs: PandemicObservation, action: int, obs: PandemicObservation) -> float:
-        return -1 * max(np.mean(obs.global_infection_summary[..., self._index] - self._threshold) / self._threshold, 0)
+        return float(-1 * max(np.mean(obs.global_infection_summary[..., self._index]
+                                      - self._threshold) / self._threshold, 0))
 
 
 class UnlockedBusinessLocationsReward(RewardFunction):

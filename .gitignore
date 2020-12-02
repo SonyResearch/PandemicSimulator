@@ -1,0 +1,29 @@
+# temporary editor files
+*~
+*.swp
+*.swo
+
+# python cache files
+.idea/
+pyenv/
+*/__pychache__
+*/.pytest_cache
+*.pyc
+*.pyo
+
+# other stuff
+build/
+dist/
+results/
+data/
+.ipynb_checkpoints/
+.directory
+pip.log
+
+.cache
+.pytest_cache
+.mypy_cache
+.hypothesis
+
+test-results
+*.egg-info/

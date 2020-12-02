@@ -159,8 +159,7 @@ class BasePerson(Person):
 
                 # quarantine if contact positive
                 (contact_tracer is not None and self._state.quarantine_if_contact_positive and not self.at_home and
-                 self._contact_positive(list(contact_tracer.get_contacts(self.id).keys()))
-                )
+                 self._contact_positive(list(contact_tracer.get_contacts(self.id).keys())))
         ):
             self.enter_location(self.home)
             self._registry.quarantine_person(self._id)
@@ -190,7 +189,7 @@ class BasePerson(Person):
 
         return False
 
-    def _household_quarantined(self):
+    def _household_quarantined(self) -> bool:
         for hh in self._registry.get_households(self._id):
             if self._registry.get_person_quarantined_state(hh):
                 return True

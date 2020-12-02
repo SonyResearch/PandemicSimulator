@@ -1,5 +1,6 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 from sys import stdout
+from typing import List
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -10,7 +11,7 @@ from pandemic_simulator.script_helpers import small_town_population_params, make
 from pandemic_simulator.viz import GraphViz
 
 
-def run(days: int, stage: int, days_per_interval: int):
+def run(days: int, stage: int, days_per_interval: int) -> List[int]:
     # setup rng
     numpy_rng = np.random.RandomState(seed=100)
 
@@ -46,8 +47,6 @@ def run(days: int, stage: int, days_per_interval: int):
 
         # visualize
         viz.record(state)
-
-    print()
 
     # generate plots
     # viz.plot()

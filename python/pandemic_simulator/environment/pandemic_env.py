@@ -113,5 +113,5 @@ class PandemicGymEnv(gym.Env):
             self._done_fn.reset()
         return self._last_observation
 
-    def render(self, mode='human'):
+    def render(self, mode: str = 'human') -> bool:
         pass

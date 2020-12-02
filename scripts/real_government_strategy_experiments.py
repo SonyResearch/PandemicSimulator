@@ -7,7 +7,7 @@ from pandemic_simulator.environment import PandemicSimOpts, italian_regulations,
 from pandemic_simulator.script_helpers import EvaluationOpts, experiment_main, make_evaluation_plots
 
 
-def eval_government_strategies(experiment_name: str, opts: EvaluationOpts):
+def eval_government_strategies(experiment_name: str, opts: EvaluationOpts) -> None:
     data_saver = H5DataSaver(experiment_name, path=opts.data_saver_path)
     print('Running Swedish strategy')
     experiment_main(sim_opts=PandemicSimOpts(),
