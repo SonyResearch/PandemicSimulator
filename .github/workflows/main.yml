@@ -24,13 +24,15 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
 
-      # Runs a single command using the runners shell
+      # Install dependencies
+      - name: Run tests
+        run: apt-get install python3-pip flake8 mypy && pip3 install pytest .
+
+      # run static checks
       - name: Run static checks
         run: ./bin/run_static_checks.py
 
-      # Runs a single command using the runners shell
+      # run tests
       - name: Run tests
-        run: |
-          apt-get install python3-pip && pip3 install pytest .
-          pytest test/
+        run: pytest test/
           
