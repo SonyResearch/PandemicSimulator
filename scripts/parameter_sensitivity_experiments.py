@@ -14,6 +14,9 @@ if __name__ == '__main__':
         social_distancing=(0., 0.3, 0.6),
         avoid_gathering_sizes=(-1, 5, 0),
     )
+    assert opts.spread_rates
+    assert opts.social_distancing
+    assert opts.avoid_gathering_sizes
 
     name_to_eval_fn_labels = {
         'spread_rate': (evaluate_spread_rates, [str(v) for v in opts.spread_rates], 'Spread Rate (mean)'),

@@ -40,11 +40,11 @@ class EvaluationOpts:
     data_filename: str = dataclasses.field(init=False)
     render_runs: bool = False
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         os.makedirs(str(self.data_saver_path.absolute()), exist_ok=True)
 
 
-def evaluate_strategies(exp_name: str, eval_opts: EvaluationOpts):
+def evaluate_strategies(exp_name: str, eval_opts: EvaluationOpts) -> None:
     assert eval_opts.strategies is not None
     data_saver = H5DataSaver(exp_name, path=eval_opts.data_saver_path)
 
@@ -66,7 +66,7 @@ def evaluate_strategies(exp_name: str, eval_opts: EvaluationOpts):
                         exp_id=i)
 
 
-def evaluate_spread_rates(exp_name: str, eval_opts: EvaluationOpts):
+def evaluate_spread_rates(exp_name: str, eval_opts: EvaluationOpts) -> None:
     assert eval_opts.spread_rates is not None
     data_saver = H5DataSaver(exp_name, path=eval_opts.data_saver_path)
     for i, spread_rate in enumerate(eval_opts.spread_rates):
@@ -80,7 +80,7 @@ def evaluate_spread_rates(exp_name: str, eval_opts: EvaluationOpts):
                         exp_id=i)
 
 
-def evaluate_testing_rates(exp_name: str, eval_opts: EvaluationOpts):
+def evaluate_testing_rates(exp_name: str, eval_opts: EvaluationOpts) -> None:
     assert eval_opts.pandemic_test_rate_scales is not None
     data_saver = H5DataSaver(exp_name, path=eval_opts.data_saver_path)
     def_sim_opts = PandemicSimOpts()
@@ -100,7 +100,7 @@ def evaluate_testing_rates(exp_name: str, eval_opts: EvaluationOpts):
                         exp_id=i)
 
 
-def evaluate_social_gatherings(exp_name: str, eval_opts: EvaluationOpts):
+def evaluate_social_gatherings(exp_name: str, eval_opts: EvaluationOpts) -> None:
     assert eval_opts.avoid_gathering_sizes is not None
     data_saver = H5DataSaver(exp_name, path=eval_opts.data_saver_path)
     pandemic_regulations = [
@@ -119,7 +119,7 @@ def evaluate_social_gatherings(exp_name: str, eval_opts: EvaluationOpts):
                         exp_id=i)
 
 
-def evaluate_location_contact_rates(exp_name: str, eval_opts: EvaluationOpts):
+def evaluate_location_contact_rates(exp_name: str, eval_opts: EvaluationOpts) -> None:
     assert eval_opts.social_distancing is not None
     data_saver = H5DataSaver(exp_name, path=eval_opts.data_saver_path)
     pandemic_regulations = [PandemicRegulation(social_distancing=sd, stage=stage)
@@ -136,7 +136,7 @@ def evaluate_location_contact_rates(exp_name: str, eval_opts: EvaluationOpts):
                         exp_id=i)
 
 
-def evaluate_population_sizes(exp_name: str, eval_opts: EvaluationOpts):
+def evaluate_population_sizes(exp_name: str, eval_opts: EvaluationOpts) -> None:
     assert eval_opts.population_sizes is not None
     data_saver = H5DataSaver(exp_name, path=eval_opts.data_saver_path)
 

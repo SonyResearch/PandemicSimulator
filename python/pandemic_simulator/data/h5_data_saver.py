@@ -37,13 +37,11 @@ class H5DataSaver(ExperimentDataSaver):
         self._rewards = None
 
     def begin(self, obs: PandemicObservation) -> None:
-        obs = shallow_asdict(obs)
-        self._obs = dict(**obs)
+        self._obs = dict(**shallow_asdict(obs))
         self._rewards = None
 
     def record(self, obs: PandemicObservation, reward: Optional[Union[np.ndarray, float]] = None) -> None:
-        obs = shallow_asdict(obs)
-        for k, v in obs.items():
+        for k, v in shallow_asdict(obs).items():
             self._obs[k] = np.vstack((self._obs[k], v))
 
         if reward is not None:

@@ -54,7 +54,7 @@ class GraphViz(PandemicViz):
             self._last_stage = stage
 
         for a in self._sim._id_to_person.keys():
-            contacts = self._sim._contact_tracer.get_contacts(a)
+            contacts = self._sim._contact_tracer.get_contacts(a)  # type: ignore
             for b in contacts:
                 if contacts[b][0] > 0 and not (a, b) in self._graph.edges:
                     self._graph.add_edge(a, b)

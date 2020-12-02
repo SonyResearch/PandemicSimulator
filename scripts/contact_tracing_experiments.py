@@ -33,7 +33,7 @@ if __name__ == '__main__':
         num_seeds=1,
         strategies=strategies,
         pandemic_regulations=regulations,
-        sim_opts=sim_opts,
+        sim_opts=sim_opts,  # type: ignore
         max_episode_length=10,
         enable_warm_up=False
     )
