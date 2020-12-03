@@ -6,7 +6,7 @@ import numpy as np
 
 from .base import BasePerson
 from ..interfaces import LocationID, SimTime, NoOP, NOOP, Registry, Risk, PersonState, PersonRoutine, SimTimeTuple, \
-    ContactTracer
+    ContactTracer, SimTimeInterval
 
 __all__ = ['Retired']
 
@@ -64,7 +64,12 @@ class Retired(BasePerson):
 
     def _sync(self, sim_time: SimTime) -> None:
         for i, routine in enumerate(self._routines):
-            self._routines_due[i] = self._routines_due[i] or routine.trigger_interval.trigger_at_interval(sim_time)
+            if isinstance(routine.start_time, SimTimeTuple):
+                self._routines_due[i] = sim_time in routine.start_time
+            elif isinstance(routine.start_time, SimTimeInterval):
+                self._routines_due[i] = (self._routines_due[i] or routine.start_time.trigger_at_interval(sim_time))
+            else:
+                raise ValueError(f'Unrecognized type of start_time specified. {type(routine.start_time)}')
 
         if sim_time.week_day == 0:
             self._socializing_done = False
@@ -78,7 +83,7 @@ class Retired(BasePerson):
         for i, (routine, routine_due) in enumerate(zip(self._routines, self._routines_due)):
             if (routine_due and
                     (routine.start_loc is None or routine.start_loc == self._state.current_location) and
-                    self._numpy_rng.uniform() < routine.trigger_hour_probability):
+                    self._numpy_rng.uniform() < routine.start_hour_probability):
                 end_loc = routine.end_loc
                 if (len(routine.end_locs) > 0) and (self._numpy_rng.uniform() < routine.explore_probability):
                     end_loc = routine.end_locs[self._numpy_rng.randint(0, len(routine.end_locs))]

@@ -5,8 +5,8 @@ from typing import List, Optional
 import numpy as np
 
 from ..environment import Home, Location, CityRegistry, GroceryStore, Road, Cemetery, Hospital, \
-    Office, School, SimTimeTuple, HospitalState, ContactRate, BusinessLocationState, \
-    NonEssentialBusinessLocationState, RetailStore, BarberShop, PopulationParams
+    Office, School, Restaurant, SimTimeTuple, HospitalState, ContactRate, BusinessLocationState, \
+    NonEssentialBusinessLocationState, RetailStore, BarberShop, PopulationParams, Bar
 
 __all__ = ['make_standard_locations']
 
@@ -101,5 +101,33 @@ def make_standard_locations(population_params: PopulationParams,
                 open_time=SimTimeTuple(hours=tuple(range(9, 17)), week_days=tuple(range(1, 7)))),
             numpy_rng=numpy_rng
         ) for i in range(location_type_to_params[BarberShop].num)]
+
+    if Bar in location_type_to_params:
+        all_locs += [Bar(
+            registry=registry,
+            name=f'bar_{i}',
+            road_id=road.id,
+            init_state=NonEssentialBusinessLocationState(
+                is_open=True,
+                contact_rate=ContactRate(1, 1, 0, 0.7, 0.2, 0.1),
+                visitor_capacity=location_type_to_params[Bar].visitor_capacity,
+                open_time=SimTimeTuple(hours=tuple(range(0, 3)) + tuple(range(21, 24)),
+                                       week_days=tuple(range(1, 7)))),
+            numpy_rng=numpy_rng
+        ) for i in range(location_type_to_params[Bar].num)]
+
+    if Restaurant in location_type_to_params:
+        all_locs += [Restaurant(
+            registry=registry,
+            name=f'restaurant_{i}',
+            road_id=road.id,
+            init_state=NonEssentialBusinessLocationState(
+                is_open=True,
+                contact_rate=ContactRate(1, 1, 0, 0.3, 0.35, 0.1),
+                visitor_capacity=location_type_to_params[Restaurant].visitor_capacity,
+                open_time=SimTimeTuple(hours=tuple(range(11, 16)) + tuple(range(19, 24)),
+                                       week_days=tuple(range(1, 7)))),
+            numpy_rng=numpy_rng
+        ) for i in range(location_type_to_params[Restaurant].num)]
 
     return all_locs

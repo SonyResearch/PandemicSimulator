@@ -2,7 +2,7 @@
 from typing import List
 
 from .interfaces import PandemicRegulation, DEFAULT, Risk
-from .location import Office, School, BarberShop, RetailStore
+from .location import Office, School, BarberShop, RetailStore, Restaurant, Bar
 
 __all__ = ['DEFAULT_REGULATION', 'austin_regulations', 'italian_regulations', 'swedish_regulations']
 
@@ -18,6 +18,8 @@ austin_regulations: List[PandemicRegulation] = [
                            School: {'lock': False},
                            BarberShop: {'lock': False},
                            RetailStore: {'lock': False},
+                           Restaurant: {'lock': False},
+                           Bar: {'lock': False},
                        },
                        stage=1),
     PandemicRegulation(stay_home_if_sick=True,
@@ -30,6 +32,8 @@ austin_regulations: List[PandemicRegulation] = [
                            School: {'lock': True},
                            BarberShop: {'lock': True},
                            RetailStore: {'lock': False},
+                           Restaurant: {'lock': False},
+                           Bar: {'lock': False},
                        },
                        stage=2),
     PandemicRegulation(stay_home_if_sick=True,
@@ -42,6 +46,8 @@ austin_regulations: List[PandemicRegulation] = [
                            School: {'lock': True},
                            BarberShop: {'lock': True},
                            RetailStore: {'lock': False},
+                           Restaurant: {'lock': True},
+                           Bar: {'lock': True},
                        },
                        stage=3),
     PandemicRegulation(stay_home_if_sick=True,
@@ -54,6 +60,8 @@ austin_regulations: List[PandemicRegulation] = [
                            School: {'lock': True},
                            BarberShop: {'lock': True},
                            RetailStore: {'lock': True},
+                           Restaurant: {'lock': True},
+                           Bar: {'lock': True},
                        },
                        stage=4)
 ]
@@ -113,6 +121,9 @@ italian_regulations: List[PandemicRegulation] = [
                            School: {'lock': False},
                            BarberShop: {'lock': False},
                            RetailStore: {'lock': False},
+                           Restaurant: {'lock': False},
+                           Bar: {'lock': False},
+
                        },
                        stage=1),
     PandemicRegulation(stay_home_if_sick=True,
@@ -124,6 +135,8 @@ italian_regulations: List[PandemicRegulation] = [
                            School: {'lock': True},
                            BarberShop: {'lock': False},
                            RetailStore: {'lock': False},
+                           Restaurant: {'lock': False},
+                           Bar: {'lock': False},
                        },
                        stage=2),
     PandemicRegulation(stay_home_if_sick=True,
@@ -136,6 +149,8 @@ italian_regulations: List[PandemicRegulation] = [
                            School: {'lock': True},
                            BarberShop: {'lock': True},
                            RetailStore: {'lock': True},
+                           Restaurant: {'lock': True},
+                           Bar: {'lock': True},
                        },
                        stage=3),
     PandemicRegulation(stay_home_if_sick=True,
@@ -148,20 +163,22 @@ italian_regulations: List[PandemicRegulation] = [
                            School: {'lock': True},
                            BarberShop: {'lock': True},
                            RetailStore: {'lock': True},
+                           Restaurant: {'lock': True},
+                           Bar: {'lock': True},
                        },
                        stage=4)
 ]
 
-# https://home.kpmg/xx/en/home/insights/2020/04/sweden-government-and-institution-measures-in-response-to-pandemic.html
+# https://home.kpmg/xx/en/home/insights/2020/04/sweden-government-and-institution-measures-in-response-to-covid.html
 # Sweden took no nationwide lockdown; Remote work *recommended*;
 # Schools are open; Restaurants are open.
 # Travel ban.
 
-# https://www.folkhalsomyndigheten.se/the-public-health-agency-of-sweden/communicable-disease-control/pandemic-19/prevention/
+# https://www.folkhalsomyndigheten.se/the-public-health-agency-of-sweden/communicable-disease-control/covid-19/prevention/
 # We do not currently recommend face masks in public settings since the scientific evidence
 # around the effectiveness of face masks in combatting the spread of infection is unclear.
 # https://www.folkhalsomyndigheten.se/the-public-health-agency-of-sweden/communicable-disease-control/
-# pandemic-19--the-swedish-strategy/
+# covid-19--the-swedish-strategy/
 
 # Anders Tegnell says his modelling indicates that, on average, Swedes have around 30% of the social interactions they
 # did prior to the pandemic.
@@ -169,15 +186,8 @@ swedish_regulations: List[PandemicRegulation] = [
     PandemicRegulation(stage=0),
     PandemicRegulation(stay_home_if_sick=True,
                        practice_good_hygiene=True,
-                       wear_facial_coverings=False,
                        social_distancing=0.70,
                        risk_to_avoid_gathering_size={Risk.HIGH: 50, Risk.LOW: 50},
-                       location_type_to_rule_kwargs={
-                           Office: {'lock': False},
-                           School: {'lock': False},
-                           BarberShop: {'lock': False},
-                           RetailStore: {'lock': False},
-                       },
                        stage=1),
 ]
 
@@ -192,5 +202,7 @@ DEFAULT_REGULATION = PandemicRegulation(
         School: {'lock': False},
         BarberShop: {'lock': False},
         RetailStore: {'lock': False},
+        Bar: {'lock': False},
+        Restaurant: {'lock': False},
     },
     stage=0)
