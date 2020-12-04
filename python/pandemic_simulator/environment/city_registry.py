@@ -4,7 +4,8 @@ from typing import Dict, List, Optional, cast, Set, Type, Mapping
 from cachetools import cached
 
 from .interfaces import LocationID, Location, PersonID, Person, Registry, RegistrationError, InfectionSummary, \
-    IndividualInfectionState, BusinessLocationState, PandemicTestResult
+    IndividualInfectionState, BusinessLocationState, PandemicTestResult, LocationSummary
+from .location.cemetery import Cemetery
 from .location.road import Road
 
 __all__ = ['CityRegistry']
@@ -22,7 +23,9 @@ class CityRegistry(Registry):
     _quarantined: Set[PersonID]
 
     _location_ids_with_social_events: List[LocationID]
-    _location_occupancy_summary: Dict[str, int]
+    _global_location_summary: Dict[str, LocationSummary]
+
+    IGNORE_LOCS_SUMMARY: Set[Type] = {Road, Cemetery}
 
     def __init__(self) -> None:
         self._location_register = {}
@@ -32,7 +35,7 @@ class CityRegistry(Registry):
         self._person_ids = []
         self._quarantined = set()
         self._road_id = None
-        self._location_occupancy_summary = {}
+        self._global_location_summary = {}
 
     def register_location(self, location: Location) -> None:
         """
@@ -55,8 +58,8 @@ class CityRegistry(Registry):
         if isinstance(location.state, BusinessLocationState):
             self._business_location_ids.append(location.id)
 
-        if not isinstance(location, Road):
-            self._location_occupancy_summary[type(location).__name__] = 0
+        if not isinstance(location, tuple(self.IGNORE_LOCS_SUMMARY)):
+            self._global_location_summary[type(location).__name__] = LocationSummary()
 
     def register_person(self, person: Person) -> None:
         """
@@ -112,10 +115,17 @@ class CityRegistry(Registry):
             return False
 
         # update person and location state
-        current_location.remove_person_from_location(person_id)  # exit current
+
+        # exit current
+        current_location.remove_person_from_location(person_id)
+
+        # enter next and update global location summary
         next_location.add_person_to_location(person_id)  # enter next
+        if type(next_location) not in self.IGNORE_LOCS_SUMMARY:
+            prev_count = self._global_location_summary[type(next_location).__name__].entry_count
+            self._global_location_summary[type(next_location).__name__] = LocationSummary(entry_count=prev_count + 1)
+
         person.state.current_location = next_location.id  # update person state
-        self._location_occupancy_summary[type(next_location).__name__] += 1
 
         return True
 
@@ -136,8 +146,8 @@ class CityRegistry(Registry):
         return self._location_ids_with_social_events
 
     @property
-    def location_occupancy_summary(self) -> Mapping[str, int]:
-        return dict(self._location_occupancy_summary)
+    def global_location_summary(self) -> Mapping[str, LocationSummary]:
+        return dict(self._global_location_summary)
 
     @cached(cache={})
     def location_ids_of_type(self, location_type: type) -> List[LocationID]:
@@ -184,3 +194,12 @@ class CityRegistry(Registry):
 
     def get_person_quarantined_state(self, person_id: PersonID) -> bool:
         return person_id in self._quarantined
+
+    def reset(self) -> None:
+        for location in self._location_register.values():
+            location.reset()
+        for person in self._person_register.values():
+            person.reset()
+
+        for k in self._global_location_summary.keys():
+            self._global_location_summary[k] = LocationSummary()

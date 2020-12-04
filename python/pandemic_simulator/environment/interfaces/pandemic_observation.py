@@ -19,7 +19,7 @@ class PandemicObservation:
 
     global_infection_summary: np.ndarray
     global_testing_summary: np.ndarray
-    location_occupancy_summary: np.ndarray
+    location_visits: np.ndarray
     stage: np.ndarray
     infection_above_threshold: np.ndarray
     time_day: np.ndarray
@@ -44,7 +44,7 @@ class PandemicObservation:
 
         return PandemicObservation(global_infection_summary=np.zeros((history_size, 1, len(InfectionSummary))),
                                    global_testing_summary=np.zeros((history_size, 1, len(InfectionSummary))),
-                                   location_occupancy_summary=np.zeros((history_size, 1, num_locations_types)),
+                                   location_visits=np.zeros((history_size, 1, num_locations_types)),
                                    stage=np.zeros((history_size, 1, 1)),
                                    infection_above_threshold=np.zeros((history_size, 1, 1)),
                                    time_day=np.zeros((history_size, 1, 1)),
@@ -77,9 +77,9 @@ class PandemicObservation:
         self.global_testing_summary[hist_index, 0] = gts
 
         if self._location_type_labels is None:
-            self._location_type_labels = sorted(sim_state.location_occupancy_summary.keys())
-        gls = np.asarray([sim_state.location_occupancy_summary[k] for k in self._location_type_labels])[None, None, ...]
-        self.location_occupancy_summary[hist_index, 0] = gls
+            self._location_type_labels = sorted(sim_state.global_location_summary.keys())
+        self.location_visits[hist_index, 0] = np.asarray([sim_state.global_location_summary[k].entry_count
+                                                          for k in self._location_type_labels])[None, None, ...]
 
         self.stage[hist_index, 0] = sim_state.regulation_stage
 
@@ -89,7 +89,7 @@ class PandemicObservation:
 
     @property
     def location_occupancy_labels(self) -> Sequence[str]:
-        """Return the label for each index in location_occupancy_summary observation entry"""
+        """Return the label for each index in location_visits observation entry"""
         assert self._location_type_labels
         return self._location_type_labels
 

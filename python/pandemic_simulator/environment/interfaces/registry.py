@@ -5,9 +5,9 @@ from typing import List, Optional, Set, Mapping
 
 from .ids import LocationID, PersonID
 from .infection_model import InfectionSummary
-from .location import Location
-from .person import Person
+from .location import Location, LocationSummary
 from .pandemic_testing_result import PandemicTestResult
+from .person import Person
 
 __all__ = ['Registry', 'RegistrationError']
 
@@ -69,8 +69,8 @@ class Registry(ABC):
 
     @property
     @abstractmethod
-    def location_occupancy_summary(self) -> Mapping[str, int]:
-        """Return a mapping between a location type name and the number of persons in that location type.
+    def global_location_summary(self) -> Mapping[str, LocationSummary]:
+        """Return a mapping between a location type name and the location summary for that location type.
            E.g.: {'Hospital': 10}
         """
 
@@ -117,3 +117,7 @@ class Registry(ABC):
     @abstractmethod
     def get_person_quarantined_state(self, person_id: PersonID) -> bool:
         """Return person's quarantined state."""
+
+    @abstractmethod
+    def reset(self) -> None:
+        """Reset all stateful information"""

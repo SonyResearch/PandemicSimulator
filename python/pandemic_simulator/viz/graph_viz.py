@@ -39,7 +39,7 @@ class GraphViz(PandemicViz):
     def record(self, data: Any, **kwargs: Any) -> None:
         if isinstance(data, PandemicSimState):
             state = checked_cast(PandemicSimState, data)
-            obs = PandemicObservation.create_empty()
+            obs = PandemicObservation.create_empty(len(state.global_location_summary))
             obs.update_obs_with_sim_state(state)
         elif isinstance(data, PandemicObservation):
             obs = data

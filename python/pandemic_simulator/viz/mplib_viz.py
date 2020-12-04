@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 
 from .mplab_evaluation import inf_colors
 from .pandemic_viz import PandemicViz
-from ..environment import PandemicObservation, sorted_infection_summary, InfectionSummary, LocationParams, \
+from ..environment import PandemicObservation, InfectionSummary, LocationParams, \
     PandemicSimState
 from ..utils import checked_cast
 
@@ -26,12 +26,12 @@ class MatplotLibViz(PandemicViz):
 
     _gis: List[np.ndarray]
     _gts: List[np.ndarray]
-    _los: List[np.ndarray]
+    _lv: List[np.ndarray]
     _stages: List[np.ndarray]
     _rewards: List[float]
 
     _gis_legend: List[str]
-    _los_legend: List[str]
+    _loc_summ_legend: List[str]
     _critical_index: int
     _stage_indices: np.ndarray
 
@@ -55,7 +55,7 @@ class MatplotLibViz(PandemicViz):
 
         self._gis = []
         self._gts = []
-        self._los = []
+        self._lv = []
         self._stages = []
         self._rewards = []
 
@@ -66,7 +66,7 @@ class MatplotLibViz(PandemicViz):
     def record(self, data: Any, **kwargs: Any) -> None:
         if isinstance(data, PandemicSimState):
             state = checked_cast(PandemicSimState, data)
-            obs = PandemicObservation.create_empty(len(state.location_occupancy_summary))
+            obs = PandemicObservation.create_empty(len(state.global_location_summary))
             obs.update_obs_with_sim_state(state)
         elif isinstance(data, PandemicObservation):
             obs = data
@@ -75,12 +75,12 @@ class MatplotLibViz(PandemicViz):
 
         if len(self._gis_legend) == 0:
             self._gis_legend = list(obs.infection_summary_labels)
-            self._los_legend = list(obs.location_occupancy_labels)
+            self._loc_summ_legend = list(obs.location_occupancy_labels)
             self._critical_index = self._gis_legend.index(InfectionSummary.CRITICAL.value)
 
         self._gis.append(obs.global_infection_summary)
         self._gts.append(obs.global_testing_summary)
-        self._los.append(obs.location_occupancy_summary)
+        self._lv.append(obs.location_visits)
         self._stages.append(obs.stage)
         if 'reward' in kwargs:
             self._rewards.append(kwargs['reward'])
@@ -89,12 +89,10 @@ class MatplotLibViz(PandemicViz):
         """Make plots"""
         gis = np.vstack(self._gis).squeeze()
         gts = np.vstack(self._gts).squeeze()
-        los = np.mean(self._los, axis=0).squeeze()
-        los = 100 * los / los.sum()
         stages = np.concatenate(self._stages).squeeze()
 
         ncols = 4
-        nrows = int(np.ceil((4 + self._show_reward + self._show_stages) / 4))
+        nrows = int(np.ceil((4 + self._show_reward + self._show_stages) / ncols))
 
         plt.figure(figsize=(4 * ncols, 4 * nrows))
         plt.rc('axes', prop_cycle=cycler(color=inf_colors))
@@ -132,11 +130,13 @@ class MatplotLibViz(PandemicViz):
 
         ax_i += 1
         axs.append(plt.subplot(nrows, ncols, ax_i))
-        x = np.arange(len(los))
-        plt.bar(x, los, color='#009ACD')
-        plt.xticks(x, self._los_legend, rotation=45, fontsize=8)
-        plt.title('Location Occupancy Summary')
-        plt.ylabel('occupancy (%)')
+        lv = np.mean(self._lv, axis=0).squeeze()  # visits marginalized over all days
+        rel_lv = 100 * lv / lv.sum()
+        x = np.arange(len(lv))
+        plt.bar(x, rel_lv, color='#009ACD')
+        plt.xticks(x, self._loc_summ_legend, rotation=60, fontsize=8)
+        plt.title('Location Visits (Marginalized over days)')
+        plt.ylabel('%')
         plt.ylim([0, None])
 
         if self._show_stages:
