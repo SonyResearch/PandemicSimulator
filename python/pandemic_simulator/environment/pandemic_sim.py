@@ -75,7 +75,6 @@ class PandemicSim:
         self._hospital_ids = [loc.id for loc in locations if isinstance(loc, Hospital)]
 
         num_persons = len(persons)
-
         self._state = PandemicSimState(
             id_to_person_state={person.id: person.state for person in persons},
             id_to_location_state={location.id: location.state for location in locations},
@@ -83,10 +82,16 @@ class PandemicSim:
             global_testing_state=GlobalTestingState(summary={s: num_persons if s == InfectionSummary.NONE else 0
                                                              for s in sorted_infection_summary},
                                                     num_tests=0),
+            location_occupancy_summary=self._registry.location_occupancy_summary,
             sim_time=SimTime(),
             regulation_stage=0,
             infection_above_threshold=False
         )
+
+    @property
+    def registry(self) -> Registry:
+        """Return registry"""
+        return self._registry
 
     def _compute_contacts(self, location: Location) -> OrderedSet:
         assignees = location.state.assignees_in_location
@@ -223,6 +228,8 @@ class PandemicSim:
         self._state.infection_above_threshold = (self._state.global_testing_state.summary[InfectionSummary.INFECTED]
                                                  >= self._infection_threshold)
 
+        self._state.location_occupancy_summary = self._registry.location_occupancy_summary
+
         if self._contact_tracer and self._new_time_slot_interval.trigger_at_interval(self._state.sim_time):
             self._contact_tracer.new_time_slot()
 
@@ -298,6 +305,7 @@ class PandemicSim:
             id_to_person_state={person_id: person.state for person_id, person in self._id_to_person.items()},
             id_to_location_state={loc_id: loc.state for loc_id, loc in self._id_to_location.items()},
             global_infection_summary={s: 0 for s in sorted_infection_summary},
+            location_occupancy_summary=self._registry.location_occupancy_summary,
             global_testing_state=GlobalTestingState(summary={s: num_persons if s == InfectionSummary.NONE else 0
                                                              for s in sorted_infection_summary},
                                                     num_tests=0),

@@ -1,6 +1,6 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 
-from ..environment import Home, GroceryStore, Office, School, Hospital, RetailStore, BarberShop, Restaurant, \
+from ..environment import Home, GroceryStore, Office, School, Hospital, RetailStore, HairSalon, Restaurant, \
     LocationParams, PopulationParams, Bar
 
 __all__ = ['town_population_params', 'small_town_population_params', 'test_population_params',
@@ -16,7 +16,7 @@ town_population_params = PopulationParams(
         School: LocationParams(num=3, worker_capacity=40, visitor_capacity=300),
         Hospital: LocationParams(num=1, worker_capacity=80, visitor_capacity=100),
         RetailStore: LocationParams(num=15, worker_capacity=10, visitor_capacity=30),
-        BarberShop: LocationParams(num=20, worker_capacity=3, visitor_capacity=5),
+        HairSalon: LocationParams(num=20, worker_capacity=3, visitor_capacity=5),
         Restaurant: LocationParams(num=20, worker_capacity=6, visitor_capacity=30),
         Bar: LocationParams(num=10, worker_capacity=8, visitor_capacity=30),
     },
@@ -31,7 +31,7 @@ above_medium_town_population_params = PopulationParams(
         School: LocationParams(num=4, worker_capacity=40, visitor_capacity=300),
         Hospital: LocationParams(num=4, worker_capacity=30, visitor_capacity=10),
         RetailStore: LocationParams(num=16, worker_capacity=5, visitor_capacity=30),
-        BarberShop: LocationParams(num=16, worker_capacity=3, visitor_capacity=5),
+        HairSalon: LocationParams(num=16, worker_capacity=3, visitor_capacity=5),
         Restaurant: LocationParams(num=8, worker_capacity=6, visitor_capacity=30),
         Bar: LocationParams(num=8, worker_capacity=4, visitor_capacity=30),
     },
@@ -46,7 +46,7 @@ medium_town_population_params = PopulationParams(
         School: LocationParams(num=2, worker_capacity=40, visitor_capacity=300),
         Hospital: LocationParams(num=2, worker_capacity=30, visitor_capacity=10),
         RetailStore: LocationParams(num=8, worker_capacity=5, visitor_capacity=30),
-        BarberShop: LocationParams(num=8, worker_capacity=3, visitor_capacity=5),
+        HairSalon: LocationParams(num=8, worker_capacity=3, visitor_capacity=5),
         Restaurant: LocationParams(num=4, worker_capacity=6, visitor_capacity=30),
         Bar: LocationParams(num=4, worker_capacity=3, visitor_capacity=30),
     },
@@ -61,7 +61,7 @@ small_town_population_params = PopulationParams(
         School: LocationParams(num=1, worker_capacity=40, visitor_capacity=300),
         Hospital: LocationParams(num=1, worker_capacity=30, visitor_capacity=10),
         RetailStore: LocationParams(num=4, worker_capacity=5, visitor_capacity=30),
-        BarberShop: LocationParams(num=4, worker_capacity=3, visitor_capacity=5),
+        HairSalon: LocationParams(num=4, worker_capacity=3, visitor_capacity=5),
         Restaurant: LocationParams(num=2, worker_capacity=6, visitor_capacity=30),
         Bar: LocationParams(num=2, worker_capacity=5, visitor_capacity=30),
     },
@@ -76,7 +76,7 @@ tiny_town_population_params = PopulationParams(
         School: LocationParams(num=1, worker_capacity=20, visitor_capacity=300),
         Hospital: LocationParams(num=1, worker_capacity=15, visitor_capacity=5),
         RetailStore: LocationParams(num=2, worker_capacity=5, visitor_capacity=30),
-        BarberShop: LocationParams(num=2, worker_capacity=3, visitor_capacity=5),
+        HairSalon: LocationParams(num=2, worker_capacity=3, visitor_capacity=5),
         Restaurant: LocationParams(num=1, worker_capacity=6, visitor_capacity=30),
         Bar: LocationParams(num=1, worker_capacity=3, visitor_capacity=30),
     },

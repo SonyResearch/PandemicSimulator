@@ -1,7 +1,7 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Mapping
 
 from .ids import LocationID, PersonID
 from .infection_model import InfectionSummary
@@ -66,6 +66,13 @@ class Registry(ABC):
     @abstractmethod
     def location_ids_with_social_events(self) -> List[LocationID]:
         """Return a list of location ids where there are active social events."""
+
+    @property
+    @abstractmethod
+    def location_occupancy_summary(self) -> Mapping[str, int]:
+        """Return a mapping between a location type name and the number of persons in that location type.
+           E.g.: {'Hospital': 10}
+        """
 
     @abstractmethod
     def location_ids_of_type(self, location_type: type) -> List[LocationID]:

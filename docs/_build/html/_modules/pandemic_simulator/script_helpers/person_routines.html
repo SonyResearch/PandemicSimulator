@@ -39,7 +39,7 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="kn">from</span> <span class="nn">..environment</span> <span class="kn">import</span> <span class="n">LocationID</span><span class="p">,</span> <span class="n">PersonRoutine</span><span class="p">,</span> <span class="n">Registry</span><span class="p">,</span> <span class="n">SimTimeInterval</span><span class="p">,</span> <span class="n">GroceryStore</span><span class="p">,</span> \
-    <span class="n">RetailStore</span><span class="p">,</span> <span class="n">BarberShop</span><span class="p">,</span> <span class="n">Retired</span>
+    <span class="n">RetailStore</span><span class="p">,</span> <span class="n">HairSalon</span><span class="p">,</span> <span class="n">Retired</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;get_minor_routines&#39;</span><span class="p">,</span> <span class="s1">&#39;get_adult_routines&#39;</span><span class="p">]</span>
 
@@ -50,10 +50,10 @@
     <span class="n">routines</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">numpy_rng</span> <span class="o">=</span> <span class="n">numpy_rng</span> <span class="k">if</span> <span class="n">numpy_rng</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">()</span>
 
-    <span class="n">barber_shops</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">location_ids_of_type</span><span class="p">(</span><span class="n">BarberShop</span><span class="p">)</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">barber_shops</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="n">hair_salons</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">location_ids_of_type</span><span class="p">(</span><span class="n">HairSalon</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">hair_salons</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">routines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">PersonRoutine</span><span class="p">(</span><span class="n">start_loc</span><span class="o">=</span><span class="n">home_id</span><span class="p">,</span>
-                                      <span class="n">end_loc</span><span class="o">=</span><span class="n">barber_shops</span><span class="p">[</span><span class="n">numpy_rng</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">barber_shops</span><span class="p">))],</span>
+                                      <span class="n">end_loc</span><span class="o">=</span><span class="n">hair_salons</span><span class="p">[</span><span class="n">numpy_rng</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">hair_salons</span><span class="p">))],</span>
                                       <span class="n">trigger_interval</span><span class="o">=</span><span class="n">SimTimeInterval</span><span class="p">(</span><span class="n">day</span><span class="o">=</span><span class="mi">30</span><span class="p">)))</span>
 
     <span class="k">return</span> <span class="n">routines</span></div>
@@ -89,11 +89,11 @@
                                       <span class="n">end_locs</span><span class="o">=</span><span class="n">retail_stores</span><span class="p">,</span>
                                       <span class="n">explore_probability</span><span class="o">=</span><span class="mf">0.05</span><span class="p">))</span>
 
-    <span class="n">barber_shops</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">location_ids_of_type</span><span class="p">(</span><span class="n">BarberShop</span><span class="p">)</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">barber_shops</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="n">hair_salons</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">location_ids_of_type</span><span class="p">(</span><span class="n">HairSalon</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">hair_salons</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">interval_in_days</span> <span class="o">=</span> <span class="mi">30</span>
         <span class="n">routines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">PersonRoutine</span><span class="p">(</span><span class="n">start_loc</span><span class="o">=</span><span class="n">home_id</span><span class="p">,</span>
-                                      <span class="n">end_loc</span><span class="o">=</span><span class="n">barber_shops</span><span class="p">[</span><span class="n">numpy_rng</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">barber_shops</span><span class="p">))],</span>
+                                      <span class="n">end_loc</span><span class="o">=</span><span class="n">hair_salons</span><span class="p">[</span><span class="n">numpy_rng</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">hair_salons</span><span class="p">))],</span>
                                       <span class="n">trigger_interval</span><span class="o">=</span><span class="n">SimTimeInterval</span><span class="p">(</span><span class="n">day</span><span class="o">=</span><span class="n">interval_in_days</span><span class="p">,</span>
                                                                        <span class="n">offset_day</span><span class="o">=</span><span class="n">numpy_rng</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span>
                                                                                                     <span class="n">interval_in_days</span><span class="p">))</span>

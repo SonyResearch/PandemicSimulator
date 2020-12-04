@@ -7,7 +7,7 @@ from typing import Sequence, Type, Optional
 import numpy as np
 
 from ..environment import LocationID, PersonRoutine, Registry, SimTimeInterval, GroceryStore, \
-    RetailStore, BarberShop, Retired, Restaurant, Bar, SimTimeTuple
+    RetailStore, HairSalon, Retired, Restaurant, Bar, SimTimeTuple
 
 __all__ = ['get_minor_routines', 'get_adult_routines', 'get_during_work_routines',
            'triggered_routine', 'weekend_routine', 'mid_day_during_week_routine']
@@ -59,7 +59,7 @@ def get_minor_routines(home_id: LocationID,
                        numpy_rng: Optional[np.random.RandomState] = None) -> Sequence[PersonRoutine]:
     numpy_rng = numpy_rng if numpy_rng is not None else np.random.RandomState()
     routines = [
-        triggered_routine(BarberShop, registry, 30, numpy_rng, home_id),
+        triggered_routine(HairSalon, registry, 30, numpy_rng, home_id),
         weekend_routine(Restaurant, registry, numpy_rng, home_id, explore_probability=0.3),
     ]
     return routines
@@ -74,7 +74,7 @@ def get_adult_routines(person_type: Type,
     routines = [
         triggered_routine(GroceryStore, registry, 7, numpy_rng),
         triggered_routine(RetailStore, registry, 7, numpy_rng),
-        triggered_routine(BarberShop, registry, 30, numpy_rng),
+        triggered_routine(HairSalon, registry, 30, numpy_rng),
         weekend_routine(Restaurant, registry, numpy_rng, home_id, explore_probability=0.5),
     ]
     if isinstance(person_type, Retired):

@@ -1,6 +1,5 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
-
-from typing import Dict, List, Optional, cast, Set, Type
+from typing import Dict, List, Optional, cast, Set, Type, Mapping
 
 from cachetools import cached
 
@@ -23,6 +22,7 @@ class CityRegistry(Registry):
     _quarantined: Set[PersonID]
 
     _location_ids_with_social_events: List[LocationID]
+    _location_occupancy_summary: Dict[str, int]
 
     def __init__(self) -> None:
         self._location_register = {}
@@ -32,6 +32,7 @@ class CityRegistry(Registry):
         self._person_ids = []
         self._quarantined = set()
         self._road_id = None
+        self._location_occupancy_summary = {}
 
     def register_location(self, location: Location) -> None:
         """
@@ -53,6 +54,9 @@ class CityRegistry(Registry):
         self._location_ids.append(location.id)
         if isinstance(location.state, BusinessLocationState):
             self._business_location_ids.append(location.id)
+
+        if not isinstance(location, Road):
+            self._location_occupancy_summary[type(location).__name__] = 0
 
     def register_person(self, person: Person) -> None:
         """
@@ -111,6 +115,8 @@ class CityRegistry(Registry):
         current_location.remove_person_from_location(person_id)  # exit current
         next_location.add_person_to_location(person_id)  # enter next
         person.state.current_location = next_location.id  # update person state
+        self._location_occupancy_summary[type(next_location).__name__] += 1
+
         return True
 
     def update_location_specific_information(self) -> None:
@@ -128,6 +134,10 @@ class CityRegistry(Registry):
     @property
     def location_ids_with_social_events(self) -> List[LocationID]:
         return self._location_ids_with_social_events
+
+    @property
+    def location_occupancy_summary(self) -> Mapping[str, int]:
+        return dict(self._location_occupancy_summary)
 
     @cached(cache={})
     def location_ids_of_type(self, location_type: type) -> List[LocationID]:

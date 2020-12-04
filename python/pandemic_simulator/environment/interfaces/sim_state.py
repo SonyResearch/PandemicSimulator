@@ -1,7 +1,7 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 
 from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, Type, Mapping
 
 from .pandemic_testing import GlobalTestingState
 from .ids import LocationID, PersonID
@@ -19,6 +19,7 @@ class PandemicSimState:
     id_to_location_state: Dict[LocationID, LocationState]
     global_infection_summary: Dict[InfectionSummary, int]
     global_testing_state: GlobalTestingState
+    location_occupancy_summary: Mapping[str, int]
     infection_above_threshold: bool
     regulation_stage: int
     sim_time: SimTime

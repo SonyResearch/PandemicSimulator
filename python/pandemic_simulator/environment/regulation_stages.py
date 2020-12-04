@@ -2,7 +2,7 @@
 from typing import List
 
 from .interfaces import PandemicRegulation, DEFAULT, Risk
-from .location import Office, School, BarberShop, RetailStore, Restaurant, Bar
+from .location import Office, School, HairSalon, RetailStore, Restaurant, Bar
 
 __all__ = ['DEFAULT_REGULATION', 'austin_regulations', 'italian_regulations', 'swedish_regulations']
 
@@ -16,7 +16,7 @@ austin_regulations: List[PandemicRegulation] = [
                        location_type_to_rule_kwargs={
                            Office: {'lock': False},
                            School: {'lock': False},
-                           BarberShop: {'lock': False},
+                           HairSalon: {'lock': False},
                            RetailStore: {'lock': False},
                            Restaurant: {'lock': False},
                            Bar: {'lock': False},
@@ -30,7 +30,7 @@ austin_regulations: List[PandemicRegulation] = [
                        location_type_to_rule_kwargs={
                            Office: {'lock': False},
                            School: {'lock': True},
-                           BarberShop: {'lock': True},
+                           HairSalon: {'lock': True},
                            RetailStore: {'lock': False},
                            Restaurant: {'lock': False},
                            Bar: {'lock': False},
@@ -44,7 +44,7 @@ austin_regulations: List[PandemicRegulation] = [
                        location_type_to_rule_kwargs={
                            Office: {'lock': False},
                            School: {'lock': True},
-                           BarberShop: {'lock': True},
+                           HairSalon: {'lock': True},
                            RetailStore: {'lock': False},
                            Restaurant: {'lock': True},
                            Bar: {'lock': True},
@@ -58,7 +58,7 @@ austin_regulations: List[PandemicRegulation] = [
                        location_type_to_rule_kwargs={
                            Office: {'lock': True},
                            School: {'lock': True},
-                           BarberShop: {'lock': True},
+                           HairSalon: {'lock': True},
                            RetailStore: {'lock': True},
                            Restaurant: {'lock': True},
                            Bar: {'lock': True},
@@ -119,7 +119,7 @@ italian_regulations: List[PandemicRegulation] = [
                        location_type_to_rule_kwargs={
                            Office: {'lock': False},
                            School: {'lock': False},
-                           BarberShop: {'lock': False},
+                           HairSalon: {'lock': False},
                            RetailStore: {'lock': False},
                            Restaurant: {'lock': False},
                            Bar: {'lock': False},
@@ -133,7 +133,7 @@ italian_regulations: List[PandemicRegulation] = [
                        location_type_to_rule_kwargs={
                            Office: {'lock': False},
                            School: {'lock': True},
-                           BarberShop: {'lock': False},
+                           HairSalon: {'lock': False},
                            RetailStore: {'lock': False},
                            Restaurant: {'lock': False},
                            Bar: {'lock': False},
@@ -147,7 +147,7 @@ italian_regulations: List[PandemicRegulation] = [
                        location_type_to_rule_kwargs={
                            Office: {'lock': False},
                            School: {'lock': True},
-                           BarberShop: {'lock': True},
+                           HairSalon: {'lock': True},
                            RetailStore: {'lock': True},
                            Restaurant: {'lock': True},
                            Bar: {'lock': True},
@@ -161,7 +161,7 @@ italian_regulations: List[PandemicRegulation] = [
                        location_type_to_rule_kwargs={
                            Office: {'lock': True},
                            School: {'lock': True},
-                           BarberShop: {'lock': True},
+                           HairSalon: {'lock': True},
                            RetailStore: {'lock': True},
                            Restaurant: {'lock': True},
                            Bar: {'lock': True},
@@ -200,7 +200,7 @@ DEFAULT_REGULATION = PandemicRegulation(
     location_type_to_rule_kwargs={
         Office: {'lock': False},
         School: {'lock': False},
-        BarberShop: {'lock': False},
+        HairSalon: {'lock': False},
         RetailStore: {'lock': False},
         Bar: {'lock': False},
         Restaurant: {'lock': False},

@@ -6,7 +6,7 @@ import numpy as np
 
 from ..environment import Home, Location, CityRegistry, GroceryStore, Road, Cemetery, Hospital, \
     Office, School, Restaurant, SimTimeTuple, HospitalState, ContactRate, BusinessLocationState, \
-    NonEssentialBusinessLocationState, RetailStore, BarberShop, PopulationParams, Bar
+    NonEssentialBusinessLocationState, RetailStore, HairSalon, PopulationParams, Bar
 
 __all__ = ['make_standard_locations']
 
@@ -89,18 +89,18 @@ def make_standard_locations(population_params: PopulationParams,
             numpy_rng=numpy_rng
         ) for i in range(location_type_to_params[RetailStore].num)]
 
-    if BarberShop in location_type_to_params:
-        all_locs += [BarberShop(
+    if HairSalon in location_type_to_params:
+        all_locs += [HairSalon(
             registry=registry,
-            name=f'barber_{i}',
+            name=f'hair_salon_{i}',
             road_id=road.id,
             init_state=NonEssentialBusinessLocationState(
                 is_open=True,
                 contact_rate=ContactRate(1, 1, 0, 0.5, 0.3, 0.1),
-                visitor_capacity=location_type_to_params[BarberShop].visitor_capacity,
+                visitor_capacity=location_type_to_params[HairSalon].visitor_capacity,
                 open_time=SimTimeTuple(hours=tuple(range(9, 17)), week_days=tuple(range(1, 7)))),
             numpy_rng=numpy_rng
-        ) for i in range(location_type_to_params[BarberShop].num)]
+        ) for i in range(location_type_to_params[HairSalon].num)]
 
     if Bar in location_type_to_params:
         all_locs += [Bar(
