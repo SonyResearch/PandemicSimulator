@@ -1,7 +1,7 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Set, Mapping
+from typing import List, Optional, Set, Mapping, Tuple
 
 from .ids import LocationID, PersonID
 from .infection_model import InfectionSummary
@@ -69,9 +69,9 @@ class Registry(ABC):
 
     @property
     @abstractmethod
-    def global_location_summary(self) -> Mapping[str, LocationSummary]:
-        """Return a mapping between a location type name and the location summary for that location type.
-           E.g.: {'Hospital': 10}
+    def global_location_summary(self) -> Mapping[Tuple[str, str], LocationSummary]:
+        """Return a mapping between (a location type name, person type name) and the location summary
+           E.g.: {('School', 'Minor'): LocationSummary(entry_count=10)}
         """
 
     @abstractmethod
@@ -117,7 +117,3 @@ class Registry(ABC):
     @abstractmethod
     def get_person_quarantined_state(self, person_id: PersonID) -> bool:
         """Return person's quarantined state."""
-
-    @abstractmethod
-    def reset(self) -> None:
-        """Reset all stateful information"""

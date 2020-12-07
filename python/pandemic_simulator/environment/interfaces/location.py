@@ -20,9 +20,8 @@ class LocationError(Exception):
 
 @dataclass(frozen=True)
 class LocationSummary:
-    """Dataclass that holds the location summary stats"""
+    """Dataclass that holds the location summary stats."""
     entry_count: int = 0
-    infected_entry_count: int = 0
 
 
 class Location(ABC):

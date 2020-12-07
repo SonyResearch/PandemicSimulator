@@ -1,5 +1,6 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
-from typing import Dict, List, Optional, cast, Set, Type, Mapping
+import dataclasses
+from typing import Dict, List, Optional, cast, Set, Type, Mapping, Tuple
 
 from cachetools import cached
 
@@ -23,7 +24,9 @@ class CityRegistry(Registry):
     _quarantined: Set[PersonID]
 
     _location_ids_with_social_events: List[LocationID]
-    _global_location_summary: Dict[str, LocationSummary]
+    _global_location_summary: Dict[Tuple[str, str], LocationSummary]
+    _location_types: Set[str]
+    _person_types: Set[str]
 
     IGNORE_LOCS_SUMMARY: Set[Type] = {Road, Cemetery}
 
@@ -35,7 +38,9 @@ class CityRegistry(Registry):
         self._person_ids = []
         self._quarantined = set()
         self._road_id = None
-        self._global_location_summary = {}
+        self._global_location_summary = dict()
+        self._location_types = set()
+        self._person_types = set()
 
     def register_location(self, location: Location) -> None:
         """
@@ -58,8 +63,8 @@ class CityRegistry(Registry):
         if isinstance(location.state, BusinessLocationState):
             self._business_location_ids.append(location.id)
 
-        if not isinstance(location, tuple(self.IGNORE_LOCS_SUMMARY)):
-            self._global_location_summary[type(location).__name__] = LocationSummary()
+        if type(location) not in self.IGNORE_LOCS_SUMMARY:
+            self._location_types.add(type(location).__name__)
 
     def register_person(self, person: Person) -> None:
         """
@@ -95,6 +100,13 @@ class CityRegistry(Registry):
         self._person_register[person.id] = person
         self._person_ids.append(person.id)
 
+        # init entry in global_location_summary
+        person_type = type(person).__name__
+        if person_type not in self._person_types:
+            self._person_types.add(person_type)
+            for loc_type in self._location_types:
+                self._global_location_summary[(loc_type, person_type)] = LocationSummary()
+
     def register_person_entry_in_location(self, person_id: PersonID, location_id: LocationID) -> bool:
         """
         Register a person's entry in the specified location
@@ -115,17 +127,15 @@ class CityRegistry(Registry):
             return False
 
         # update person and location state
-
-        # exit current
-        current_location.remove_person_from_location(person_id)
-
-        # enter next and update global location summary
+        current_location.remove_person_from_location(person_id)  # exit current
         next_location.add_person_to_location(person_id)  # enter next
-        if type(next_location) not in self.IGNORE_LOCS_SUMMARY:
-            prev_count = self._global_location_summary[type(next_location).__name__].entry_count
-            self._global_location_summary[type(next_location).__name__] = LocationSummary(entry_count=prev_count + 1)
-
         person.state.current_location = next_location.id  # update person state
+
+        # update global location summary
+        if type(next_location) not in self.IGNORE_LOCS_SUMMARY:
+            key = (type(next_location).__name__, type(person).__name__)
+            summary = self._global_location_summary[key]
+            self._global_location_summary[key] = dataclasses.replace(summary, entry_count=summary.entry_count + 1)
 
         return True
 
@@ -146,7 +156,7 @@ class CityRegistry(Registry):
         return self._location_ids_with_social_events
 
     @property
-    def global_location_summary(self) -> Mapping[str, LocationSummary]:
+    def global_location_summary(self) -> Mapping[Tuple[str, str], LocationSummary]:
         return dict(self._global_location_summary)
 
     @cached(cache={})
@@ -194,12 +204,3 @@ class CityRegistry(Registry):
 
     def get_person_quarantined_state(self, person_id: PersonID) -> bool:
         return person_id in self._quarantined
-
-    def reset(self) -> None:
-        for location in self._location_register.values():
-            location.reset()
-        for person in self._person_register.values():
-            person.reset()
-
-        for k in self._global_location_summary.keys():
-            self._global_location_summary[k] = LocationSummary()

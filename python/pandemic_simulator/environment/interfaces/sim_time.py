@@ -1,5 +1,5 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Tuple
 
 __all__ = ['SimTime', 'SimTimeInterval', 'SimTimeTuple']
@@ -64,16 +64,19 @@ class SimTimeInterval:
     """An offset in days [0, 365]. Example - day = 3 and offset_day = 1 would trigger once in 3 days starting a day
         later."""
 
+    _trigger_hr: int = field(init=False)
+    _offset_hr: int = field(init=False)
+
     def __post_init__(self) -> None:
         assert self.hour in range(24), 'Set a value in [1, 23] for an interval in hours'
         assert self.day in range(365), 'Set a value in [1, 365] for an interval in days'
+        object.__setattr__(self, '_trigger_hr', self.in_hours())
+        object.__setattr__(self, '_offset_hr', self.offset_day * 24 + self.offset_hour)
 
     def trigger_at_interval(self, sim_time: SimTime) -> bool:
         """Return True at sim time interval and False otherwise."""
-        trigger_hr = self.in_hours()
         sim_hr = sim_time.year * 365 * 24 + sim_time.day * 24 + sim_time.hour
-        offset_hrs = self.offset_day * 24 + self.offset_hour
-        return max(sim_hr - offset_hrs, 0) % trigger_hr == 0
+        return max(sim_hr - self._offset_hr, 0) % self._trigger_hr == 0
 
     def in_hours(self) -> int:
         return self.year * 365 * 24 + self.day * 24 + self.hour

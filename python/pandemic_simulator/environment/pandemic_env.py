@@ -83,7 +83,6 @@ class PandemicGymEnv(gym.Env):
         # update the sim until next regulation interval trigger and construct obs from state hist
         obs = PandemicObservation.create_empty(
             history_size=self._obs_history_size,
-            num_locations_types=len(self._pandemic_sim.registry.global_location_summary),
             num_non_essential_business=len(self._non_essential_business_loc_ids)
             if self._non_essential_business_loc_ids is not None else None)
 
@@ -109,7 +108,6 @@ class PandemicGymEnv(gym.Env):
         self._pandemic_sim.reset()
         self._last_observation = PandemicObservation.create_empty(
             history_size=self._obs_history_size,
-            num_locations_types=len(self._pandemic_sim.registry.global_location_summary),
             num_non_essential_business=len(self._non_essential_business_loc_ids)
             if self._non_essential_business_loc_ids is not None else None)
         self._last_reward = 0.0

@@ -1,12 +1,13 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 
-from typing import Optional, List, Sequence
+from typing import Optional, Sequence
 
 import numpy as np
 
 from .base import BasePerson
+from .routine_utils import RoutineWithStatus, execute_routines
 from ..interfaces import LocationID, SimTime, NoOP, NOOP, Registry, Risk, PersonState, PersonRoutine, SimTimeTuple, \
-    ContactTracer, SimTimeInterval
+    ContactTracer
 
 __all__ = ['Retired']
 
@@ -17,8 +18,7 @@ class Retired(BasePerson):
     _socializing_done: bool
     _to_social_at_hour_prob: float
 
-    _routines: Sequence[PersonRoutine]
-    _routines_due: List[bool]
+    _routines_with_status: Sequence[RoutineWithStatus]
 
     _to_home_hour_prob: float
 
@@ -57,19 +57,13 @@ class Retired(BasePerson):
         self._socializing_done = False
         self._to_social_at_hour_prob = 0.9
 
-        self._routines = routines
-        self._routines_due = [False] * len(self._routines)
+        self._routines_with_status = [RoutineWithStatus(routine) for routine in routines]
 
         self._to_home_hour_prob = 0.5
 
     def _sync(self, sim_time: SimTime) -> None:
-        for i, routine in enumerate(self._routines):
-            if isinstance(routine.start_time, SimTimeTuple):
-                self._routines_due[i] = sim_time in routine.start_time
-            elif isinstance(routine.start_time, SimTimeInterval):
-                self._routines_due[i] = (self._routines_due[i] or routine.start_time.trigger_at_interval(sim_time))
-            else:
-                raise ValueError(f'Unrecognized type of start_time specified. {type(routine.start_time)}')
+        for rws in self._routines_with_status:
+            rws.sync(sim_time)
 
         if sim_time.week_day == 0:
             self._socializing_done = False
@@ -79,18 +73,10 @@ class Retired(BasePerson):
         if step_ret != NOOP:
             return step_ret
 
-        # execute due outside work routines
-        for i, (routine, routine_due) in enumerate(zip(self._routines, self._routines_due)):
-            if (routine_due and
-                    (routine.start_loc is None or routine.start_loc == self._state.current_location) and
-                    self._numpy_rng.uniform() < routine.start_hour_probability):
-                end_loc = routine.end_loc
-                if (len(routine.end_locs) > 0) and (self._numpy_rng.uniform() < routine.explore_probability):
-                    end_loc = routine.end_locs[self._numpy_rng.randint(0, len(routine.end_locs))]
-
-                if self.enter_location(end_loc):
-                    self._routines_due[i] = False
-                    return None
+        # execute routines
+        ret = execute_routines(person=self, routines_with_status=self._routines_with_status, numpy_rng=self._numpy_rng)
+        if ret != NOOP:
+            return ret
 
         # if at home go to a social event if you have not been this week
         if (self.at_home and

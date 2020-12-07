@@ -3,6 +3,7 @@
 
 from dataclasses import dataclass, field
 from typing import Set
+
 from orderedset import OrderedSet
 
 from .ids import PersonID
@@ -78,6 +79,11 @@ class LocationState:
         persons = set(self.assignees_in_location)
         persons.union(self.visitors_in_location)
         return persons
+
+    @property
+    def num_persons_in_location(self) -> int:
+        """Returns the number of persons in the location."""
+        return len(self.assignees_in_location) + len(self.visitors_in_location)
 
 
 @dataclass

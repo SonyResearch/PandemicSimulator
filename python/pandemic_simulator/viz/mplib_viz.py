@@ -31,7 +31,8 @@ class MatplotLibViz(PandemicViz):
     _rewards: List[float]
 
     _gis_legend: List[str]
-    _loc_summ_legend: List[str]
+    _loc_types: List[str]
+    _person_types: List[str]
     _critical_index: int
     _stage_indices: np.ndarray
 
@@ -60,14 +61,25 @@ class MatplotLibViz(PandemicViz):
         self._rewards = []
 
         self._gis_legend = []
+        self._loc_types = []
+        self._person_types = []
         self._critical_index = 0
         self._stage_indices = np.arange(num_stages)[..., None]
 
     def record(self, data: Any, **kwargs: Any) -> None:
         if isinstance(data, PandemicSimState):
             state = checked_cast(PandemicSimState, data)
-            obs = PandemicObservation.create_empty(len(state.global_location_summary))
+            obs = PandemicObservation.create_empty()
             obs.update_obs_with_sim_state(state)
+            if len(self._loc_types) == 0:
+                self._loc_types = sorted(set(k[0] for k in state.global_location_summary.keys()))
+                self._person_types = sorted(set(k[1] for k in state.global_location_summary.keys()))
+
+            _d = np.zeros((1, len(self._loc_types), len(self._person_types)))
+            for i in range(len(self._loc_types)):
+                for j in range(len(self._person_types)):
+                    _d[0, i, j] = state.global_location_summary[(self._loc_types[i], self._person_types[j])].entry_count
+            self._lv.append(_d)
         elif isinstance(data, PandemicObservation):
             obs = data
         else:
@@ -75,12 +87,10 @@ class MatplotLibViz(PandemicViz):
 
         if len(self._gis_legend) == 0:
             self._gis_legend = list(obs.infection_summary_labels)
-            self._loc_summ_legend = list(obs.location_occupancy_labels)
             self._critical_index = self._gis_legend.index(InfectionSummary.CRITICAL.value)
 
         self._gis.append(obs.global_infection_summary)
         self._gts.append(obs.global_testing_summary)
-        self._lv.append(obs.location_visits)
         self._stages.append(obs.stage)
         if 'reward' in kwargs:
             self._rewards.append(kwargs['reward'])
@@ -91,8 +101,9 @@ class MatplotLibViz(PandemicViz):
         gts = np.vstack(self._gts).squeeze()
         stages = np.concatenate(self._stages).squeeze()
 
+        # ncols = 4 if len(self._lv) > 0 else 3
         ncols = 4
-        nrows = int(np.ceil((4 + self._show_reward + self._show_stages) / ncols))
+        nrows = int(np.ceil((ncols + self._show_reward + self._show_stages) / ncols))
 
         plt.figure(figsize=(4 * ncols, 4 * nrows))
         plt.rc('axes', prop_cycle=cycler(color=inf_colors))
@@ -128,16 +139,24 @@ class MatplotLibViz(PandemicViz):
         plt.xlabel('time (days)')
         plt.ylabel('persons')
 
-        ax_i += 1
-        axs.append(plt.subplot(nrows, ncols, ax_i))
-        lv = np.mean(self._lv, axis=0).squeeze()  # visits marginalized over all days
-        rel_lv = 100 * lv / lv.sum()
-        x = np.arange(len(lv))
-        plt.bar(x, rel_lv, color='#009ACD')
-        plt.xticks(x, self._loc_summ_legend, rotation=60, fontsize=8)
-        plt.title('Location Visits (Marginalized over days)')
-        plt.ylabel('%')
-        plt.ylim([0, None])
+        if len(self._lv) > 0:
+            ax_i += 1
+            axs.append(plt.subplot(nrows, ncols, ax_i))
+            lv = np.vstack(self._lv)
+            lv = np.mean(lv[1:] - lv[:-1], axis=0).squeeze()  # take visits per day and marginalize over days
+            lv = 100 * lv / lv.sum()
+            x = np.arange(lv.shape[0])
+            p = []
+            colors = ['r', 'g', 'b', 'c']
+            bottom = np.zeros(lv.shape[0])
+            for j in range(lv.shape[1]):
+                p.append(plt.bar(x, lv[:, j], color=colors[j], alpha=0.5, bottom=bottom))
+                bottom += lv[:, j]
+            plt.xticks(x, self._loc_types, rotation=60, fontsize=8)
+            plt.title('Location Visits Per Day\n(Marginalized over days)')
+            plt.ylabel('%')
+            plt.ylim([0, None])
+            plt.legend(p, self._person_types)
 
         if self._show_stages:
             ax_i += 1

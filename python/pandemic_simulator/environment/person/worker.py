@@ -4,8 +4,9 @@ from typing import Optional, Sequence, List
 import numpy as np
 
 from .base import BasePerson
+from .routine_utils import RoutineWithStatus, execute_routines
 from ..interfaces import PersonState, LocationID, Risk, Registry, SimTime, NoOP, SimTimeTuple, NOOP, PersonRoutine, \
-    ContactTracer, SimTimeInterval
+    ContactTracer
 
 __all__ = ['Worker']
 
@@ -20,11 +21,8 @@ class Worker(BasePerson):
     _socializing_done: bool
     _to_social_at_hour_prob: float
 
-    _during_work_routines: Sequence[PersonRoutine]
-    _during_work_routines_due: List[bool]
-
-    _outside_work_routines: Sequence[PersonRoutine]
-    _outside_work_routines_due: List[bool]
+    _during_work_rs: List[RoutineWithStatus]
+    _outside_work_rs: List[RoutineWithStatus]
 
     _to_home_hour_prob: float
 
@@ -73,14 +71,10 @@ class Worker(BasePerson):
 
         self._socializing_done = False
         self._to_social_at_hour_prob = 0.9
-
-        self._during_work_routines = during_work_routines
-        self._during_work_routines_due = [False] * len(self._during_work_routines)
-
-        self._outside_work_routines = outside_work_routines
-        self._outside_work_routines_due = [False] * len(self._outside_work_routines)
-
         self._to_home_hour_prob = 0.5
+
+        self._during_work_rs = [RoutineWithStatus(routine) for routine in during_work_routines]
+        self._outside_work_rs = [RoutineWithStatus(routine) for routine in outside_work_routines]
 
     @property
     def work(self) -> LocationID:
@@ -96,14 +90,9 @@ class Worker(BasePerson):
         return self._state.current_location == self.work
 
     def _sync(self, sim_time: SimTime) -> None:
-        for i, routine in enumerate(self._outside_work_routines):
-            if isinstance(routine.start_time, SimTimeTuple):
-                self._outside_work_routines_due[i] = sim_time in routine.start_time
-            elif isinstance(routine.start_time, SimTimeInterval):
-                self._outside_work_routines_due[i] = (self._outside_work_routines_due[i] or
-                                                      routine.start_time.trigger_at_interval(sim_time))
-            else:
-                raise ValueError(f'Unrecognized type of start_time specified. {type(routine.start_time)}')
+        for rws in self._during_work_rs + self._outside_work_rs:
+            rws.sync(sim_time)
+
         if sim_time.week_day == 0:
             self._socializing_done = False
 
@@ -112,42 +101,21 @@ class Worker(BasePerson):
         if step_ret != NOOP:
             return step_ret
 
-        # work time - go to work if you are not at work
-        if not self.at_work and sim_time in self._work_time and self._numpy_rng.uniform() < self._to_work_at_hour_prob:
-            if self.enter_location(self.work):
-                return None
+        if sim_time in self._work_time:
+            # execute during work time routines
+            ret = execute_routines(person=self, routines_with_status=self._during_work_rs, numpy_rng=self._numpy_rng)
+            if ret != NOOP:
+                return ret
 
-        # during work time
-        if self.at_work and sim_time in self._work_time:
-            # execute due during work routines
-            for i, (routine, routine_due) in enumerate(zip(self._during_work_routines,
-                                                           self._during_work_routines_due)):
-                if (routine_due and
-                        (routine.start_loc is None or routine.start_loc == self._state.current_location) and
-                        self._numpy_rng.uniform() < routine.start_hour_probability):
-                    end_loc = routine.end_loc
-                    if (len(routine.end_locs) > 0) and (self._numpy_rng.uniform() < routine.explore_probability):
-                        end_loc = routine.end_locs[self._numpy_rng.randint(0, len(routine.end_locs))]
-
-                    if self.enter_location(end_loc):
-                        self._during_work_routines_due[i] = False
-                        return None
-
-        # outside work time
-        if sim_time not in self._work_time:
-            # execute due outside work routines
-            for i, (routine, routine_due) in enumerate(zip(self._outside_work_routines,
-                                                           self._outside_work_routines_due)):
-                if (routine_due and
-                        (routine.start_loc is None or routine.start_loc == self._state.current_location) and
-                        self._numpy_rng.uniform() < routine.start_hour_probability):
-                    end_loc = routine.end_loc
-                    if (len(routine.end_locs) > 0) and (self._numpy_rng.uniform() < routine.explore_probability):
-                        end_loc = routine.end_locs[self._numpy_rng.randint(0, len(routine.end_locs))]
-
-                    if self.enter_location(end_loc):
-                        self._outside_work_routines_due[i] = False
-                        return None
+            # no more routines to execute, go back to office
+            if not self.at_work and self._numpy_rng.uniform() < self._to_work_at_hour_prob:
+                if self.enter_location(self.work):
+                    return None
+        else:
+            # execute outside work time routines
+            ret = execute_routines(person=self, routines_with_status=self._outside_work_rs, numpy_rng=self._numpy_rng)
+            if ret != NOOP:
+                return ret
 
             # if at home go to a social event if you have not been this week
             if (self.at_home and
