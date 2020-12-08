@@ -25,10 +25,8 @@ class CityRegistry(Registry):
 
     _location_ids_with_social_events: List[LocationID]
     _global_location_summary: Dict[Tuple[str, str], LocationSummary]
-    _location_types: Set[str]
+    _location_tags: Set[str]
     _person_types: Set[str]
-
-    IGNORE_LOCS_SUMMARY: Set[Type] = {Road, Cemetery}
 
     def __init__(self) -> None:
         self._location_register = {}
@@ -39,7 +37,7 @@ class CityRegistry(Registry):
         self._quarantined = set()
         self._road_id = None
         self._global_location_summary = dict()
-        self._location_types = set()
+        self._location_tags = set()
         self._person_types = set()
 
     def register_location(self, location: Location) -> None:
@@ -63,8 +61,7 @@ class CityRegistry(Registry):
         if isinstance(location.state, BusinessLocationState):
             self._business_location_ids.append(location.id)
 
-        if type(location) not in self.IGNORE_LOCS_SUMMARY:
-            self._location_types.add(type(location).__name__)
+        self._location_tags = self._location_tags.union(set(location.id.tags))
 
     def register_person(self, person: Person) -> None:
         """
@@ -104,8 +101,8 @@ class CityRegistry(Registry):
         person_type = type(person).__name__
         if person_type not in self._person_types:
             self._person_types.add(person_type)
-            for loc_type in self._location_types:
-                self._global_location_summary[(loc_type, person_type)] = LocationSummary()
+            for loc_tag in self._location_tags:
+                self._global_location_summary[(loc_tag, person_type)] = LocationSummary()
 
     def register_person_entry_in_location(self, person_id: PersonID, location_id: LocationID) -> bool:
         """
@@ -132,8 +129,8 @@ class CityRegistry(Registry):
         person.state.current_location = next_location.id  # update person state
 
         # update global location summary
-        if type(next_location) not in self.IGNORE_LOCS_SUMMARY:
-            key = (type(next_location).__name__, type(person).__name__)
+        for tag in next_location.id.tags:
+            key = (tag, type(person).__name__)
             summary = self._global_location_summary[key]
             is_visitor = person_id not in next_location.state.assignees
             self._global_location_summary[key] = dataclasses.replace(

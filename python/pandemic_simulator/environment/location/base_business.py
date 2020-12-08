@@ -20,19 +20,19 @@ class BusinessBaseLocation(BaseLocation):
     location_rule_type: Type = BusinessLocationRule
 
     def __init__(self, registry: Registry,
-                 name: Optional[str] = None,
+                 loc_id: LocationID,
                  road_id: Optional[LocationID] = None,
                  init_state: Optional[BusinessLocationState] = None,
                  numpy_rng: Optional[np.random.RandomState] = None):
         """
         :param registry: Registry instance to register the location and handle people exit from location
-        :param name: Name of the location
+        :param loc_id: Location ID
         :param road_id: id of the road connected to the location
         :param init_state: Optional initial state of the location. Set to default if None
         :param numpy_rng: Random number generator
         """
         init_state = (checked_cast(BusinessLocationState, init_state) or BusinessLocationState(is_open=True))
-        super().__init__(registry=registry, name=name, road_id=road_id, init_state=init_state, numpy_rng=numpy_rng)
+        super().__init__(registry=registry, loc_id=loc_id, road_id=road_id, init_state=init_state, numpy_rng=numpy_rng)
 
     def update_rules(self, new_rule: LocationRule) -> None:
         super().update_rules(new_rule)
@@ -55,20 +55,20 @@ class NonEssentialBusinessBaseLocation(BusinessBaseLocation):
     location_rule_type: Type = NonEssentialBusinessLocationRule
 
     def __init__(self, registry: Registry,
-                 name: Optional[str] = None,
+                 loc_id: LocationID,
                  road_id: Optional[LocationID] = None,
                  init_state: Optional[NonEssentialBusinessLocationState] = None,
                  numpy_rng: Optional[np.random.RandomState] = None):
         """
         :param registry: Registry instance to register the location and handle people exit from location
-        :param name: Name of the location
+        :param loc_id: Location ID
         :param road_id: id of the road connected to the location
         :param init_state: Optional initial state of the location. Set to default if None
         :param numpy_rng: Random number generator
         """
         init_state = checked_cast(NonEssentialBusinessLocationState, init_state or
                                   NonEssentialBusinessLocationState(is_open=True))
-        super().__init__(registry=registry, name=name, road_id=road_id, init_state=init_state, numpy_rng=numpy_rng)
+        super().__init__(registry=registry, loc_id=loc_id, road_id=road_id, init_state=init_state, numpy_rng=numpy_rng)
 
     def sync(self, sim_time: SimTime) -> None:
         super().sync(sim_time)
@@ -91,20 +91,20 @@ class AgeRestrictedBusinessBaseLocation(NonEssentialBusinessBaseLocation):
 
     def __init__(self, age_limits: Tuple[int, int],
                  registry: Registry,
-                 name: Optional[str] = None,
+                 loc_id: LocationID,
                  road_id: Optional[LocationID] = None,
                  init_state: Optional[NonEssentialBusinessLocationState] = None,
                  numpy_rng: Optional[np.random.RandomState] = None):
         """
         :param age_limits: min and max age of allowed persons
         :param registry: Registry instance to register the location and handle people exit from location
-        :param name: Name of the location
+        :param loc_id: Location ID
         :param road_id: id of the road connected to the location
         :param init_state: Optional initial state of the location. Set to default if None
         :param numpy_rng: Random number generator
         """
         self._age_limits = age_limits
-        super().__init__(registry=registry, name=name, road_id=road_id, init_state=init_state, numpy_rng=numpy_rng)
+        super().__init__(registry=registry, loc_id=loc_id, road_id=road_id, init_state=init_state, numpy_rng=numpy_rng)
 
     def is_entry_allowed(self, person_id: PersonID) -> bool:
         if self._age_limits[0] <= person_id.age <= self._age_limits[1]:

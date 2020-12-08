@@ -15,13 +15,13 @@ class Home(BaseLocation):
     """Class that implements a standard Home location. """
 
     def __init__(self, registry: Registry,
-                 name: Optional[str] = None,
+                 loc_id: LocationID,
                  visitor_capacity: int = -1,
                  road_id: Optional[LocationID] = None,
                  numpy_rng: Optional[np.random.RandomState] = None):
         """
         :param registry: Registry instance to register the location and handle people exit from location
-        :param name: Name of the location.
+        :param loc_id: Location ID instance.
         :param visitor_capacity: Maximum number of allowed visitors.
         :param road_id: id of the road connected to the location.
         :param numpy_rng: Random number generator
@@ -33,7 +33,7 @@ class Home(BaseLocation):
                                    visitor_capacity=visitor_capacity,
                                    contact_rate=ContactRate(0, 1, 0, 0.5, 0.3, 0.3),
                                    visitor_time=self._social_event_time)
-        super().__init__(registry=registry, name=name, road_id=road_id, init_state=init_state, numpy_rng=numpy_rng)
+        super().__init__(registry=registry, loc_id=loc_id, road_id=road_id, init_state=init_state, numpy_rng=numpy_rng)
 
     def sync(self, sim_time: SimTime) -> None:
         super().sync(sim_time)

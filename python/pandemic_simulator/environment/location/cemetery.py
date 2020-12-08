@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from typing import Type, Optional, cast
+from uuid import uuid4
 
 import numpy as np
 
@@ -28,18 +29,18 @@ class Cemetery(BaseLocation):
     location_rule_type: Type = CemeteryRule
 
     def __init__(self, registry: Registry,
-                 name: Optional[str] = None,
+                 loc_id: LocationID,
                  road_id: Optional[LocationID] = None,
                  numpy_rng: Optional[np.random.RandomState] = None):
         """
         :param registry: Registry instance to register the location and handle people exit from location
-        :param name: Name of the location
+        :param loc_id: Location ID instance.
         :param road_id: id of the road connected to the location
         :param numpy_rng: Random number generator
         """
         init_state = LocationState(is_open=True, visitor_capacity=-1,
                                    contact_rate=ContactRate(0, 0, 0, 0, 0, 0.05))
-        super().__init__(registry=registry, name=name, road_id=road_id, init_state=init_state, numpy_rng=numpy_rng)
+        super().__init__(registry=registry, loc_id=loc_id, road_id=road_id, init_state=init_state, numpy_rng=numpy_rng)
 
     def update_rules(self, new_rule: LocationRule) -> None:
         rule = cast(CemeteryRule, new_rule)

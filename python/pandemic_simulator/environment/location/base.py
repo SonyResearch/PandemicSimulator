@@ -2,7 +2,7 @@
 
 from copy import deepcopy
 from typing import Optional, Type, cast
-from uuid import uuid4
+
 import numpy as np
 
 from ..interfaces import Location, LocationState, PersonID, LocationID, Registry, LocationRule, DEFAULT, \
@@ -27,23 +27,23 @@ class BaseLocation(Location):
 
     def __init__(self,
                  registry: Registry,
-                 name: Optional[str] = None,
+                 loc_id: LocationID,
                  road_id: Optional[LocationID] = None,
                  init_state: Optional[LocationState] = None,
                  numpy_rng: Optional[np.random.RandomState] = None):
         """
         :param registry: Registry instance to register the location and handle people exit from location
-        :param name: Name of the location
+        :param loc_id: Location ID
         :param road_id: id of the road connected to the location
         :param init_state: Optional initial state of the location. Set to default if None
         :param numpy_rng: Random number generator
         """
         self._registry = registry
+        self._id = loc_id
         self._road_id = road_id
         self._init_state = init_state or LocationState(is_open=True)
         self._numpy_rng = numpy_rng if numpy_rng is not None else np.random.RandomState()
 
-        self._id = LocationID(name=name if name else str(uuid4()))
         self._state = deepcopy(self._init_state)
 
         self._registry.register_location(self)
