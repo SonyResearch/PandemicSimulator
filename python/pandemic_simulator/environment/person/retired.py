@@ -15,11 +15,7 @@ __all__ = ['Retired']
 class Retired(BasePerson):
     """Class that implements a retired person"""
 
-    _socializing_done: bool
-    _to_social_at_hour_prob: float
-
     _routines_with_status: Sequence[RoutineWithStatus]
-
     _to_home_hour_prob: float
 
     def __init__(self, age: int,
@@ -28,7 +24,7 @@ class Retired(BasePerson):
                  routines: Sequence[PersonRoutine] = (),
                  name: Optional[str] = None,
                  risk: Optional[Risk] = None,
-                 night_hours: SimTimeTuple = SimTimeTuple(hours=tuple(range(0, 6)) + tuple(range(22, 24))),
+                 night_hours: SimTimeTuple = SimTimeTuple(hours=tuple(range(0, 6))),
                  regulation_compliance_prob: float = 1.0,
                  init_state: Optional[PersonState] = None,
                  numpy_rng: Optional[np.random.RandomState] = None):
@@ -44,6 +40,9 @@ class Retired(BasePerson):
         :param init_state: Optional initial state of the person
         :param numpy_rng: Random number generator
         """
+        self._routines_with_status = [RoutineWithStatus(routine) for routine in routines]
+        self._to_home_hour_prob = 0.95
+
         super().__init__(age=age,
                          home=home,
                          registry=registry,
@@ -54,14 +53,9 @@ class Retired(BasePerson):
                          init_state=init_state,
                          numpy_rng=numpy_rng)
 
-        self._socializing_done = False
-        self._to_social_at_hour_prob = 0.9
-
-        self._routines_with_status = [RoutineWithStatus(routine) for routine in routines]
-
-        self._to_home_hour_prob = 0.5
-
     def _sync(self, sim_time: SimTime) -> None:
+        super()._sync(sim_time)
+
         for rws in self._routines_with_status:
             rws.sync(sim_time)
 
@@ -77,15 +71,6 @@ class Retired(BasePerson):
         ret = execute_routines(person=self, routines_with_status=self._routines_with_status, numpy_rng=self._numpy_rng)
         if ret != NOOP:
             return ret
-
-        # if at home go to a social event if you have not been this week
-        if (self.at_home and
-                not self._socializing_done and
-                self._numpy_rng.uniform() < self._to_social_at_hour_prob):
-            social_loc = self._get_social_gathering_location()
-            if social_loc is not None and self.enter_location(social_loc):
-                self._socializing_done = True
-                return None
 
         # if not at home go home
         if not self.at_home and self._numpy_rng.uniform() < self._to_home_hour_prob:

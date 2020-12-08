@@ -7,12 +7,19 @@ __all__ = ['town_population_params', 'small_town_population_params', 'test_popul
            'tiny_town_population_params', 'medium_town_population_params',
            'above_medium_town_population_params']
 
+"""
+A few references for the numbers selected:
+
+http://www.worldcitiescultureforum.com/data/number-of-restaurants-per-100.000-population (Austin)
+
+"""
+
 town_population_params = PopulationParams(
     num_persons=10000,
     location_type_to_params={
         Home: LocationParams(num=3000),
         GroceryStore: LocationParams(num=10, worker_capacity=10, visitor_capacity=30),
-        Office: LocationParams(num=50, worker_capacity=200, visitor_capacity=0),
+        Office: LocationParams(num=50, worker_capacity=150, visitor_capacity=0),
         School: LocationParams(num=3, worker_capacity=40, visitor_capacity=300),
         Hospital: LocationParams(num=1, worker_capacity=80, visitor_capacity=100),
         RetailStore: LocationParams(num=15, worker_capacity=10, visitor_capacity=30),
@@ -27,7 +34,7 @@ above_medium_town_population_params = PopulationParams(
     location_type_to_params={
         Home: LocationParams(num=1200),
         GroceryStore: LocationParams(num=16, worker_capacity=5, visitor_capacity=30),
-        Office: LocationParams(num=20, worker_capacity=200, visitor_capacity=0),
+        Office: LocationParams(num=20, worker_capacity=150, visitor_capacity=0),
         School: LocationParams(num=4, worker_capacity=40, visitor_capacity=300),
         Hospital: LocationParams(num=4, worker_capacity=30, visitor_capacity=10),
         RetailStore: LocationParams(num=16, worker_capacity=5, visitor_capacity=30),
@@ -42,7 +49,7 @@ medium_town_population_params = PopulationParams(
     location_type_to_params={
         Home: LocationParams(num=600),
         GroceryStore: LocationParams(num=8, worker_capacity=5, visitor_capacity=30),
-        Office: LocationParams(num=10, worker_capacity=200, visitor_capacity=0),
+        Office: LocationParams(num=10, worker_capacity=150, visitor_capacity=0),
         School: LocationParams(num=2, worker_capacity=40, visitor_capacity=300),
         Hospital: LocationParams(num=2, worker_capacity=30, visitor_capacity=10),
         RetailStore: LocationParams(num=8, worker_capacity=5, visitor_capacity=30),
@@ -57,7 +64,7 @@ small_town_population_params = PopulationParams(
     location_type_to_params={
         Home: LocationParams(num=300),
         GroceryStore: LocationParams(num=4, worker_capacity=5, visitor_capacity=30),
-        Office: LocationParams(num=5, worker_capacity=200, visitor_capacity=0),
+        Office: LocationParams(num=5, worker_capacity=150, visitor_capacity=0),
         School: LocationParams(num=1, worker_capacity=40, visitor_capacity=300),
         Hospital: LocationParams(num=1, worker_capacity=30, visitor_capacity=10),
         RetailStore: LocationParams(num=4, worker_capacity=5, visitor_capacity=30),
@@ -72,7 +79,7 @@ tiny_town_population_params = PopulationParams(
     location_type_to_params={
         Home: LocationParams(num=150),
         GroceryStore: LocationParams(num=2, worker_capacity=5, visitor_capacity=30),
-        Office: LocationParams(num=2, worker_capacity=200, visitor_capacity=0),
+        Office: LocationParams(num=2, worker_capacity=150, visitor_capacity=0),
         School: LocationParams(num=1, worker_capacity=20, visitor_capacity=300),
         Hospital: LocationParams(num=1, worker_capacity=15, visitor_capacity=5),
         RetailStore: LocationParams(num=2, worker_capacity=5, visitor_capacity=30),
@@ -87,7 +94,7 @@ test_population_params = PopulationParams(
     location_type_to_params={
         Home: LocationParams(num=30),
         GroceryStore: LocationParams(num=1, worker_capacity=5, visitor_capacity=30),
-        Office: LocationParams(num=1, worker_capacity=200, visitor_capacity=0),
+        Office: LocationParams(num=1, worker_capacity=150, visitor_capacity=0),
         School: LocationParams(num=1, worker_capacity=40, visitor_capacity=300),
         Hospital: LocationParams(num=1, worker_capacity=30, visitor_capacity=2),
         Restaurant: LocationParams(num=1, worker_capacity=3, visitor_capacity=10),

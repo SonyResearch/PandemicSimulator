@@ -3,7 +3,6 @@
 
 from dataclasses import dataclass, field
 from typing import Set
-
 from orderedset import OrderedSet
 
 from .ids import PersonID

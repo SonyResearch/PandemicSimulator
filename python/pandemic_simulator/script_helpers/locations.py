@@ -111,7 +111,7 @@ def make_standard_locations(population_params: PopulationParams,
                 is_open=True,
                 contact_rate=ContactRate(1, 1, 0, 0.7, 0.2, 0.1),
                 visitor_capacity=location_type_to_params[Bar].visitor_capacity,
-                open_time=SimTimeTuple(hours=tuple(range(0, 3)) + tuple(range(21, 24)),
+                open_time=SimTimeTuple(hours=tuple(range(21, 24)),
                                        week_days=tuple(range(1, 7)))),
             numpy_rng=numpy_rng
         ) for i in range(location_type_to_params[Bar].num)]

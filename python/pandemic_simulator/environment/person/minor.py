@@ -17,15 +17,9 @@ class Minor(BasePerson):
     _school: LocationID
     _school_time: SimTimeTuple
     _to_school_at_hour_prob: float
-
-    _min_socializing_age: int
-
-    _socializing_done: bool
-    _to_social_at_hour_prob: float
+    _to_home_hour_prob: float
 
     _outside_school_rs: Sequence[RoutineWithStatus]
-
-    _to_home_hour_prob: float
 
     def __init__(self, age: int,
                  home: LocationID,
@@ -57,6 +51,8 @@ class Minor(BasePerson):
         self._school = school
         self._school_time = school_time or SimTimeTuple(hours=tuple(range(9, 15)), week_days=tuple(range(0, 5)))
         self._to_school_at_hour_prob = 0.95
+        self._to_home_hour_prob = 0.95
+        self._outside_school_rs = [RoutineWithStatus(routine) for routine in outside_school_routines]
 
         super().__init__(age=age,
                          home=home,
@@ -67,15 +63,6 @@ class Minor(BasePerson):
                          regulation_compliance_prob=regulation_compliance_prob,
                          init_state=init_state,
                          numpy_rng=numpy_rng)
-
-        self._min_socializing_age = 12
-        self._socializing_done = False
-
-        self._to_social_at_hour_prob = 0.9
-
-        self._outside_school_rs = [RoutineWithStatus(routine) for routine in outside_school_routines]
-
-        self._to_home_hour_prob = 0.5
 
     @property
     def school(self) -> LocationID:
@@ -91,6 +78,8 @@ class Minor(BasePerson):
         return self._state.current_location == self.school
 
     def _sync(self, sim_time: SimTime) -> None:
+        super()._sync(sim_time)
+
         for rws in self._outside_school_rs:
             rws.sync(sim_time)
 
@@ -112,16 +101,6 @@ class Minor(BasePerson):
             ret = execute_routines(person=self, routines_with_status=self._outside_school_rs, numpy_rng=self._numpy_rng)
             if ret != NOOP:
                 return ret
-
-            # if at home go to a social event if you have not been this week
-            if (self.id.age >= self._min_socializing_age and
-                    self.at_home and
-                    not self._socializing_done and
-                    self._numpy_rng.uniform() < self._to_social_at_hour_prob):
-                social_loc = self._get_social_gathering_location()
-                if social_loc is not None and self.enter_location(social_loc):
-                    self._socializing_done = True
-                    return None
 
             # if not at home go home
             if not self.at_home and self._numpy_rng.uniform() < self._to_home_hour_prob:

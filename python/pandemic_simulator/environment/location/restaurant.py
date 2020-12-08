@@ -30,5 +30,5 @@ class Bar(AgeRestrictedBusinessBaseLocation):
         :param init_state: Optional initial state of the location. Set to default if None
         :param numpy_rng: Random number generator
         """
-        super().__init__(age_limits=(21, 65), registry=registry, name=name, road_id=road_id, init_state=init_state,
+        super().__init__(age_limits=(21, 110), registry=registry, name=name, road_id=road_id, init_state=init_state,
                          numpy_rng=numpy_rng)

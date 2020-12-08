@@ -8,6 +8,7 @@ from .infection_model import InfectionSummary
 from .location import Location, LocationSummary
 from .pandemic_testing_result import PandemicTestResult
 from .person import Person
+from .sim_time import SimTimeTuple, SimTime
 
 __all__ = ['Registry', 'RegistrationError']
 
@@ -101,6 +102,14 @@ class Registry(ABC):
     @abstractmethod
     def location_id_to_type(self, location_id: LocationID) -> type:
         """Return the type of location with the given ID."""
+
+    @abstractmethod
+    def get_location_open_time(self, location_id: LocationID) -> Optional[SimTimeTuple]:
+        """Return the open time for the given location and None if not applicable"""
+
+    @abstractmethod
+    def is_location_open_for_visitors(self, location_id: LocationID, sim_time: SimTime) -> bool:
+        """Return a boolean if the location is open for visitors at the given sim_time."""
 
     @abstractmethod
     def reassign_locations(self, person: Person) -> None:

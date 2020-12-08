@@ -26,7 +26,8 @@ class MatplotLibViz(PandemicViz):
 
     _gis: List[np.ndarray]
     _gts: List[np.ndarray]
-    _lv: List[np.ndarray]
+    _loc_assignee_visits: List[np.ndarray]
+    _loc_visitor_visits: List[np.ndarray]
     _stages: List[np.ndarray]
     _rewards: List[float]
 
@@ -56,7 +57,8 @@ class MatplotLibViz(PandemicViz):
 
         self._gis = []
         self._gts = []
-        self._lv = []
+        self._loc_assignee_visits = []
+        self._loc_visitor_visits = []
         self._stages = []
         self._rewards = []
 
@@ -75,11 +77,16 @@ class MatplotLibViz(PandemicViz):
                 self._loc_types = sorted(set(k[0] for k in state.global_location_summary.keys()))
                 self._person_types = sorted(set(k[1] for k in state.global_location_summary.keys()))
 
-            _d = np.zeros((1, len(self._loc_types), len(self._person_types)))
+            _av = np.zeros((1, len(self._loc_types), len(self._person_types)))
+            _vv = np.zeros((1, len(self._loc_types), len(self._person_types)))
             for i in range(len(self._loc_types)):
                 for j in range(len(self._person_types)):
-                    _d[0, i, j] = state.global_location_summary[(self._loc_types[i], self._person_types[j])].entry_count
-            self._lv.append(_d)
+                    ec = state.global_location_summary[(self._loc_types[i], self._person_types[j])].entry_count
+                    vc = state.global_location_summary[(self._loc_types[i], self._person_types[j])].visitor_count
+                    _av[0, i, j] = ec - vc
+                    _vv[0, i, j] = vc
+            self._loc_assignee_visits.append(_av)
+            self._loc_visitor_visits.append(_vv)
         elif isinstance(data, PandemicObservation):
             obs = data
         else:
@@ -101,9 +108,9 @@ class MatplotLibViz(PandemicViz):
         gts = np.vstack(self._gts).squeeze()
         stages = np.concatenate(self._stages).squeeze()
 
-        # ncols = 4 if len(self._lv) > 0 else 3
-        ncols = 4
-        nrows = int(np.ceil((ncols + self._show_reward + self._show_stages) / ncols))
+        ncols = 3
+        nrows = int(np.ceil((3 + 2 * int(len(self._loc_assignee_visits) > 0) +
+                             self._show_reward + self._show_stages) / ncols))
 
         plt.figure(figsize=(4 * ncols, 4 * nrows))
         plt.rc('axes', prop_cycle=cycler(color=inf_colors))
@@ -139,24 +146,43 @@ class MatplotLibViz(PandemicViz):
         plt.xlabel('time (days)')
         plt.ylabel('persons')
 
-        if len(self._lv) > 0:
+        if len(self._loc_assignee_visits) > 0:
             ax_i += 1
             axs.append(plt.subplot(nrows, ncols, ax_i))
-            lv = np.vstack(self._lv)
+            lv = np.vstack(self._loc_assignee_visits)
             lv = np.mean(lv[1:] - lv[:-1], axis=0).squeeze()  # take visits per day and marginalize over days
-            lv = 100 * lv / lv.sum()
+            indices = np.argsort(lv.sum(axis=1), axis=0)[::-1]
+            lv = lv[indices]
+            loc_types = [self._loc_types[i] for i in indices]
             x = np.arange(lv.shape[0])
             p = []
-            colors = ['r', 'g', 'b', 'c']
+            colors = ['g', 'r', 'b']
             bottom = np.zeros(lv.shape[0])
-            for j in range(lv.shape[1]):
+            for j in range(lv.shape[1]-1, -1, -1):
                 p.append(plt.bar(x, lv[:, j], color=colors[j], alpha=0.5, bottom=bottom))
                 bottom += lv[:, j]
-            plt.xticks(x, self._loc_types, rotation=60, fontsize=8)
-            plt.title('Location Visits Per Day\n(Marginalized over days)')
-            plt.ylabel('%')
+            plt.xticks(x, loc_types, rotation=60, fontsize=8)
+            plt.title('Location Assignee Visits\n(Per Day Marginalized over days)')
+            plt.ylabel('number of visits')
             plt.ylim([0, None])
-            plt.legend(p, self._person_types)
+            plt.legend(p, self._person_types[::-1])
+
+            ax_i += 1
+            axs.append(plt.subplot(nrows, ncols, ax_i))
+            lv = np.vstack(self._loc_visitor_visits)
+            lv = np.mean(lv[1:] - lv[:-1], axis=0).squeeze()  # take visits per day and marginalize over days
+            lv = lv[indices]
+            loc_types = [self._loc_types[i] for i in indices]
+            p = []
+            bottom = np.zeros(lv.shape[0])
+            for j in range(lv.shape[1]-1, -1, -1):
+                p.append(plt.bar(x, lv[:, j], color=colors[j], alpha=0.5, bottom=bottom))
+                bottom += lv[:, j]
+            plt.xticks(x, loc_types, rotation=60, fontsize=8)
+            plt.title('Location Visitor Visits\n(Per Day Marginalized over days)')
+            plt.ylabel('number of visits')
+            plt.ylim([0, None])
+            plt.legend(p, self._person_types[::-1])
 
         if self._show_stages:
             ax_i += 1

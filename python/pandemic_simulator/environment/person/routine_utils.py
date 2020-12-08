@@ -1,12 +1,12 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 from dataclasses import dataclass
-from typing import Sequence, Optional
+from typing import Sequence, Optional, cast
 
 import numpy as np
 
 from .base import BasePerson
 from ..interfaces import SimTime, SimTimeTuple, PersonRoutine, \
-    SimTimeInterval, NoOP, NOOP, RepeatablePersonRoutine
+    SimTimeInterval, NoOP, NOOP, RepeatablePersonRoutine, LocationID, SpecialEndLoc
 
 __all__ = ['RoutineWithStatus', 'execute_routines']
 
@@ -20,6 +20,8 @@ class RoutineWithStatus:
     started: bool = False
     duration: int = 0
     done: bool = False
+    end_loc_selected: Optional[LocationID] = None
+    """The final end_loc selected after sampling from routine.explorable_end_locs"""
 
     def _is_routine_due(self, sim_time: SimTime) -> bool:
         if self.started or self.done:
@@ -35,9 +37,12 @@ class RoutineWithStatus:
 
     def sync(self, sim_time: SimTime) -> None:
         """Sync the status variables with time."""
-        if isinstance(self.routine, RepeatablePersonRoutine) and \
-                self.routine.repeat_interval.trigger_at_interval(sim_time):
+        # if completed check if you need to reset the routine for a repetition
+        if (isinstance(self.routine, RepeatablePersonRoutine) and
+                self.done and
+                self.routine.repeat_interval_when_done.trigger_at_interval(sim_time)):
             self.reset()
+
         self.due = self._is_routine_due(sim_time)
 
     def reset(self) -> None:
@@ -46,6 +51,7 @@ class RoutineWithStatus:
         self.started = False
         self.duration = 0
         self.done = False
+        self.end_loc_selected = None
 
 
 def execute_routines(person: BasePerson,
@@ -67,7 +73,14 @@ def execute_routines(person: BasePerson,
     # first check if there are any ongoing routines that need to be completed
     for rws in routines_with_status:
         if rws.started and not rws.done:
-            if rws.duration >= rws.routine.duration_of_stay_at_end_loc:
+            assert rws.end_loc_selected
+            if (
+                    # person left the end_location typically if the location closed due to external factors
+                    (person.state.current_location != rws.end_loc_selected) or
+
+                    # duration elapsed
+                    (rws.duration >= rws.routine.duration_of_stay_at_end_loc)
+            ):
                 rws.done = True
             else:
                 # block execution of other routines until the routine is complete
@@ -87,14 +100,22 @@ def execute_routines(person: BasePerson,
                     numpy_rng.uniform() < routine.start_hour_probability
             ):
                 # get the end location
-                end_loc = routine.end_loc
+                if routine.end_loc == SpecialEndLoc.social:
+                    end_loc = person.get_social_gathering_location()
+                    if end_loc is None:
+                        # no social gatherings to attend, skip routine
+                        continue
+                else:
+                    end_loc = cast(LocationID, routine.end_loc)
+
                 if (len(routine.explorable_end_locs) > 0) and (numpy_rng.uniform() < routine.explore_probability):
                     end_loc = routine.explorable_end_locs[numpy_rng.randint(0, len(routine.explorable_end_locs))]
-
+                assert end_loc
                 if person.enter_location(end_loc):
                     # successfully entered the end location
                     rws.due = False
                     rws.started = True
                     rws.duration = 1
+                    rws.end_loc_selected = end_loc
                     return None
     return NOOP

@@ -21,7 +21,12 @@ class LocationError(Exception):
 @dataclass(frozen=True)
 class LocationSummary:
     """Dataclass that holds the location summary stats."""
+
     entry_count: int = 0
+    """Number of people who entered the location (assignees and visitors)"""
+
+    visitor_count: int = 0
+    """Number of visitors who entered the location"""
 
 
 class Location(ABC):

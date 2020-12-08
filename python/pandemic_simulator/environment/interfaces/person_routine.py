@@ -1,11 +1,16 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
+import enum
 from dataclasses import dataclass
 from typing import Optional, Sequence, Union
 
 from .ids import LocationID
 from .sim_time import SimTimeInterval, SimTimeTuple
 
-__all__ = ['PersonRoutine', 'RepeatablePersonRoutine']
+__all__ = ['PersonRoutine', 'RepeatablePersonRoutine', 'SpecialEndLoc']
+
+
+class SpecialEndLoc(enum.Enum):
+    social = 0
 
 
 @dataclass(frozen=True)
@@ -15,8 +20,8 @@ class PersonRoutine:
     start_loc: Optional[LocationID]
     """Start location of the routine. If None, the routine can be started at any location."""
 
-    end_loc: LocationID
-    """End location of the routine."""
+    end_loc: Union[LocationID, SpecialEndLoc]
+    """End location of the routine that is either a specific location id or an instance of SpecialEndLoc."""
 
     start_time: Union[SimTimeInterval, SimTimeTuple]
     """Start time of the routine specified either as through SimTimeInterval object or SimTimeTuple.
@@ -46,5 +51,5 @@ class PersonRoutine:
 class RepeatablePersonRoutine(PersonRoutine):
     """A repeatable person routine"""
 
-    repeat_interval: SimTimeInterval = SimTimeInterval(day=1)
-    """Specifies the interval to repeat the routine"""
+    repeat_interval_when_done: SimTimeInterval = SimTimeInterval(day=1)
+    """Specifies the interval to repeat the routine when completed"""

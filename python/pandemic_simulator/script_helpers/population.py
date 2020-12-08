@@ -55,7 +55,7 @@ def make_us_age_population(population_params: PopulationParams,
         risk = numpy_rng.choice([Risk.LOW, Risk.HIGH], p=[1 - age / age_group.stop, age / age_group.stop])
         school_id = school_ids[numpy_rng.randint(0, len(school_ids))]
         persons.append(Minor(age, home_id, registry=registry, risk=risk, school=school_id,
-                             outside_school_routines=get_minor_routines(home_id, registry, numpy_rng=numpy_rng),
+                             outside_school_routines=get_minor_routines(home_id, age, registry, numpy_rng=numpy_rng),
                              regulation_compliance_prob=regulation_compliance_prob,
                              numpy_rng=numpy_rng,
                              name=f'minor_{age_iter}'))
@@ -79,6 +79,7 @@ def make_us_age_population(population_params: PopulationParams,
                                                                            numpy_rng=numpy_rng),
                                   during_work_routines=get_during_work_routines(work_id, registry, numpy_rng),
                                   regulation_compliance_prob=regulation_compliance_prob,
+                                  work_time=registry.get_location_open_time(work_id),
                                   numpy_rng=numpy_rng,
                                   name=f'worker_{age_iter}'))
             age_iter += 1

@@ -28,6 +28,7 @@ class BasePerson(Person):
     _hospital_ids: List[LocationID]
 
     _regulation_compliance_prob: float
+    _go_home: bool
 
     def __init__(self, age: int,
                  home: LocationID,
@@ -35,7 +36,7 @@ class BasePerson(Person):
                  name: Optional[str] = None,
                  risk: Optional[Risk] = None,
                  regulation_compliance_prob: float = 1.0,
-                 night_hours: SimTimeTuple = SimTimeTuple(hours=tuple(range(0, 6)) + tuple(range(22, 24))),
+                 night_hours: SimTimeTuple = SimTimeTuple(hours=tuple(range(0, 6))),
                  init_state: Optional[PersonState] = None,
                  numpy_rng: Optional[np.random.RandomState] = None):
         """
@@ -64,8 +65,10 @@ class BasePerson(Person):
         self._hospital_ids = self._registry.location_ids_of_type(Hospital)
 
         self._regulation_compliance_prob = regulation_compliance_prob
+        self._go_home = False
 
     def enter_location(self, location_id: LocationID) -> bool:
+        self._go_home = False
         return self._registry.register_person_entry_in_location(self.id, location_id)
 
     @property
@@ -90,8 +93,10 @@ class BasePerson(Person):
         return self._home,
 
     def _sync(self, sim_time: SimTime) -> None:
-        """Sync sim time specific variables. Subclasses must implement this"""
-        raise NotImplementedError
+        """Sync sim time specific variables."""
+        if (self._state.current_location not in self.assigned_locations and
+                self._registry.is_location_open_for_visitors(self._state.current_location, sim_time)):
+            self._go_home = True
 
     def _set_is_hospitalized(self, value: bool) -> None:
         inf_state_dict = dataclasses.asdict(self._state.infection_state)
@@ -165,6 +170,10 @@ class BasePerson(Person):
             self._registry.quarantine_person(self._id)
             return None
 
+        # if go_home flag is set - then go home
+        if self._go_home:
+            self.enter_location(self.home)
+
         return NOOP
 
     def receive_regulation(self, regulation: PandemicRegulation) -> None:
@@ -196,8 +205,7 @@ class BasePerson(Person):
 
         return False
 
-    def _get_social_gathering_location(self) -> Optional[LocationID]:
-        # social gathering
+    def get_social_gathering_location(self) -> Optional[LocationID]:
         ags = self._state.avoid_gathering_size
         loc_ids = self._registry.location_ids_with_social_events
         num_events = len(loc_ids)

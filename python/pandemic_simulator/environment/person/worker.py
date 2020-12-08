@@ -17,14 +17,10 @@ class Worker(BasePerson):
     _work: LocationID
     _work_time: SimTimeTuple
     _to_work_at_hour_prob: float
-
-    _socializing_done: bool
-    _to_social_at_hour_prob: float
+    _to_home_hour_prob: float
 
     _during_work_rs: List[RoutineWithStatus]
     _outside_work_rs: List[RoutineWithStatus]
-
-    _to_home_hour_prob: float
 
     def __init__(self, age: int,
                  home: LocationID,
@@ -35,7 +31,7 @@ class Worker(BasePerson):
                  outside_work_routines: Sequence[PersonRoutine] = (),
                  name: Optional[str] = None,
                  risk: Optional[Risk] = None,
-                 night_hours: SimTimeTuple = SimTimeTuple(hours=tuple(range(0, 6)) + tuple(range(22, 24))),
+                 night_hours: SimTimeTuple = SimTimeTuple(hours=tuple(range(0, 6))),
                  regulation_compliance_prob: float = 1.0,
                  init_state: Optional[PersonState] = None,
                  numpy_rng: Optional[np.random.RandomState] = None):
@@ -58,6 +54,9 @@ class Worker(BasePerson):
         self._work = work
         self._work_time = work_time or SimTimeTuple(hours=tuple(range(9, 18)), week_days=tuple(range(0, 5)))
         self._to_work_at_hour_prob = 0.95
+        self._to_home_hour_prob = 0.95
+        self._during_work_rs = [RoutineWithStatus(routine) for routine in during_work_routines]
+        self._outside_work_rs = [RoutineWithStatus(routine) for routine in outside_work_routines]
 
         super().__init__(age=age,
                          home=home,
@@ -68,13 +67,6 @@ class Worker(BasePerson):
                          regulation_compliance_prob=regulation_compliance_prob,
                          init_state=init_state,
                          numpy_rng=numpy_rng)
-
-        self._socializing_done = False
-        self._to_social_at_hour_prob = 0.9
-        self._to_home_hour_prob = 0.5
-
-        self._during_work_rs = [RoutineWithStatus(routine) for routine in during_work_routines]
-        self._outside_work_rs = [RoutineWithStatus(routine) for routine in outside_work_routines]
 
     @property
     def work(self) -> LocationID:
@@ -90,6 +82,8 @@ class Worker(BasePerson):
         return self._state.current_location == self.work
 
     def _sync(self, sim_time: SimTime) -> None:
+        super()._sync(sim_time)
+
         for rws in self._during_work_rs + self._outside_work_rs:
             rws.sync(sim_time)
 
@@ -116,15 +110,6 @@ class Worker(BasePerson):
             ret = execute_routines(person=self, routines_with_status=self._outside_work_rs, numpy_rng=self._numpy_rng)
             if ret != NOOP:
                 return ret
-
-            # if at home go to a social event if you have not been this week
-            if (self.at_home and
-                    not self._socializing_done and
-                    self._numpy_rng.uniform() < self._to_social_at_hour_prob):
-                social_loc = self._get_social_gathering_location()
-                if social_loc is not None and self.enter_location(social_loc):
-                    self._socializing_done = True
-                    return None
 
             # if not at home go home
             if not self.at_home and self._numpy_rng.uniform() < self._to_home_hour_prob:

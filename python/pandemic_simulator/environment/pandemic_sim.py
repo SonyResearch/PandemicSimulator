@@ -32,6 +32,7 @@ class PandemicSim:
 
     _type_to_locations: DefaultDict
     _hospital_ids: List[LocationID]
+    _persons: Sequence[Person]
     _state: PandemicSimState
 
     def __init__(self,
@@ -74,6 +75,7 @@ class PandemicSim:
             self._type_to_locations[type(loc)].append(loc)
         self._hospital_ids = [loc.id for loc in locations if isinstance(loc, Hospital)]
 
+        self._persons = persons
         num_persons = len(persons)
         self._state = PandemicSimState(
             id_to_person_state={person.id: person.state for person in persons},
@@ -192,9 +194,9 @@ class PandemicSim:
             location.sync(self._state.sim_time)
         self._registry.update_location_specific_information()
 
-        # call person steps
-        for person in self._id_to_person.values():
-            person.step(self._state.sim_time, self._contact_tracer)
+        # call person steps (randomize order)
+        for i in self._numpy_rng.randint(0, len(self._persons), len(self._persons)):
+            self._persons[i].step(self._state.sim_time, self._contact_tracer)
 
         # update person contacts
         for location in self._id_to_location.values():

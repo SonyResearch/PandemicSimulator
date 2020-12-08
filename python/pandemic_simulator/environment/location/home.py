@@ -26,13 +26,14 @@ class Home(BaseLocation):
         :param road_id: id of the road connected to the location.
         :param numpy_rng: Random number generator
         """
+        numpy_rng = numpy_rng if numpy_rng is not None else np.random.RandomState()
+        self._social_event_time = SimTimeTuple(hours=tuple(range(15, 20)),
+                                               days=tuple(numpy_rng.randint(0, 365, 12)))
         init_state = LocationState(is_open=True,
                                    visitor_capacity=visitor_capacity,
-                                   contact_rate=ContactRate(0, 1, 0, 0.5, 0.3, 0.3))
-
+                                   contact_rate=ContactRate(0, 1, 0, 0.5, 0.3, 0.3),
+                                   visitor_time=self._social_event_time)
         super().__init__(registry=registry, name=name, road_id=road_id, init_state=init_state, numpy_rng=numpy_rng)
-        self._social_event_time = SimTimeTuple(hours=tuple(range(15, 20)),
-                                               days=tuple(self._numpy_rng.randint(0, 365, 12)))
 
     def sync(self, sim_time: SimTime) -> None:
         super().sync(sim_time)

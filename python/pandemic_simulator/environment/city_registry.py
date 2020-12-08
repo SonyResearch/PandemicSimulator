@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, cast, Set, Type, Mapping, Tuple
 from cachetools import cached
 
 from .interfaces import LocationID, Location, PersonID, Person, Registry, RegistrationError, InfectionSummary, \
-    IndividualInfectionState, BusinessLocationState, PandemicTestResult, LocationSummary
+    IndividualInfectionState, BusinessLocationState, PandemicTestResult, LocationSummary, SimTimeTuple, SimTime
 from .location.cemetery import Cemetery
 from .location.road import Road
 
@@ -135,8 +135,11 @@ class CityRegistry(Registry):
         if type(next_location) not in self.IGNORE_LOCS_SUMMARY:
             key = (type(next_location).__name__, type(person).__name__)
             summary = self._global_location_summary[key]
-            self._global_location_summary[key] = dataclasses.replace(summary, entry_count=summary.entry_count + 1)
-
+            is_visitor = person_id not in next_location.state.assignees
+            self._global_location_summary[key] = dataclasses.replace(
+                summary,
+                entry_count=summary.entry_count + 1,
+                visitor_count=summary.visitor_count + is_visitor)
         return True
 
     def update_location_specific_information(self) -> None:
@@ -189,6 +192,15 @@ class CityRegistry(Registry):
 
     def location_id_to_type(self, location_id: LocationID) -> Type:
         return type(self._location_register[location_id])
+
+    def get_location_open_time(self, location_id: LocationID) -> SimTimeTuple:
+        state = self._location_register[location_id].state
+        assert isinstance(state, BusinessLocationState), 'The given location id is not a business location.'
+        return state.open_time
+
+    def is_location_open_for_visitors(self, location_id: LocationID, sim_time: SimTime) -> bool:
+        location_state = self._location_register[location_id].state
+        return location_state.is_open and sim_time in location_state.visitor_time
 
     def reassign_locations(self, person: Person) -> None:
         assigned_locations = [self._location_register[loc_id] for loc_id in person.assigned_locations]
