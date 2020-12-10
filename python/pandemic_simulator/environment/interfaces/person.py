@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Optional, Sequence, List
+from typing import Optional, Sequence, List, Tuple
 
 from .pandemic_testing_result import PandemicTestResult
 from .ids import PersonID, LocationID
@@ -32,6 +32,7 @@ class PersonState:
 
     avoid_location_types: List[type] = field(default_factory=list, init=False)
     not_infection_probability: float = field(default=1., init=False)
+    not_infection_probability_history: List[Tuple[LocationID, float]] = field(default_factory=list, init=False)
     infection_spread_multiplier: float = field(default=1., init=False)
 
 

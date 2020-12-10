@@ -79,6 +79,7 @@ class PandemicSim:
         self._state = PandemicSimState(
             id_to_person_state={person.id: person.state for person in persons},
             id_to_location_state={location.id: location.state for location in locations},
+            location_type_infection_summary={type(location): 0 for location in locations},
             global_infection_summary={s: 0 for s in sorted_infection_summary},
             global_testing_state=GlobalTestingState(summary={s: num_persons if s == InfectionSummary.NONE else 0
                                                              for s in sorted_infection_summary},
@@ -146,10 +147,14 @@ class PandemicSim:
                 spread_probability = (person1_inf_state.spread_probability *
                                       person1_state.infection_spread_multiplier)
                 person2_state.not_infection_probability *= 1 - spread_probability
+                person2_state.not_infection_probability_history.append((person2_state.current_location,
+                                                                        person2_state.not_infection_probability))
             elif person2_inf_state is not None and person2_inf_state.summary in infectious_states:
                 spread_probability = (person2_inf_state.spread_probability *
                                       person2_state.infection_spread_multiplier)
                 person1_state.not_infection_probability *= 1 - spread_probability
+                person1_state.not_infection_probability_history.append((person1_state.current_location,
+                                                                        person1_state.not_infection_probability))
 
     def _update_global_testing_state(self, new_result: PandemicTestResult, prev_result: PandemicTestResult) -> None:
         if new_result == prev_result:
@@ -210,8 +215,18 @@ class PandemicSim:
                                                                           person.state.risk,
                                                                           1 - person.state.not_infection_probability)
 
+                if person.state.infection_state.exposed_rnb != -1.:
+                    for vals in person.state.not_infection_probability_history:
+                        if person.state.infection_state.exposed_rnb < vals[1]:
+                            infection_location = vals[0]
+                            break
+
+                    person_location_type = self._registry.location_id_to_type(infection_location)
+                    self._state.location_type_infection_summary[person_location_type] += 1
+
                 global_infection_summary[person.state.infection_state.summary] += 1
                 person.state.not_infection_probability = 1.
+                person.state.not_infection_probability_history = []
 
                 # test the person for infection
                 if self._pandemic_testing.admit_person(person.state):
