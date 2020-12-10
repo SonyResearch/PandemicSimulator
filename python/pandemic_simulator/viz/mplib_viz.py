@@ -151,6 +151,7 @@ class MatplotLibViz(PandemicViz):
         plt.xlabel('time (days)')
         plt.ylabel('persons')
 
+        loc_types = self._loc_types
         if len(self._loc_assignee_visits) > 0:
             ax_i += 1
             axs.append(plt.subplot(nrows, ncols, ax_i))
@@ -192,13 +193,12 @@ class MatplotLibViz(PandemicViz):
         if len(self._location_type_to_is) > 0:
             ax_i += 1
             axs.append(plt.subplot(nrows, ncols, ax_i))
-            y = np.arange(len(self._location_type_to_is.keys()))
-            plt.barh(y, [v / self._num_persons for v in self._location_type_to_is.values()])
-            plt.yticks(y, list(self._location_type_to_is.keys()))
-            plt.xlim([-0.1, 1.1])
+            x = np.arange(len(loc_types))
+            plt.bar(x, [self._location_type_to_is[k] / self._num_persons for k in loc_types], color='r', alpha=0.5)
+            plt.xticks(x, loc_types, rotation=60, fontsize=8)
+            plt.ylim([0, None])
             plt.title('% Infections / Location Type')
-            plt.xlabel('% infections')
-            plt.ylabel('location type')
+            plt.ylabel('% infections')
 
         if self._show_stages:
             ax_i += 1
