@@ -1,6 +1,6 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 import string
-from typing import Any, Dict, List, Type
+from typing import Any, Dict, List
 
 import numpy as np
 from cycler import cycler
