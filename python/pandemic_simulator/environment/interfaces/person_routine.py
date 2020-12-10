@@ -23,15 +23,13 @@ class PersonRoutine:
     end_loc: Union[LocationID, SpecialEndLoc]
     """End location of the routine that is either a specific location id or an instance of SpecialEndLoc."""
 
-    start_time: Union[SimTimeInterval, SimTimeTuple]
-    """Start time of the routine specified either as through SimTimeInterval object or SimTimeTuple.
+    valid_time: SimTimeTuple = SimTimeTuple()
+    """Specifies the time during which the routine is available to start."""
 
-    Use SimTimeInterval if you want to trigger the start of the routine. Once triggered the routine
-    will be queued and executed at some point in the person's life time.
-
-    Use SimTimeTuple if you want to queue the start of a routine within the specified times. The routine
-    will not be executed outside the specified times.
-    """
+    start_time: SimTimeInterval = SimTimeInterval(hour=1)
+    """Start time of the routine specified through SimTimeInterval. The routine will only start during valid_time,
+    and once triggered the routine will be queued to be executed at some point while it remains valid.
+    Default is set to be triggered to start every hour during valid_time."""
 
     start_hour_probability: float = 0.9
     """The probability for starting the routine around the trigger interval."""

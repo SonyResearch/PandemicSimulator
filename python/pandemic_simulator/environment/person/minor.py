@@ -83,9 +83,6 @@ class Minor(BasePerson):
         for rws in self._outside_school_rs:
             rws.sync(sim_time)
 
-        if sim_time.week_day == 0:
-            self._socializing_done = False
-
     def step(self, sim_time: SimTime, contact_tracer: Optional[ContactTracer] = None) -> Optional[NoOP]:
         step_ret = super().step(sim_time, contact_tracer)
         if step_ret != NOOP:

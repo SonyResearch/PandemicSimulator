@@ -5,7 +5,7 @@ from typing import Sequence, Optional, cast
 import numpy as np
 
 from .base import BasePerson
-from ..interfaces import SimTime, SimTimeTuple, PersonRoutine, SimTimeInterval, NoOP, NOOP, LocationID, SpecialEndLoc
+from ..interfaces import SimTime, PersonRoutine, NoOP, NOOP, LocationID, SpecialEndLoc
 
 __all__ = ['RoutineWithStatus', 'execute_routines']
 
@@ -23,16 +23,11 @@ class RoutineWithStatus:
     """The final end_loc selected after sampling from routine.explorable_end_locs"""
 
     def _is_routine_due(self, sim_time: SimTime) -> bool:
-        if self.started or self.done:
-            # not due if the routine has already started or is completed
+        if self.started or self.done or sim_time not in self.routine.valid_time:
+            # not due if the routine has already started or is completed or is not valid
             return False
 
-        if isinstance(self.routine.start_time, SimTimeTuple):
-            return sim_time in self.routine.start_time
-        elif isinstance(self.routine.start_time, SimTimeInterval):
-            return self.due or self.routine.start_time.trigger_at_interval(sim_time)
-        else:
-            raise ValueError(f'Unrecognized type of start_time specified. {type(self.routine.start_time)}')
+        return self.due or self.routine.start_time.trigger_at_interval(sim_time)
 
     def sync(self, sim_time: SimTime) -> None:
         """Sync the status variables with time."""
@@ -70,7 +65,6 @@ def execute_routines(person: BasePerson,
     # first check if there are any ongoing routines that need to be completed
     for rws in routines_with_status:
         if rws.started and not rws.done:
-            assert rws.end_loc_selected
             if (
                     # person left the end_location typically if the location closed due to external factors
                     (person.state.current_location != rws.end_loc_selected) or
@@ -87,8 +81,6 @@ def execute_routines(person: BasePerson,
     for rws in routines_with_status:
         routine = rws.routine
         if rws.due:
-            assert not rws.started
-            assert not rws.done
             if (
                     # check if we are in the correct location to start the routine
                     (routine.start_loc is None or routine.start_loc == person.state.current_location) and
@@ -107,9 +99,10 @@ def execute_routines(person: BasePerson,
 
                 if (len(routine.explorable_end_locs) > 0) and (numpy_rng.uniform() < routine.explore_probability):
                     end_loc = routine.explorable_end_locs[numpy_rng.randint(0, len(routine.explorable_end_locs))]
+
                 assert end_loc
                 if person.enter_location(end_loc):
-                    # successfully entered the end location
+                    # successfully started the routine
                     rws.due = False
                     rws.started = True
                     rws.duration = 1
