@@ -3,7 +3,7 @@
 import pytest
 
 from pandemic_simulator.environment import Office, CityRegistry, PopulationParams, LocationParams, Home, Minor, \
-    Worker, School
+    Worker, School, LocationID
 
 
 @pytest.fixture
@@ -17,9 +17,9 @@ def population_params():
 def city_registry(params):
     registry = CityRegistry()
     location_type_to_params = params.location_type_to_params
-    _ = [Home(name=f'home_{i}', registry=registry) for i in range(location_type_to_params[Home].num)]
-    _ = [School(name=f'school_{i}', registry=registry) for i in range(location_type_to_params[School].num)]
-    _ = [Office(name=f'office_{i}', registry=registry) for i in range(location_type_to_params[Office].num)]
+    _ = [Home(loc_id=LocationID(f'home_{i}'), registry=registry) for i in range(location_type_to_params[Home].num)]
+    _ = [School(loc_id=LocationID(f'school_{i}'), registry=registry) for i in range(location_type_to_params[School].num)]
+    _ = [Office(loc_id=LocationID(f'office_{i}'), registry=registry) for i in range(location_type_to_params[Office].num)]
     return registry
 
 

@@ -3,7 +3,7 @@
 import pytest
 
 from pandemic_simulator.environment import Office, GroceryStore, CityRegistry, BusinessLocationState, \
-    NonEssentialBusinessLocationState, BusinessBaseLocation, PopulationParams, LocationParams, JobCounselor
+    NonEssentialBusinessLocationState, BusinessBaseLocation, PopulationParams, LocationParams, JobCounselor, LocationID
 
 
 @pytest.fixture
@@ -16,14 +16,14 @@ def city_registry(params):
     registry = CityRegistry()
     location_type_to_params = params.location_type_to_params
     _ = [GroceryStore(
-        name=f'grocery_{i}',
+        loc_id=LocationID(f'grocery_{i}'),
         registry=registry,
         init_state=BusinessLocationState(is_open=True,
                                          visitor_capacity=location_type_to_params[GroceryStore].visitor_capacity)
     ) for i in range(location_type_to_params[GroceryStore].num)]
 
     _ = [Office(
-        name=f'office_{i}',
+        loc_id=LocationID(f'office_{i}'),
         registry=registry,
         init_state=NonEssentialBusinessLocationState(is_open=True,
                                                      visitor_capacity=location_type_to_params[Office].visitor_capacity)
