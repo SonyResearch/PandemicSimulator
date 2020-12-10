@@ -1,7 +1,7 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 
 from dataclasses import dataclass
-from typing import Dict, Mapping, Tuple
+from typing import Dict, Mapping, Tuple, Type
 
 from .ids import LocationID, PersonID
 from .infection_model import InfectionSummary
@@ -23,6 +23,9 @@ class PandemicSimState:
 
     id_to_location_state: Dict[LocationID, LocationState]
     """The state of each location in the simulator"""
+
+    location_type_infection_summary: Dict[Type, int]
+    """infection summary for location type"""
 
     global_infection_summary: Dict[InfectionSummary, int]
     """Specifies the number of people with each infection summary"""

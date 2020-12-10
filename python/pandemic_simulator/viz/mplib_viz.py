@@ -1,6 +1,6 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 import string
-from typing import List, Any
+from typing import List, Any, Dict
 
 import numpy as np
 from cycler import cycler
@@ -28,6 +28,7 @@ class MatplotLibViz(PandemicViz):
     _gts: List[np.ndarray]
     _loc_assignee_visits: List[np.ndarray]
     _loc_visitor_visits: List[np.ndarray]
+    _location_type_to_is: Dict[str, int]
     _stages: List[np.ndarray]
     _rewards: List[float]
 
@@ -59,6 +60,7 @@ class MatplotLibViz(PandemicViz):
         self._gts = []
         self._loc_assignee_visits = []
         self._loc_visitor_visits = []
+        self._location_type_to_is = {}
         self._stages = []
         self._rewards = []
 
@@ -87,6 +89,8 @@ class MatplotLibViz(PandemicViz):
                     _vv[0, i, j] = vc
             self._loc_assignee_visits.append(_av)
             self._loc_visitor_visits.append(_vv)
+            self._location_type_to_is = {k.__name__: v for k, v in state.location_type_infection_summary.items()}
+
         elif isinstance(data, PandemicObservation):
             obs = data
         else:
@@ -110,6 +114,7 @@ class MatplotLibViz(PandemicViz):
 
         ncols = 3
         nrows = int(np.ceil((3 + 2 * int(len(self._loc_assignee_visits) > 0) +
+                             int(len(self._location_type_to_is) > 0) +
                              self._show_reward + self._show_stages) / ncols))
 
         plt.figure(figsize=(4 * ncols, 4 * nrows))
@@ -158,7 +163,7 @@ class MatplotLibViz(PandemicViz):
             p = []
             colors = ['g', 'r', 'b']
             bottom = np.zeros(lv.shape[0])
-            for j in range(lv.shape[1]-1, -1, -1):
+            for j in range(lv.shape[1] - 1, -1, -1):
                 p.append(plt.bar(x, lv[:, j], color=colors[j], alpha=0.5, bottom=bottom))
                 bottom += lv[:, j]
             plt.xticks(x, loc_types, rotation=60, fontsize=8)
@@ -175,7 +180,7 @@ class MatplotLibViz(PandemicViz):
             loc_types = [self._loc_types[i] for i in indices]
             p = []
             bottom = np.zeros(lv.shape[0])
-            for j in range(lv.shape[1]-1, -1, -1):
+            for j in range(lv.shape[1] - 1, -1, -1):
                 p.append(plt.bar(x, lv[:, j], color=colors[j], alpha=0.5, bottom=bottom))
                 bottom += lv[:, j]
             plt.xticks(x, loc_types, rotation=60, fontsize=8)
@@ -183,6 +188,17 @@ class MatplotLibViz(PandemicViz):
             plt.ylabel('number of visits')
             plt.ylim([0, None])
             plt.legend(p, self._person_types[::-1])
+
+        if len(self._location_type_to_is) > 0:
+            ax_i += 1
+            axs.append(plt.subplot(nrows, ncols, ax_i))
+            y = np.arange(len(self._location_type_to_is.keys()))
+            plt.barh(y, [v / self._num_persons for v in self._location_type_to_is.values()])
+            plt.yticks(y, list(self._location_type_to_is.keys()))
+            plt.xlim([-0.1, 1.1])
+            plt.title('% Infections / Location Type')
+            plt.xlabel('% infections')
+            plt.ylabel('location type')
 
         if self._show_stages:
             ax_i += 1
