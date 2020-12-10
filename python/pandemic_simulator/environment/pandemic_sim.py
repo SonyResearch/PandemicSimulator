@@ -217,7 +217,7 @@ class PandemicSim:
 
                 if person.state.infection_state.exposed_rnb != -1.:
                     for vals in person.state.not_infection_probability_history:
-                        if person.state.infection_state.exposed_rnb < vals[1]:
+                        if person.state.infection_state.exposed_rnb < 1 - vals[1]:
                             infection_location = vals[0]
                             break
 
