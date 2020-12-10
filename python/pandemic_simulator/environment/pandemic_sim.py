@@ -1,7 +1,6 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 
-from collections import defaultdict, OrderedDict, deque
-from itertools import product as cartesianproduct, combinations
+from collections import defaultdict, deque
 from typing import DefaultDict, Dict, List, Optional, Sequence, cast
 from functools import lru_cache
 
@@ -100,8 +99,8 @@ class PandemicSim:
                        (cr.min_assignees_visitors, cr.fraction_assignees_visitors),
                        (cr.min_visitors, cr.fraction_visitors)]
 
-        contacts_x = []
-        contacts_y = []
+        contacts_x : List = list()
+        contacts_y : List = list()
         for grp, cst in zip(groups, constraints):
             grp1, grp2 = grp
             minimum, fraction = cst
@@ -110,18 +109,18 @@ class PandemicSim:
             possible_contacts_y = []
             num_possible_contacts = 0
 
-            num_possible_contacts = nCk(len(grp1),2) if grp1 == grp2 else len(grp1)*len(grp2)
+            num_possible_contacts = nCk(len(grp1), 2) if grp1 == grp2 else len(grp1) * len(grp2)
 
             if num_possible_contacts == 0:
                 continue
-            
+
             fraction_sample = min(1., max(0., self._numpy_rng.normal(fraction, 1e-2)))
             real_fraction = max(minimum, int(fraction_sample * num_possible_contacts))
             # we are using an orderedset, it's repeatable
             contact_idx = self._numpy_rng.randint(0, num_possible_contacts, real_fraction)
 
             if grp1 == grp2:
-                possible_contacts_x, possible_contacts_y = comb2_reduced(np.asarray(grp1),contact_idx)
+                possible_contacts_x, possible_contacts_y = comb2_reduced(np.asarray(grp1), contact_idx)
             else:
                 possible_contacts_x, possible_contacts_y = prod_reduced(np.asarray(grp1), np.asarray(grp2), contact_idx)
             contacts_x = np.concatenate((contacts_x, possible_contacts_x))
@@ -129,14 +128,15 @@ class PandemicSim:
 
         # Stuff the contact pairs into a dictionary/Set, removing duplicates from repeats in contact_idx
         r = dict()
-        for i in  range(len(contacts_x)):
+        for i,c in enumerate(contacts_x):
             r[contacts_x[i], contacts_y[i]] = 0
         return r
 
-    def _compute_infection_probabilities(self, contacts) -> None:
-        if len(contacts) < 1: return
+    def _compute_infection_probabilities(self, contacts: dict) -> None:
+        if len(contacts) < 1: 
+            return
         infectious_states = {InfectionSummary.INFECTED, InfectionSummary.CRITICAL}
- 
+        
         for c in contacts:
             id_person1 = c[0]
             id_person2 = c[1]
@@ -200,10 +200,9 @@ class PandemicSim:
             location.sync(self._state.sim_time)
         self._registry.update_location_specific_information()
 
-       
         # call person steps
         deque([self.person_update(p) for p in self._id_to_person.values()])
-        
+
         # update person contacts
         for location in self._id_to_location.values():
             contacts = self._compute_contacts(location)
@@ -211,7 +210,7 @@ class PandemicSim:
                 self._contact_tracer.add_contacts(contacts)
 
             self._compute_infection_probabilities(contacts)
-        
+
         # call infection model steps
         if self._infection_update_interval.trigger_at_interval(self._state.sim_time):
             global_infection_summary = {s: 0 for s in sorted_infection_summary}
@@ -317,41 +316,44 @@ class PandemicSim:
             regulation_stage=0,
             infection_above_threshold=False,
         )
-    def location_update(self, location):
-        location.sync(self._state.sim_time)
-    
-    def person_update(self, person):
-       person.step(self._state.sim_time, self._contact_tracer)
 
-"""
-return AxB only at desired indices
-"""
-def prod_reduced(a,b,idx):
-    return a[idx//b.size], b[idx%b.size]
 
-"""
-return combinations of 2 only at desired indices
-"""
-def comb2_reduced(l, idx):
-    triu = np.triu_indices(l.size,1)
+    def person_update(self, person: Person) -> None:
+        person.step(self._state.sim_time, self._contact_tracer)
+
+
+def prod_reduced(a: np.array, b: np.array, idx: list) -> tuple:
+    """
+    return AxB only at desired indices
+    """
+    return a[idx // b.size], b[idx % b.size]
+
+
+def comb2_reduced(l: np.array, idx: list) -> tuple:
+    """
+    return combinations of 2 only at desired indices
+    """
+    triu = np.triu_indices(l.size, 1)
     return l[triu[0][idx]], l[triu[1][idx]]
 
-"""
-calulate binomial coeffecients
-"""
+
 @lru_cache(maxsize=None)
-def nCk(n,k):
-    m=0
-    if k==0:
-        m=1
-    if k==1:
-        m=n
-    if k>=2:
-        num,dem,op1,op2=1,1,k,n
-        while(op1>=1):
-            num*=op2
-            dem*=op1
-            op1-=1
-            op2-=1
-        m=num//dem
+def nCk(n, k) -> int:
+    """
+    calulate binomial coeffecients
+    """
+
+    m = 0
+    if k == 0:
+        m = 1
+    if k == 1:
+        m = n
+    if k >= 2:
+        num, dem, op1, op2 = 1, 1, k, n
+        while(op1 >= 1):
+            num *= op2
+            dem *= op1
+            op1 -= 1
+            op2 -= 1
+        m = num//dem
     return m
