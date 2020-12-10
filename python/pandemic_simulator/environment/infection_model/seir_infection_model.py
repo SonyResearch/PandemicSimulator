@@ -283,10 +283,13 @@ class SEIRModel(InfectionModel):
                                     label=label,
                                     spread_probability=self._spread_probability.rvs(random_state=self._numpy_rng))
         label = subject_state.label
+        exposed_rnb = -1.
 
         if subject_state.label == _SEIRLabel.susceptible:
-            if self._numpy_rng.uniform() < infection_probability:
+            rnb = self._numpy_rng.uniform()
+            if rnb < infection_probability:
                 label = _SEIRLabel.exposed
+                exposed_rnb = rnb
         elif subject_state.label == _SEIRLabel.needs_hospitalization and subject_state.is_hospitalized:
             label = _SEIRLabel.hospitalized
         else:
@@ -297,10 +300,11 @@ class SEIRModel(InfectionModel):
                 label = self._numpy_rng.choice(list(state_probs.keys()), p=probs)
 
         return SEIRInfectionState(summary=self._seir_to_summary[label],
-                                  label=label,
-                                  shows_symptoms=label in show_symptoms_states,
                                   spread_probability=subject_state.spread_probability,
-                                  is_hospitalized=subject_state.is_hospitalized)
+                                  exposed_rnb=exposed_rnb,
+                                  is_hospitalized=subject_state.is_hospitalized,
+                                  shows_symptoms=label in show_symptoms_states,
+                                  label=label)
 
     def needs_contacts(self, subject_state: Optional[IndividualInfectionState]) -> bool:
         pandemic_started = self._pandemic_started_counter >= self._pandemic_start_limit
