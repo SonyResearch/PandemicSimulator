@@ -115,15 +115,11 @@ class PandemicSim:
             if num_possible_contacts == 0:
                 continue
             
-
             fraction_sample = min(1., max(0., self._numpy_rng.normal(fraction, 1e-2)))
             real_fraction = max(minimum, int(fraction_sample * num_possible_contacts))
             # we are using an orderedset, it's repeatable
             contact_idx = self._numpy_rng.randint(0, num_possible_contacts, real_fraction)
 
-            #if real_fraction > num_possible_contacts: real_fraction = num_possible_contacts
-            #contact_idx = self._numpy_rng.choice(num_possible_contacts, real_fraction, replace=False)
-            
             if grp1 == grp2:
                 possible_contacts_x, possible_contacts_y = comb2_reduced(np.asarray(grp1),contact_idx)
             else:
