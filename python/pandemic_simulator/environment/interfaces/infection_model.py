@@ -29,6 +29,7 @@ class IndividualInfectionState:
     """State of the infection."""
     summary: InfectionSummary
     spread_probability: float
+    exposed_rnb: float = -1.
     is_hospitalized: bool = False
     shows_symptoms: bool = False
 
