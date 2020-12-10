@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 from typing import Type, Optional, cast
-from uuid import uuid4
 
 import numpy as np
 

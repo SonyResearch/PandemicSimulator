@@ -25,7 +25,7 @@ def make_standard_locations(population_params: PopulationParams,
     cemetery = Cemetery(registry, loc_id=LocationID('cemetery'), road_id=road.id, numpy_rng=numpy_rng)
 
     hospitals: List[Location] = [Hospital(registry=registry,
-                                          loc_id=LocationID(f'hospital_{i}', ('Hospital',)),
+                                          loc_id=LocationID(f'hospital_{i}'),
                                           road_id=road.id,
                                           init_state=HospitalState(
                                               is_open=True,
@@ -36,14 +36,14 @@ def make_standard_locations(population_params: PopulationParams,
                                           ) for i in range(location_type_to_params[Hospital].num)]
 
     homes: List[Location] = [Home(registry=registry,
-                                  loc_id=LocationID(f'home_{i}', ('Home',)),
+                                  loc_id=LocationID(f'home_{i}'),
                                   road_id=road.id,
                                   numpy_rng=numpy_rng)
                              for i in range(location_type_to_params[Home].num)]
 
     grocery_stores: List[Location] = [GroceryStore(
         registry=registry,
-        loc_id=LocationID(f'grocery_{i}', ('GroceryStore',)),
+        loc_id=LocationID(f'grocery_{i}'),
         road_id=road.id,
         init_state=BusinessLocationState(
             is_open=True,
@@ -55,7 +55,7 @@ def make_standard_locations(population_params: PopulationParams,
 
     offices: List[Location] = [Office(
         registry=registry,
-        loc_id=LocationID(f'offices_{i}', ('Office',)),
+        loc_id=LocationID(f'offices_{i}'),
         road_id=road.id,
         init_state=NonEssentialBusinessLocationState(
             is_open=True,
@@ -67,7 +67,7 @@ def make_standard_locations(population_params: PopulationParams,
 
     schools: List[Location] = [School(
         registry=registry,
-        loc_id=LocationID(f'school_{i}', ('School',)),
+        loc_id=LocationID(f'school_{i}'),
         road_id=road.id,
         init_state=NonEssentialBusinessLocationState(
             is_open=True,
@@ -82,7 +82,7 @@ def make_standard_locations(population_params: PopulationParams,
     if RetailStore in location_type_to_params:
         all_locs += [RetailStore(
             registry=registry,
-            loc_id=LocationID(f'retail_{i}', ('RetailStore',)),
+            loc_id=LocationID(f'retail_{i}'),
             road_id=road.id,
             init_state=NonEssentialBusinessLocationState(
                 is_open=True,
@@ -95,7 +95,7 @@ def make_standard_locations(population_params: PopulationParams,
     if HairSalon in location_type_to_params:
         all_locs += [HairSalon(
             registry=registry,
-            loc_id=LocationID(f'hair_salon_{i}', ('HairSalon',)),
+            loc_id=LocationID(f'hair_salon_{i}'),
             road_id=road.id,
             init_state=NonEssentialBusinessLocationState(
                 is_open=True,
@@ -108,7 +108,7 @@ def make_standard_locations(population_params: PopulationParams,
     if Bar in location_type_to_params:
         all_locs += [Bar(
             registry=registry,
-            loc_id=LocationID(f'bar_{i}', ('Bar',)),
+            loc_id=LocationID(f'bar_{i}'),
             road_id=road.id,
             init_state=NonEssentialBusinessLocationState(
                 is_open=True,
@@ -122,7 +122,7 @@ def make_standard_locations(population_params: PopulationParams,
     if Restaurant in location_type_to_params:
         all_locs += [Restaurant(
             registry=registry,
-            loc_id=LocationID(f'restaurant_{i}', ('Restaurant',)),
+            loc_id=LocationID(f'restaurant_{i}'),
             road_id=road.id,
             init_state=NonEssentialBusinessLocationState(
                 is_open=True,

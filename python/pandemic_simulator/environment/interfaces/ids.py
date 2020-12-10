@@ -3,13 +3,10 @@ from dataclasses import dataclass
 
 __all__ = ['LocationID', 'PersonID']
 
-from typing import Tuple
-
 
 @dataclass(frozen=True)
 class LocationID:
     name: str
-    tags: Tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
