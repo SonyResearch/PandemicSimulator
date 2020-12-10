@@ -99,8 +99,8 @@ class PandemicSim:
                        (cr.min_assignees_visitors, cr.fraction_assignees_visitors),
                        (cr.min_visitors, cr.fraction_visitors)]
 
-        contacts_x : List = list()
-        contacts_y : List = list()
+        contacts_x: List = list()
+        contacts_y: List = list()
         for grp, cst in zip(groups, constraints):
             grp1, grp2 = grp
             minimum, fraction = cst
@@ -128,15 +128,15 @@ class PandemicSim:
 
         # Stuff the contact pairs into a dictionary/Set, removing duplicates from repeats in contact_idx
         r = dict()
-        for i,c in enumerate(contacts_x):
+        for i, c in enumerate(contacts_x):
             r[contacts_x[i], contacts_y[i]] = 0
         return r
 
     def _compute_infection_probabilities(self, contacts: dict) -> None:
-        if len(contacts) < 1: 
+        if len(contacts) < 1:
             return
         infectious_states = {InfectionSummary.INFECTED, InfectionSummary.CRITICAL}
-        
+
         for c in contacts:
             id_person1 = c[0]
             id_person2 = c[1]
@@ -320,7 +320,7 @@ class PandemicSim:
 
     def person_update(self, person: Person) -> None:
         person.step(self._state.sim_time, self._contact_tracer)
-
+        return
 
 def prod_reduced(a: np.array, b: np.array, idx: list) -> tuple:
     """
@@ -336,13 +336,11 @@ def comb2_reduced(l: np.array, idx: list) -> tuple:
     triu = np.triu_indices(l.size, 1)
     return l[triu[0][idx]], l[triu[1][idx]]
 
-
 @lru_cache(maxsize=None)
-def nCk(n, k) -> int:
+def nCk(n: int, k: int) -> int:
     """
     calulate binomial coeffecients
     """
-
     m = 0
     if k == 0:
         m = 1
