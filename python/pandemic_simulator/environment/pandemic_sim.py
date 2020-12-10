@@ -1,6 +1,6 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 
-from collections import defaultdict, deque
+from collections import defaultdict
 from typing import DefaultDict, Dict, List, Optional, Sequence, cast
 from functools import lru_cache
 
@@ -201,7 +201,8 @@ class PandemicSim:
         self._registry.update_location_specific_information()
 
         # call person steps
-        deque([self.person_update(p) for p in self._id_to_person.values()])
+        for person in self._id_to_person.values():
+            person.step(self._state.sim_time, self._contact_tracer)
 
         # update person contacts
         for location in self._id_to_location.values():
@@ -317,10 +318,10 @@ class PandemicSim:
             infection_above_threshold=False,
         )
 
-
     def person_update(self, person: Person) -> None:
         person.step(self._state.sim_time, self._contact_tracer)
         return
+
 
 def prod_reduced(a: np.array, b: np.array, idx: list) -> tuple:
     """
@@ -335,6 +336,7 @@ def comb2_reduced(l: np.array, idx: list) -> tuple:
     """
     triu = np.triu_indices(l.size, 1)
     return l[triu[0][idx]], l[triu[1][idx]]
+
 
 @lru_cache(maxsize=None)
 def nCk(n: int, k: int) -> int:
