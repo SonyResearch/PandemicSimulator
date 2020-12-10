@@ -6,7 +6,7 @@ from typing import Optional, Sequence, Union
 from .ids import LocationID
 from .sim_time import SimTimeInterval, SimTimeTuple
 
-__all__ = ['PersonRoutine', 'RepeatablePersonRoutine', 'SpecialEndLoc']
+__all__ = ['PersonRoutine', 'SpecialEndLoc']
 
 
 class SpecialEndLoc(enum.Enum):
@@ -33,7 +33,7 @@ class PersonRoutine:
     will not be executed outside the specified times.
     """
 
-    start_hour_probability: float = 0.5
+    start_hour_probability: float = 0.9
     """The probability for starting the routine around the trigger interval."""
 
     explorable_end_locs: Sequence[LocationID] = ()
@@ -45,11 +45,6 @@ class PersonRoutine:
 
     duration_of_stay_at_end_loc: int = 1
     """Specifies the duration (in hours) to stay at the end location."""
-
-
-@dataclass(frozen=True)
-class RepeatablePersonRoutine(PersonRoutine):
-    """A repeatable person routine"""
 
     repeat_interval_when_done: SimTimeInterval = SimTimeInterval(day=1)
     """Specifies the interval to repeat the routine when completed"""

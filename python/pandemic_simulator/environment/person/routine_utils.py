@@ -5,8 +5,7 @@ from typing import Sequence, Optional, cast
 import numpy as np
 
 from .base import BasePerson
-from ..interfaces import SimTime, SimTimeTuple, PersonRoutine, \
-    SimTimeInterval, NoOP, NOOP, RepeatablePersonRoutine, LocationID, SpecialEndLoc
+from ..interfaces import SimTime, SimTimeTuple, PersonRoutine, SimTimeInterval, NoOP, NOOP, LocationID, SpecialEndLoc
 
 __all__ = ['RoutineWithStatus', 'execute_routines']
 
@@ -38,9 +37,7 @@ class RoutineWithStatus:
     def sync(self, sim_time: SimTime) -> None:
         """Sync the status variables with time."""
         # if completed check if you need to reset the routine for a repetition
-        if (isinstance(self.routine, RepeatablePersonRoutine) and
-                self.done and
-                self.routine.repeat_interval_when_done.trigger_at_interval(sim_time)):
+        if self.done and self.routine.repeat_interval_when_done.trigger_at_interval(sim_time):
             self.reset()
 
         self.due = self._is_routine_due(sim_time)

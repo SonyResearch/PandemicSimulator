@@ -51,15 +51,21 @@ class Registry(ABC):
     def update_location_specific_information(self) -> None:
         """update any location specific information that is accessed by person."""
 
+    @abstractmethod
+    def reassign_locations(self, person: Person) -> None:
+        """Re-assign locations for the given person."""
+
+    # ----------------public attributes-----------------
+
     @property
     @abstractmethod
-    def person_ids(self) -> List[PersonID]:
+    def person_ids(self) -> Set[PersonID]:
         """Return a list of registered person ids"""
         pass
 
     @property
     @abstractmethod
-    def location_ids(self) -> List[LocationID]:
+    def location_ids(self) -> Set[LocationID]:
         """Return a list of registered location ids"""
         pass
 
@@ -75,25 +81,11 @@ class Registry(ABC):
            E.g.: {('School', 'Minor'): LocationSummary(entry_count=10)}
         """
 
+    # ----------------location utility methods-----------------
+
     @abstractmethod
     def location_ids_of_type(self, location_type: type) -> List[LocationID]:
         """Return a list of location ids for the given type of location."""
-
-    @abstractmethod
-    def get_person_home_id(self, person_id: PersonID) -> LocationID:
-        """Return person's home id"""
-
-    @abstractmethod
-    def get_households(self, person_id: PersonID) -> Set[PersonID]:
-        """Return person's households"""
-
-    @abstractmethod
-    def get_person_infection_summary(self, person_id: PersonID) -> Optional[InfectionSummary]:
-        """Return person's infection summary"""
-
-    @abstractmethod
-    def get_person_test_result(self, person_id: PersonID) -> PandemicTestResult:
-        """Return person's test result"""
 
     @abstractmethod
     def get_persons_in_location(self, location_id: LocationID) -> Set[PersonID]:
@@ -111,9 +103,22 @@ class Registry(ABC):
     def is_location_open_for_visitors(self, location_id: LocationID, sim_time: SimTime) -> bool:
         """Return a boolean if the location is open for visitors at the given sim_time."""
 
+    # ----------------person utility methods-----------------
     @abstractmethod
-    def reassign_locations(self, person: Person) -> None:
-        """Re-assign locations for the given person."""
+    def get_person_home_id(self, person_id: PersonID) -> LocationID:
+        """Return person's home id"""
+
+    @abstractmethod
+    def get_households(self, person_id: PersonID) -> Set[PersonID]:
+        """Return person's households"""
+
+    @abstractmethod
+    def get_person_infection_summary(self, person_id: PersonID) -> Optional[InfectionSummary]:
+        """Return person's infection summary"""
+
+    @abstractmethod
+    def get_person_test_result(self, person_id: PersonID) -> PandemicTestResult:
+        """Return person's test result"""
 
     @abstractmethod
     def quarantine_person(self, person_id: PersonID) -> None:

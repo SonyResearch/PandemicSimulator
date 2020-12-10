@@ -17,9 +17,11 @@ class CityRegistry(Registry):
 
     _location_register: Dict[LocationID, Location]
     _person_register: Dict[PersonID, Person]
-    _location_ids: List[LocationID]
-    _business_location_ids: List[LocationID]
-    _person_ids: List[PersonID]
+
+    _location_ids: Set[LocationID]
+    _business_location_ids: Set[LocationID]
+    _person_ids: Set[PersonID]
+
     _road_id: Optional[LocationID]
     _quarantined: Set[PersonID]
 
@@ -33,9 +35,11 @@ class CityRegistry(Registry):
     def __init__(self) -> None:
         self._location_register = {}
         self._person_register = {}
-        self._location_ids = []
-        self._business_location_ids = []
-        self._person_ids = []
+
+        self._location_ids = set()
+        self._business_location_ids = set()
+        self._person_ids = set()
+
         self._quarantined = set()
         self._road_id = None
         self._global_location_summary = dict()
@@ -43,13 +47,6 @@ class CityRegistry(Registry):
         self._person_types = set()
 
     def register_location(self, location: Location) -> None:
-        """
-        Register a location instance
-
-        :param location: Location instance
-        :return:
-        """
-
         if isinstance(location, Road):
             if self._road_id is None:
                 self._road_id = location.id
@@ -59,19 +56,14 @@ class CityRegistry(Registry):
         if location.id in self._location_register:
             raise RegistrationError(f'Location {location.id.name} is already registered.')
         self._location_register[location.id] = location
-        self._location_ids.append(location.id)
+        self._location_ids.add(location.id)
         if isinstance(location.state, BusinessLocationState):
-            self._business_location_ids.append(location.id)
+            self._business_location_ids.add(location.id)
 
         if type(location) not in self.IGNORE_LOCS_SUMMARY:
             self._location_types.add(type(location).__name__)
 
     def register_person(self, person: Person) -> None:
-        """
-        Register a person instance
-
-        :param person: Person instance
-        """
         if person.id in self._person_register:
             raise RegistrationError(f'Person {person.id.name} is already registered.')
 
@@ -98,7 +90,7 @@ class CityRegistry(Registry):
             loc.assign_person(person.id)
         current_location.add_person_to_location(person.id)
         self._person_register[person.id] = person
-        self._person_ids.append(person.id)
+        self._person_ids.add(person.id)
 
         # init entry in global_location_summary
         person_type = type(person).__name__
@@ -108,13 +100,6 @@ class CityRegistry(Registry):
                 self._global_location_summary[(loc_type, person_type)] = LocationSummary()
 
     def register_person_entry_in_location(self, person_id: PersonID, location_id: LocationID) -> bool:
-        """
-        Register a person's entry in the specified location
-
-        :param person_id: PersonID instance
-        :param location_id: LocationID instance
-        :return: bool to indicate if the registration was successful.
-        """
         if self._road_id is None:
             raise RegistrationError('There is no registered road location in the city! Add one.')
 
@@ -146,12 +131,19 @@ class CityRegistry(Registry):
         self._location_ids_with_social_events = [loc_id for loc_id, loc in self._location_register.items()
                                                  if loc.state.social_gathering_event]
 
+    def reassign_locations(self, person: Person) -> None:
+        assigned_locations = [self._location_register[loc_id] for loc_id in person.assigned_locations]
+        for loc in assigned_locations:
+            loc.assign_person(person.id)
+
+    # ----------------public attributes-----------------
+
     @property
-    def person_ids(self) -> List[PersonID]:
+    def person_ids(self) -> Set[PersonID]:
         return self._person_ids
 
     @property
-    def location_ids(self) -> List[LocationID]:
+    def location_ids(self) -> Set[LocationID]:
         return self._location_ids
 
     @property
@@ -162,9 +154,28 @@ class CityRegistry(Registry):
     def global_location_summary(self) -> Mapping[Tuple[str, str], LocationSummary]:
         return dict(self._global_location_summary)
 
+    # ----------------location utility methods-----------------
+
     @cached(cache={})
     def location_ids_of_type(self, location_type: type) -> List[LocationID]:
         return [loc_id for loc_id, loc in self._location_register.items() if isinstance(loc, location_type)]
+
+    def get_persons_in_location(self, location_id: LocationID) -> Set[PersonID]:
+        return self._location_register[location_id].state.persons_in_location
+
+    def location_id_to_type(self, location_id: LocationID) -> Type:
+        return type(self._location_register[location_id])
+
+    def get_location_open_time(self, location_id: LocationID) -> SimTimeTuple:
+        state = self._location_register[location_id].state
+        assert isinstance(state, BusinessLocationState), 'The given location id is not a business location.'
+        return state.open_time
+
+    def is_location_open_for_visitors(self, location_id: LocationID, sim_time: SimTime) -> bool:
+        location_state = self._location_register[location_id].state
+        return location_state.is_open and sim_time in location_state.visitor_time
+
+    # ----------------person utility methods-----------------
 
     def get_person_home_id(self, person_id: PersonID) -> LocationID:
         return self._person_register[person_id].home
@@ -186,26 +197,6 @@ class CityRegistry(Registry):
     def get_person_test_result(self, person_id: PersonID) -> PandemicTestResult:
         state = self._person_register[person_id].state
         return state.test_result
-
-    def get_persons_in_location(self, location_id: LocationID) -> Set[PersonID]:
-        return self._location_register[location_id].state.persons_in_location
-
-    def location_id_to_type(self, location_id: LocationID) -> Type:
-        return type(self._location_register[location_id])
-
-    def get_location_open_time(self, location_id: LocationID) -> SimTimeTuple:
-        state = self._location_register[location_id].state
-        assert isinstance(state, BusinessLocationState), 'The given location id is not a business location.'
-        return state.open_time
-
-    def is_location_open_for_visitors(self, location_id: LocationID, sim_time: SimTime) -> bool:
-        location_state = self._location_register[location_id].state
-        return location_state.is_open and sim_time in location_state.visitor_time
-
-    def reassign_locations(self, person: Person) -> None:
-        assigned_locations = [self._location_register[loc_id] for loc_id in person.assigned_locations]
-        for loc in assigned_locations:
-            loc.assign_person(person.id)
 
     def quarantine_person(self, person_id: PersonID) -> None:
         self._quarantined.add(person_id)

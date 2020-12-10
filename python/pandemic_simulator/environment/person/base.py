@@ -68,7 +68,10 @@ class BasePerson(Person):
         self._go_home = False
 
     def enter_location(self, location_id: LocationID) -> bool:
-        self._go_home = False
+        if location_id == self._home:
+            self._go_home = False
+        if self._state.current_location == location_id:
+            return True
         return self._registry.register_person_entry_in_location(self.id, location_id)
 
     @property
