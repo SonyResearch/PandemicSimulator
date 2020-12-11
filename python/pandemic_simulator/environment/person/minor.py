@@ -105,3 +105,8 @@ class Minor(BasePerson):
                 return None
 
         return NOOP
+
+    def reset(self) -> None:
+        super().reset()
+        for rws in self._outside_school_rs:
+            rws.reset()

@@ -114,3 +114,8 @@ class Worker(BasePerson):
                 return None
 
         return NOOP
+
+    def reset(self) -> None:
+        super().reset()
+        for rws in self._during_work_rs + self._outside_work_rs:
+            rws.reset()

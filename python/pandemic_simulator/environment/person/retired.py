@@ -75,3 +75,8 @@ class Retired(BasePerson):
             return None
 
         return NOOP
+
+    def reset(self) -> None:
+        super().reset()
+        for rws in self._routines_with_status:
+            rws.reset()
