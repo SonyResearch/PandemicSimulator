@@ -1,6 +1,6 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 import string
-from typing import List, Any
+from typing import Any, Dict, List
 
 import numpy as np
 from cycler import cycler
@@ -26,6 +26,7 @@ class MatplotLibViz(PandemicViz):
 
     _gis: List[np.ndarray]
     _gts: List[np.ndarray]
+    _location_type_is: Dict[str, int]
     _stages: List[np.ndarray]
     _rewards: List[float]
 
@@ -55,13 +56,14 @@ class MatplotLibViz(PandemicViz):
 
         self._gis = []
         self._gts = []
+        self._location_type_is = {}
         self._stages = []
         self._rewards = []
 
         self._gis_legend = [summ.value for summ in sorted_infection_summary]
         self._critical_index = self._gis_legend.index(InfectionSummary.CRITICAL.value)
         self._stage_indices = np.arange(num_stages)[..., None]
-        self._ncols = 3
+        self._ncols = 4
         self._nrows = 1
 
     def record(self, data: Any, **kwargs: Any) -> None:
@@ -69,6 +71,7 @@ class MatplotLibViz(PandemicViz):
             state = checked_cast(PandemicSimState, data)
             obs = PandemicObservation.create_empty()
             obs.update_obs_with_sim_state(state)
+            self._location_type_is = {k.__name__: v for k, v in state.location_type_infection_summary.items()}
         elif isinstance(data, PandemicObservation):
             obs = data
         else:
@@ -115,6 +118,15 @@ class MatplotLibViz(PandemicViz):
         plt.title('Critical Summary')
         plt.xlabel('time (days)')
         plt.ylabel('persons')
+
+        axs.append(plt.subplot(self._nrows, self._ncols, 4))
+        y = np.arange(len(self._location_type_is.keys()))
+        plt.barh(y, [v/self._num_persons for v in self._location_type_is.values()])
+        plt.yticks(y, list(self._location_type_is.keys()))
+        plt.xlim([-0.1, 1.1])
+        plt.title('% Infections / Location Type')
+        plt.xlabel('% infections')
+        plt.ylabel('location type')
 
         if self._show_stages:
             axs.append(plt.subplot(self._nrows, self._ncols, 4))
