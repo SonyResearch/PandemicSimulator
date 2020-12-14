@@ -1,6 +1,7 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 
 from typing import Optional
+from uuid import uuid4
 
 import numpy as np
 
@@ -15,17 +16,18 @@ class Home(BaseLocation):
     """Class that implements a standard Home location. """
 
     def __init__(self,
-                 loc_id: LocationID,
-                 registry: Registry,
+                 loc_id: LocationID = LocationID('home_' + str(uuid4)),
+                 registry: Optional[Registry] = None,
                  visitor_capacity: int = -1,
                  road_id: Optional[LocationID] = None,
                  numpy_rng: Optional[np.random.RandomState] = None):
         """
         :param loc_id: Location ID instance.
-        :param registry: Registry instance to register the location and handle people exit from location
+        :param registry: Registry instance to register the location and handle people exit from location. If None,
+            the package wide registry instance is used.
         :param visitor_capacity: Maximum number of allowed visitors.
         :param road_id: id of the road connected to the location.
-        :param numpy_rng: Random number generator
+        :param numpy_rng: Random number generator. Set to default if None
         """
         numpy_rng = numpy_rng if numpy_rng is not None else np.random.RandomState()
         self._social_event_time = SimTimeTuple(hours=tuple(range(15, 20)),

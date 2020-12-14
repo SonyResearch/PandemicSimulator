@@ -34,6 +34,8 @@ class Location(ABC):
 
     location_rule_type: Type = abstract_class_property()  # The type of the location rule used by the location
 
+    location_state_type: Type = abstract_class_property()  # The type of the state used by the location
+
     @property
     @abstractmethod
     def id(self) -> LocationID:

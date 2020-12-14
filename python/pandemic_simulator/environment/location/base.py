@@ -6,7 +6,7 @@ from typing import Optional, Type, cast
 import numpy as np
 
 from ..interfaces import Location, LocationState, PersonID, LocationID, Registry, LocationRule, DEFAULT, \
-    SimTime, ContactRate, SimTimeTuple
+    SimTime, ContactRate, SimTimeTuple, default_registry, default_numpy_rng
 
 __all__ = ['BaseLocation']
 
@@ -27,22 +27,24 @@ class BaseLocation(Location):
 
     def __init__(self,
                  loc_id: LocationID,
-                 registry: Registry,
+                 registry: Optional[Registry] = None,
                  road_id: Optional[LocationID] = None,
                  init_state: Optional[LocationState] = None,
                  numpy_rng: Optional[np.random.RandomState] = None):
         """
         :param loc_id: Location ID
-        :param registry: Registry instance to register the location and handle people exit from location
+        :param registry: Registry instance to register the location and handle people exit from location. If None,
+            the package wide registry instance is used.
         :param road_id: id of the road connected to the location
         :param init_state: Optional initial state of the location. Set to default if None
-        :param numpy_rng: Random number generator
+        :param numpy_rng: Random number generator. Set to default if None
         """
-        self._registry = registry
+        self._registry = registry or default_registry
+        assert self._registry, 'No registry found. Either pass a registry or set the default repo wide registry.'
         self._id = loc_id
         self._road_id = road_id
         self._init_state = init_state or LocationState(is_open=True)
-        self._numpy_rng = numpy_rng if numpy_rng is not None else np.random.RandomState()
+        self._numpy_rng = numpy_rng or default_numpy_rng
 
         self._state = deepcopy(self._init_state)
 

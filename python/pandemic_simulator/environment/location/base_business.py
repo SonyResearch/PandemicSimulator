@@ -18,16 +18,18 @@ class BusinessBaseLocation(BaseLocation):
     """Class that implements a base business location that has finite open hours."""
 
     location_rule_type: Type = BusinessLocationRule
+    location_state_type: Type = BusinessLocationState
 
     def __init__(self,
                  loc_id: LocationID,
-                 registry: Registry,
+                 registry: Optional[Registry] = None,
                  road_id: Optional[LocationID] = None,
                  init_state: Optional[BusinessLocationState] = None,
                  numpy_rng: Optional[np.random.RandomState] = None):
         """
         :param loc_id: Location ID
-        :param registry: Registry instance to register the location and handle people exit from location
+        :param registry: Registry instance to register the location and handle people exit from location. If None,
+            the package wide registry instance is used.
         :param road_id: id of the road connected to the location
         :param init_state: Optional initial state of the location. Set to default if None
         :param numpy_rng: Random number generator
@@ -54,16 +56,18 @@ class NonEssentialBusinessBaseLocation(BusinessBaseLocation):
     """Class that implements a non essential base business location that has finite open hours."""
 
     location_rule_type: Type = NonEssentialBusinessLocationRule
+    location_state_type: Type = NonEssentialBusinessLocationState
 
     def __init__(self,
                  loc_id: LocationID,
-                 registry: Registry,
+                 registry: Optional[Registry] = None,
                  road_id: Optional[LocationID] = None,
                  init_state: Optional[NonEssentialBusinessLocationState] = None,
                  numpy_rng: Optional[np.random.RandomState] = None):
         """
         :param loc_id: Location ID
-        :param registry: Registry instance to register the location and handle people exit from location
+        :param registry: Registry instance to register the location and handle people exit from location. If None,
+            the package wide registry instance is used.
         :param road_id: id of the road connected to the location
         :param init_state: Optional initial state of the location. Set to default if None
         :param numpy_rng: Random number generator
@@ -93,14 +97,15 @@ class AgeRestrictedBusinessBaseLocation(NonEssentialBusinessBaseLocation):
 
     def __init__(self, age_limits: Tuple[int, int],
                  loc_id: LocationID,
-                 registry: Registry,
+                 registry: Optional[Registry] = None,
                  road_id: Optional[LocationID] = None,
                  init_state: Optional[NonEssentialBusinessLocationState] = None,
                  numpy_rng: Optional[np.random.RandomState] = None):
         """
         :param age_limits: min and max age of allowed persons
         :param loc_id: Location ID
-        :param registry: Registry instance to register the location and handle people exit from location
+        :param registry: Registry instance to register the location and handle people exit from location. If None,
+            the package wide registry instance is used.
         :param road_id: id of the road connected to the location
         :param init_state: Optional initial state of the location. Set to default if None
         :param numpy_rng: Random number generator

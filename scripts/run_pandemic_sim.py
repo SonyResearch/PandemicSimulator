@@ -25,7 +25,7 @@ if __name__ == '__main__':
 
     # run regulation stpes in the simulator
     stage_to_regulation = {reg.stage: reg for reg in austin_regulations}
-    for i in trange(100, desc='Simulating day'):
+    for i in trange(2, desc='Simulating day'):
         # get the regulation
         regulation = stage_to_regulation[0]  # stage 0
 

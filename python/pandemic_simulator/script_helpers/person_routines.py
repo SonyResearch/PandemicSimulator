@@ -90,11 +90,11 @@ def get_minor_routines(home_id: LocationID,
                        numpy_rng: Optional[np.random.RandomState] = None) -> Sequence[PersonRoutine]:
     numpy_rng = numpy_rng if numpy_rng is not None else np.random.RandomState()
     routines = [
-        triggered_routine(registry, home_id, HairSalon, 30, numpy_rng),
-        weekend_routine(registry, home_id, Restaurant, numpy_rng, explore_probability=0.5),
+        # triggered_routine(registry, home_id, HairSalon, 30, numpy_rng),
+        # weekend_routine(registry, home_id, Restaurant, numpy_rng, explore_probability=0.5),
     ]
-    if age >= 12:
-        routines.append(social_routine(home_id, numpy_rng))
+    # if age >= 12:
+    #     routines.append(social_routine(home_id, numpy_rng))
 
     return routines
 
@@ -105,12 +105,12 @@ def get_retired_routines(home_id: LocationID,
     numpy_rng = numpy_rng if numpy_rng is not None else np.random.RandomState()
 
     routines = [
-        triggered_routine(registry, None, GroceryStore, 7, numpy_rng),
-        triggered_routine(registry, None, RetailStore, 7, numpy_rng),
-        triggered_routine(registry, None, HairSalon, 30, numpy_rng),
-        weekend_routine(registry, None, Restaurant, numpy_rng, explore_probability=0.5),
-        triggered_routine(registry, home_id, Bar, 2, numpy_rng, explore_probability=0.5),
-        social_routine(home_id, numpy_rng)
+        # triggered_routine(registry, None, GroceryStore, 7, numpy_rng),
+        # triggered_routine(registry, None, RetailStore, 7, numpy_rng),
+        # triggered_routine(registry, None, HairSalon, 30, numpy_rng),
+        # weekend_routine(registry, None, Restaurant, numpy_rng, explore_probability=0.5),
+        # triggered_routine(registry, home_id, Bar, 2, numpy_rng, explore_probability=0.5),
+        # social_routine(home_id, numpy_rng)
     ]
     return routines
 
@@ -121,7 +121,7 @@ def get_worker_during_work_routines(work_id: LocationID,
     numpy_rng = numpy_rng if numpy_rng is not None else np.random.RandomState()
 
     routines = [
-        mid_day_during_week_routine(registry, work_id, Restaurant, numpy_rng),  # ~cafeteria  during work
+        # mid_day_during_week_routine(registry, work_id, Restaurant, numpy_rng),  # ~cafeteria  during work
     ]
 
     return routines
@@ -133,11 +133,11 @@ def get_worker_outside_work_routines(home_id: LocationID,
     numpy_rng = numpy_rng if numpy_rng is not None else np.random.RandomState()
 
     routines = [
-        triggered_routine(registry, None, GroceryStore, 7, numpy_rng),
-        triggered_routine(registry, None, RetailStore, 7, numpy_rng),
-        triggered_routine(registry, None, HairSalon, 30, numpy_rng),
-        weekend_routine(registry, None, Restaurant, numpy_rng, explore_probability=0.5),
-        triggered_routine(registry, home_id, Bar, 3, numpy_rng, explore_probability=0.5),
-        social_routine(home_id, numpy_rng)
+        # triggered_routine(registry, None, GroceryStore, 7, numpy_rng),
+        # triggered_routine(registry, None, RetailStore, 7, numpy_rng),
+        # triggered_routine(registry, None, HairSalon, 30, numpy_rng),
+        # weekend_routine(registry, None, Restaurant, numpy_rng, explore_probability=0.5),
+        # triggered_routine(registry, home_id, Bar, 3, numpy_rng, explore_probability=0.5),
+        # social_routine(home_id, numpy_rng)
     ]
     return routines
