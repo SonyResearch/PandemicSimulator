@@ -7,11 +7,13 @@ from typing import DefaultDict, Dict, List, Optional, Sequence, cast
 import numpy as np
 from orderedset import OrderedSet
 
+from .infection_model import SEIRModel
 from .interfaces import ContactRate, ContactTracer, PandemicRegulation, PandemicSimState, PandemicTesting, \
     PandemicTestResult, \
     DEFAULT, GlobalTestingState, InfectionModel, InfectionSummary, Location, LocationID, Person, PersonID, Registry, \
     SimTime, SimTimeInterval, sorted_infection_summary
 from .location import Hospital
+from .pandemic_testing_strategies import RandomPandemicTesting
 
 __all__ = ['PandemicSim']
 
@@ -36,22 +38,22 @@ class PandemicSim:
     _state: PandemicSimState
 
     def __init__(self,
-                 persons: Sequence[Person],
-                 locations: Sequence[Location],
-                 infection_model: InfectionModel,
-                 pandemic_testing: PandemicTesting,
                  registry: Registry,
+                 locations: Sequence[Location],
+                 persons: Sequence[Person],
+                 infection_model: Optional[InfectionModel] = None,
+                 pandemic_testing: Optional[PandemicTesting] = None,
                  contact_tracer: Optional[ContactTracer] = None,
                  new_time_slot_interval: SimTimeInterval = SimTimeInterval(day=1),
                  infection_update_interval: SimTimeInterval = SimTimeInterval(day=1),
                  infection_threshold: int = 0,
                  numpy_rng: Optional[np.random.RandomState] = None):
         """
-        :param persons: A sequence of Person instances.
-        :param locations: A sequence of Location instances.
-        :param infection_model: Infection model instance.
-        :param pandemic_testing: PandemicTesting instance.
         :param registry: Registry instance.
+        :param locations: A sequence of Location instances.
+        :param persons: A sequence of Person instances.
+        :param infection_model: Infection model instance, if None SEIR default infection model is used.
+        :param pandemic_testing: PandemicTesting instance, if None RandomPandemicTesting default instance is used.
         :param contact_tracer: Optional ContactTracer instance.
         :param new_time_slot_interval: interval for updating contact tracer if that is not None. Default is set daily.
         :param infection_update_interval: interval for updating infection states. Default is set once daily.
@@ -61,9 +63,9 @@ class PandemicSim:
         """
         self._id_to_person = OrderedDict({p.id: p for p in persons})
         self._id_to_location = OrderedDict({loc.id: loc for loc in locations})
-        self._infection_model = infection_model
-        self._pandemic_testing = pandemic_testing
         self._registry = registry
+        self._infection_model = infection_model or SEIRModel()
+        self._pandemic_testing = pandemic_testing or RandomPandemicTesting()
         self._contact_tracer = contact_tracer
         self._new_time_slot_interval = new_time_slot_interval
         self._infection_update_interval = infection_update_interval
@@ -252,6 +254,10 @@ class PandemicSim:
 
         # call sim time step
         self._state.sim_time.step()
+
+    def step_day(self, hours_in_a_day: int = 24) -> None:
+        for _ in range(hours_in_a_day):
+            self.step()
 
     @staticmethod
     def _get_cr_from_social_distancing(location: Location,

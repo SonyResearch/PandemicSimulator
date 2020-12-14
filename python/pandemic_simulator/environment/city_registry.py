@@ -28,7 +28,7 @@ class CityRegistry(Registry):
     _location_ids_with_social_events: List[LocationID]
     _global_location_summary: Dict[Tuple[str, str], LocationSummary]
     _location_types: Set[str]
-    _person_types: Set[str]
+    _person_type_to_count: Dict[str, int]
 
     IGNORE_LOCS_SUMMARY: Set[Type] = {Road, Cemetery}
 
@@ -44,7 +44,7 @@ class CityRegistry(Registry):
         self._road_id = None
         self._global_location_summary = dict()
         self._location_types = set()
-        self._person_types = set()
+        self._person_type_to_count = dict()
 
     def register_location(self, location: Location) -> None:
         if isinstance(location, Road):
@@ -94,20 +94,18 @@ class CityRegistry(Registry):
 
         # init entry in global_location_summary
         person_type = type(person).__name__
-        if person_type not in self._person_types:
-            self._person_types.add(person_type)
+        if person_type not in self._person_type_to_count:
+            self._person_type_to_count[person_type] = 0
             for loc_type in self._location_types:
                 self._global_location_summary[(loc_type, person_type)] = LocationSummary()
+        self._person_type_to_count[person_type] += 1
 
     def register_person_entry_in_location(self, person_id: PersonID, location_id: LocationID) -> bool:
-        if self._road_id is None:
-            raise RegistrationError('There is no registered road location in the city! Add one.')
-
         person = self._person_register[person_id]
         current_location = self._location_register[person.state.current_location]
         next_location = self._location_register[location_id]
 
-        if (next_location.id != current_location.id) and not next_location.is_entry_allowed(person_id):
+        if next_location.id != current_location.id and not next_location.is_entry_allowed(person_id):
             # if entry to the next location is not allowed
             return False
 
@@ -118,13 +116,17 @@ class CityRegistry(Registry):
 
         # update global location summary
         if type(next_location) not in self.IGNORE_LOCS_SUMMARY:
-            key = (type(next_location).__name__, type(person).__name__)
+            location_type = type(next_location).__name__
+            person_type = type(person).__name__
+            key = (location_type, person_type)
             summary = self._global_location_summary[key]
             is_visitor = person_id not in next_location.state.assignees
+            person_cnt = self._person_type_to_count[person_type]
             self._global_location_summary[key] = dataclasses.replace(
                 summary,
-                entry_count=summary.entry_count + 1,
-                visitor_count=summary.visitor_count + is_visitor)
+                entry_count=(person_cnt * summary.entry_count + 1) / person_cnt,
+                visitor_count=(person_cnt * summary.visitor_count + is_visitor) / person_cnt
+            )
         return True
 
     def update_location_specific_information(self) -> None:

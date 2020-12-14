@@ -2,7 +2,6 @@
 import dataclasses
 from copy import deepcopy
 from typing import Optional, List, Sequence, cast
-from uuid import uuid4
 
 import numpy as np
 
@@ -30,34 +29,28 @@ class BasePerson(Person):
     _regulation_compliance_prob: float
     _go_home: bool
 
-    def __init__(self, age: int,
+    def __init__(self,
+                 person_id: PersonID,
                  home: LocationID,
                  registry: Registry,
-                 name: Optional[str] = None,
-                 risk: Optional[Risk] = None,
                  regulation_compliance_prob: float = 1.0,
-                 night_hours: SimTimeTuple = SimTimeTuple(hours=tuple(range(0, 6))),
                  init_state: Optional[PersonState] = None,
                  numpy_rng: Optional[np.random.RandomState] = None):
         """
-        :param age: Age of the person
+        :param person_id: PersonID instance
         :param home: Home location id
         :param registry: Registry instance to register the person and handle peron's entry to a location
-        :param name: Optional name of the person
-        :param risk: Optional health risk of the person
-        :param night_hours: night hours - a person by default goes back home and stays at home
         :param regulation_compliance_prob: probability of complying to a regulation
         :param init_state: Optional initial state of the person
         :param numpy_rng: Random number generator
         """
-        self._id = PersonID(name=name if name is not None else str(uuid4()), age=age)
+        self._id = person_id
         self._home = home
         self._registry = registry
-        self._night_hours = night_hours
         self._numpy_rng = numpy_rng if numpy_rng is not None else np.random.RandomState()
         self._init_state = init_state or PersonState(infection_state=None,
                                                      current_location=home,
-                                                     risk=risk if risk else self._numpy_rng.choice([r for r in Risk]))
+                                                     risk=self._numpy_rng.choice([r for r in Risk]))
 
         self._state = deepcopy(self._init_state)
         self._registry.register_person(self)
@@ -70,6 +63,8 @@ class BasePerson(Person):
     def enter_location(self, location_id: LocationID) -> bool:
         if location_id == self._home:
             self._go_home = False
+        if location_id == self._state.current_location:
+            return True
         return self._registry.register_person_entry_in_location(self.id, location_id)
 
     @property
@@ -142,12 +137,6 @@ class BasePerson(Person):
                 self.enter_location(self.home)
                 return None
 
-        # block further ops for night hours by returning None
-        if sim_time in self._night_hours:
-            if not self.at_home:
-                self.enter_location(self.home)
-            return None
-
         comply_to_regulation = self._numpy_rng.uniform() < self._regulation_compliance_prob
         if (
                 not self._registry.get_person_quarantined_state(self._id) and comply_to_regulation and
@@ -171,7 +160,7 @@ class BasePerson(Person):
             self._registry.quarantine_person(self._id)
             return None
 
-        # if go_home flag is set - then go home
+        # if go_home flag is set (see self._sync for example) - then go home
         if self._go_home:
             self.enter_location(self.home)
 
@@ -225,4 +214,4 @@ class BasePerson(Person):
         self._state = deepcopy(self._init_state)
         self._registry.reassign_locations(self)
         self._registry.clear_quarantined(self._id)
-        self.enter_location(self._state.current_location)
+        self._registry.register_person_entry_in_location(self.id, self._state.current_location)

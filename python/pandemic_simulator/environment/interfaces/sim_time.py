@@ -1,6 +1,6 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 from dataclasses import dataclass, field
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 __all__ = ['SimTime', 'SimTimeInterval', 'SimTimeTuple']
 
@@ -84,17 +84,36 @@ class SimTimeInterval:
 
 @dataclass(frozen=True)
 class SimTimeTuple:
-    hours: Tuple[int, ...] = tuple(range(0, 24))
-    week_days: Tuple[int, ...] = tuple(range(0, 7))
-    days: Tuple[int, ...] = tuple(range(0, 365))
+    hours: Optional[Tuple[int, ...]] = None
+    week_days: Optional[Tuple[int, ...]] = None
+    days: Optional[Tuple[int, ...]] = None
 
     def __post_init__(self) -> None:
-        for hour in self.hours:
-            assert hour in range(0, 24), 'hour must be in (0, 23)'
-        for wd in self.week_days:
-            assert wd in range(0, 7), 'Weekday must be in (0, 6)'
-        for d in self.days:
-            assert d in range(0, 365), 'day must be in (0, 364)'
+        if self.hours:
+            for hour in self.hours:
+                assert hour in range(0, 24), 'hour must be in (0, 23)'
+        if self.week_days:
+            for wd in self.week_days:
+                assert wd in range(0, 7), 'Weekday must be in (0, 6)'
+        if self.days:
+            for d in self.days:
+                assert d in range(0, 365), 'day must be in (0, 364)'
 
     def __contains__(self, item: SimTime) -> bool:
-        return item.hour in self.hours and item.week_day in self.week_days and item.day in self.days
+        contains = True
+        if self.hours is not None:
+            contains = contains and (item.hour in self.hours)
+            if not contains:
+                return False
+
+        if self.week_days is not None:
+            contains = contains and (item.week_day in self.week_days)
+            if not contains:
+                return False
+
+        if self.days is not None:
+            contains = contains and (item.day in self.days)
+            if not contains:
+                return False
+
+        return True

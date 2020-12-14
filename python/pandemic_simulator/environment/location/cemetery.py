@@ -27,13 +27,14 @@ class Cemetery(BaseLocation):
 
     location_rule_type: Type = CemeteryRule
 
-    def __init__(self, registry: Registry,
+    def __init__(self,
                  loc_id: LocationID,
+                 registry: Registry,
                  road_id: Optional[LocationID] = None,
                  numpy_rng: Optional[np.random.RandomState] = None):
         """
-        :param registry: Registry instance to register the location and handle people exit from location
         :param loc_id: Location ID instance.
+        :param registry: Registry instance to register the location and handle people exit from location
         :param road_id: id of the road connected to the location
         :param numpy_rng: Random number generator
         """

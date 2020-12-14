@@ -19,14 +19,15 @@ class BusinessBaseLocation(BaseLocation):
 
     location_rule_type: Type = BusinessLocationRule
 
-    def __init__(self, registry: Registry,
+    def __init__(self,
                  loc_id: LocationID,
+                 registry: Registry,
                  road_id: Optional[LocationID] = None,
                  init_state: Optional[BusinessLocationState] = None,
                  numpy_rng: Optional[np.random.RandomState] = None):
         """
-        :param registry: Registry instance to register the location and handle people exit from location
         :param loc_id: Location ID
+        :param registry: Registry instance to register the location and handle people exit from location
         :param road_id: id of the road connected to the location
         :param init_state: Optional initial state of the location. Set to default if None
         :param numpy_rng: Random number generator
@@ -54,14 +55,15 @@ class NonEssentialBusinessBaseLocation(BusinessBaseLocation):
 
     location_rule_type: Type = NonEssentialBusinessLocationRule
 
-    def __init__(self, registry: Registry,
+    def __init__(self,
                  loc_id: LocationID,
+                 registry: Registry,
                  road_id: Optional[LocationID] = None,
                  init_state: Optional[NonEssentialBusinessLocationState] = None,
                  numpy_rng: Optional[np.random.RandomState] = None):
         """
-        :param registry: Registry instance to register the location and handle people exit from location
         :param loc_id: Location ID
+        :param registry: Registry instance to register the location and handle people exit from location
         :param road_id: id of the road connected to the location
         :param init_state: Optional initial state of the location. Set to default if None
         :param numpy_rng: Random number generator
@@ -90,15 +92,15 @@ class AgeRestrictedBusinessBaseLocation(NonEssentialBusinessBaseLocation):
     _age_limits: Tuple[int, int]
 
     def __init__(self, age_limits: Tuple[int, int],
-                 registry: Registry,
                  loc_id: LocationID,
+                 registry: Registry,
                  road_id: Optional[LocationID] = None,
                  init_state: Optional[NonEssentialBusinessLocationState] = None,
                  numpy_rng: Optional[np.random.RandomState] = None):
         """
         :param age_limits: min and max age of allowed persons
-        :param registry: Registry instance to register the location and handle people exit from location
         :param loc_id: Location ID
+        :param registry: Registry instance to register the location and handle people exit from location
         :param road_id: id of the road connected to the location
         :param init_state: Optional initial state of the location. Set to default if None
         :param numpy_rng: Random number generator

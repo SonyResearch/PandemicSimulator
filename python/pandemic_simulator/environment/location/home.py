@@ -14,14 +14,15 @@ __all__ = ['Home']
 class Home(BaseLocation):
     """Class that implements a standard Home location. """
 
-    def __init__(self, registry: Registry,
+    def __init__(self,
                  loc_id: LocationID,
+                 registry: Registry,
                  visitor_capacity: int = -1,
                  road_id: Optional[LocationID] = None,
                  numpy_rng: Optional[np.random.RandomState] = None):
         """
-        :param registry: Registry instance to register the location and handle people exit from location
         :param loc_id: Location ID instance.
+        :param registry: Registry instance to register the location and handle people exit from location
         :param visitor_capacity: Maximum number of allowed visitors.
         :param road_id: id of the road connected to the location.
         :param numpy_rng: Random number generator

@@ -5,8 +5,8 @@ import numpy as np
 
 from .base import BasePerson
 from .routine_utils import RoutineWithStatus, execute_routines
-from ..interfaces import PersonState, LocationID, Risk, Registry, SimTime, NoOP, SimTimeTuple, NOOP, PersonRoutine, \
-    ContactTracer
+from ..interfaces import PersonState, LocationID, Registry, SimTime, NoOP, SimTimeTuple, NOOP, PersonRoutine, \
+    ContactTracer, PersonID
 
 __all__ = ['Minor']
 
@@ -16,50 +16,38 @@ class Minor(BasePerson):
 
     _school: LocationID
     _school_time: SimTimeTuple
-    _to_school_at_hour_prob: float
-    _to_home_hour_prob: float
 
     _outside_school_rs: Sequence[RoutineWithStatus]
 
-    def __init__(self, age: int,
+    def __init__(self,
+                 person_id: PersonID,
                  home: LocationID,
                  school: LocationID,
                  registry: Registry,
                  school_time: Optional[SimTimeTuple] = None,
                  outside_school_routines: Sequence[PersonRoutine] = (),
-                 name: Optional[str] = None,
-                 risk: Optional[Risk] = None,
-                 night_hours: SimTimeTuple = SimTimeTuple(hours=tuple(range(0, 6)) + tuple(range(22, 24))),
                  regulation_compliance_prob: float = 1.0,
                  init_state: Optional[PersonState] = None,
                  numpy_rng: Optional[np.random.RandomState] = None):
         """
-        :param age: Age of the person
+        :param person_id: PersonID instance
         :param home: Home location id
         :param school: school location id
         :param registry: Registry instance to register the person and handle peron's entry to a location
         :param school_time: school time specified in SimTimeTuples. Default - 9am-5pm and Mon-Fri
         :param outside_school_routines: A sequence of person routines to run outside school time
-        :param name: Optional name of the person
-        :param risk: Optional health risk of the person
-        :param night_hours: night hours - a person by default goes back home and stays at home
         :param regulation_compliance_prob: probability of complying to a regulation
         :param init_state: Optional initial state of the person
         :param numpy_rng: Random number generator
         """
-        assert age <= 18, "A minor's age should be <= 18"
+        assert person_id.age <= 18, "A minor's age should be <= 18"
         self._school = school
         self._school_time = school_time or SimTimeTuple(hours=tuple(range(9, 15)), week_days=tuple(range(0, 5)))
-        self._to_school_at_hour_prob = 0.95
-        self._to_home_hour_prob = 0.95
         self._outside_school_rs = [RoutineWithStatus(routine) for routine in outside_school_routines]
 
-        super().__init__(age=age,
+        super().__init__(person_id=person_id,
                          home=home,
                          registry=registry,
-                         name=name,
-                         risk=risk,
-                         night_hours=night_hours,
                          regulation_compliance_prob=regulation_compliance_prob,
                          init_state=init_state,
                          numpy_rng=numpy_rng)
@@ -90,9 +78,8 @@ class Minor(BasePerson):
 
         if sim_time in self._school_time:
             # school time - go to school
-            if not self.at_school and self._numpy_rng.uniform() < self._to_school_at_hour_prob:
-                if self.enter_location(self.school):
-                    return None
+            if not self.at_school and self.enter_location(self.school):
+                return None
         else:
             # execute outside school routines
             ret = execute_routines(person=self, routines_with_status=self._outside_school_rs, numpy_rng=self._numpy_rng)
@@ -100,7 +87,7 @@ class Minor(BasePerson):
                 return ret
 
             # if not at home go home
-            if not self.at_home and self._numpy_rng.uniform() < self._to_home_hour_prob:
+            if not self.at_home:
                 self.enter_location(self.home)
                 return None
 

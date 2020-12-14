@@ -22,11 +22,11 @@ class LocationError(Exception):
 class LocationSummary:
     """Dataclass that holds the location summary stats."""
 
-    entry_count: int = 0
-    """Number of people who entered the location (assignees and visitors)"""
+    entry_count: float = 0
+    """Entries to the location by a person (assignees and visitors)"""
 
-    visitor_count: int = 0
-    """Number of visitors who entered the location"""
+    visitor_count: float = 0
+    """Entries to the location by a visitor"""
 
 
 class Location(ABC):

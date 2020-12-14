@@ -13,12 +13,13 @@ __all__ = ['Road']
 class Road(BaseLocation):
     """Class that implements a road. """
 
-    def __init__(self, registry: Registry,
+    def __init__(self,
                  loc_id: LocationID,
+                 registry: Registry,
                  numpy_rng: Optional[np.random.RandomState] = None):
         """
-        :param registry: Registry instance to register the location and handle people exit from location
         :param loc_id: Location ID instance.
+        :param registry: Registry instance to register the location and handle people exit from location
         :param numpy_rng: Random number generator
         """
         init_state = LocationState(is_open=True, visitor_capacity=-1,

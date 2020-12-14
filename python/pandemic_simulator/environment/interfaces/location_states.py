@@ -44,7 +44,7 @@ class ContactRate:
 class LocationState:
     """State of the location."""
 
-    is_open: bool
+    is_open: bool = True
     """A boolean to indicate if the location is open or closed."""
 
     assignees: OrderedSet = field(default_factory=OrderedSet, init=False)

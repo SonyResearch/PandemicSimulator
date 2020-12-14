@@ -26,14 +26,14 @@ class BaseLocation(Location):
     _current_sim_time: SimTime
 
     def __init__(self,
-                 registry: Registry,
                  loc_id: LocationID,
+                 registry: Registry,
                  road_id: Optional[LocationID] = None,
                  init_state: Optional[LocationState] = None,
                  numpy_rng: Optional[np.random.RandomState] = None):
         """
-        :param registry: Registry instance to register the location and handle people exit from location
         :param loc_id: Location ID
+        :param registry: Registry instance to register the location and handle people exit from location
         :param road_id: id of the road connected to the location
         :param init_state: Optional initial state of the location. Set to default if None
         :param numpy_rng: Random number generator

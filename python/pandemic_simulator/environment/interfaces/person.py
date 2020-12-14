@@ -4,13 +4,13 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Optional, Sequence, List, Tuple
 
-from .pandemic_testing_result import PandemicTestResult
+from .contact_tracer import ContactTracer
 from .ids import PersonID, LocationID
 from .infection_model import IndividualInfectionState, Risk
+from .pandemic_testing_result import PandemicTestResult
+from .pandemic_types import NoOP
 from .regulation import PandemicRegulation
 from .sim_time import SimTime
-from .pandemic_types import NoOP
-from .contact_tracer import ContactTracer
 
 __all__ = ['Person', 'PersonState']
 
@@ -22,13 +22,13 @@ class PersonState:
     risk: Risk
     infection_state: Optional[IndividualInfectionState] = None
 
-    quarantine: bool = False
-    quarantine_if_contact_positive: bool = False
-    quarantine_if_household_quarantined: bool = False
-    sick_at_home: bool = False
-    avoid_gathering_size: int = -1
+    quarantine: bool = field(init=False, default=False)
+    quarantine_if_contact_positive: bool = field(init=False, default=False)
+    quarantine_if_household_quarantined: bool = field(init=False, default=False)
+    sick_at_home: bool = field(init=False, default=False)
+    avoid_gathering_size: int = field(init=False, default=-1)
 
-    test_result: PandemicTestResult = PandemicTestResult.UNTESTED
+    test_result: PandemicTestResult = field(init=False, default=PandemicTestResult.UNTESTED)
 
     avoid_location_types: List[type] = field(default_factory=list, init=False)
     not_infection_probability: float = field(default=1., init=False)

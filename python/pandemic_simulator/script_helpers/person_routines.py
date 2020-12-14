@@ -6,15 +6,19 @@ from typing import Sequence, Type, Optional, Tuple
 
 import numpy as np
 
-from ..environment import LocationID, PersonRoutine, Registry, SimTimeInterval, HairSalon, Retired, Restaurant, Bar, \
+from ..environment import LocationID, PersonRoutine, Registry, SimTimeInterval, HairSalon, Restaurant, Bar, \
     SimTimeTuple, GroceryStore, RetailStore, SpecialEndLoc
 
-__all__ = ['get_minor_routines', 'get_adult_routines', 'get_during_work_routines',
-           'triggered_routine', 'weekend_routine', 'mid_day_during_week_routine']
+__all__ = ['get_minor_routines',
+           'get_retired_routines',
+           'get_worker_during_work_routines',
+           'get_worker_outside_work_routines',
+           'triggered_routine',
+           'weekend_routine',
+           'mid_day_during_week_routine']
 
 """
-A few references for the numbers selected:
-https://www.touchbistro.com/blog/how-diners-choose-restaurants/
+A few references for the numbers selected: https://www.touchbistro.com/blog/how-diners-choose-restaurants/
 
 """
 
@@ -23,7 +27,7 @@ def _get_locations_from_type(location_type: Type,
                              registry: Registry,
                              numpy_rng: np.random.RandomState) -> Tuple[LocationID, Sequence[LocationID]]:
     explorable_end_locs = registry.location_ids_of_type(location_type)
-    assert len(explorable_end_locs) > 0
+    assert len(explorable_end_locs) > 0, f'{location_type.__name__}'
     end_loc = explorable_end_locs[numpy_rng.randint(0, len(explorable_end_locs))]
     return end_loc, explorable_end_locs
 
@@ -95,35 +99,45 @@ def get_minor_routines(home_id: LocationID,
     return routines
 
 
-def get_adult_routines(person_type: Type,
-                       home_id: LocationID,
-                       registry: Registry,
-                       numpy_rng: Optional[np.random.RandomState] = None) -> Sequence[PersonRoutine]:
+def get_retired_routines(home_id: LocationID,
+                         registry: Registry,
+                         numpy_rng: Optional[np.random.RandomState] = None) -> Sequence[PersonRoutine]:
     numpy_rng = numpy_rng if numpy_rng is not None else np.random.RandomState()
 
     routines = [
         triggered_routine(registry, None, GroceryStore, 7, numpy_rng),
         triggered_routine(registry, None, RetailStore, 7, numpy_rng),
         triggered_routine(registry, None, HairSalon, 30, numpy_rng),
-        weekend_routine(registry, None, Restaurant, numpy_rng, explore_probability=0.5)
+        weekend_routine(registry, None, Restaurant, numpy_rng, explore_probability=0.5),
+        triggered_routine(registry, home_id, Bar, 2, numpy_rng, explore_probability=0.5),
+        social_routine(home_id, numpy_rng)
     ]
-    if person_type == Retired:
-        routines.append(triggered_routine(registry, home_id, Bar, 2, numpy_rng, explore_probability=0.5))
-    else:
-        routines.append(triggered_routine(registry, home_id, Bar, 3, numpy_rng, explore_probability=0.5))
-
-    routines.append(social_routine(home_id, numpy_rng))
-
     return routines
 
 
-def get_during_work_routines(work_id: LocationID,
-                             registry: Registry,
-                             numpy_rng: Optional[np.random.RandomState] = None) -> Sequence[PersonRoutine]:
+def get_worker_during_work_routines(work_id: LocationID,
+                                    registry: Registry,
+                                    numpy_rng: Optional[np.random.RandomState] = None) -> Sequence[PersonRoutine]:
     numpy_rng = numpy_rng if numpy_rng is not None else np.random.RandomState()
 
     routines = [
         mid_day_during_week_routine(registry, work_id, Restaurant, numpy_rng),  # ~cafeteria  during work
     ]
 
+    return routines
+
+
+def get_worker_outside_work_routines(home_id: LocationID,
+                                     registry: Registry,
+                                     numpy_rng: Optional[np.random.RandomState] = None) -> Sequence[PersonRoutine]:
+    numpy_rng = numpy_rng if numpy_rng is not None else np.random.RandomState()
+
+    routines = [
+        triggered_routine(registry, None, GroceryStore, 7, numpy_rng),
+        triggered_routine(registry, None, RetailStore, 7, numpy_rng),
+        triggered_routine(registry, None, HairSalon, 30, numpy_rng),
+        weekend_routine(registry, None, Restaurant, numpy_rng, explore_probability=0.5),
+        triggered_routine(registry, home_id, Bar, 3, numpy_rng, explore_probability=0.5),
+        social_routine(home_id, numpy_rng)
+    ]
     return routines

@@ -155,8 +155,7 @@ class MatplotLibViz(PandemicViz):
         if len(self._loc_assignee_visits) > 0:
             ax_i += 1
             axs.append(plt.subplot(nrows, ncols, ax_i))
-            lv = np.vstack(self._loc_assignee_visits)
-            lv = np.mean(lv[1:] - lv[:-1], axis=0).squeeze()  # take visits per day and marginalize over days
+            lv = self._loc_assignee_visits[-1].squeeze()
             indices = np.argsort(lv.sum(axis=1), axis=0)[::-1]
             lv = lv[indices]
             loc_types = [self._loc_types[i] for i in indices]
@@ -168,15 +167,14 @@ class MatplotLibViz(PandemicViz):
                 p.append(plt.bar(x, lv[:, j], color=colors[j], alpha=0.5, bottom=bottom))
                 bottom += lv[:, j]
             plt.xticks(x, loc_types, rotation=60, fontsize=8)
-            plt.title('Location Assignee Visits\n(Per Day Marginalized over days)')
-            plt.ylabel('number of visits')
+            plt.title(f'Location Assignee Visits\n(in {len(self._loc_assignee_visits)} days)')
+            plt.ylabel('num_visits / num_persons')
             plt.ylim([0, None])
             plt.legend(p, self._person_types[::-1])
 
             ax_i += 1
             axs.append(plt.subplot(nrows, ncols, ax_i))
-            lv = np.vstack(self._loc_visitor_visits)
-            lv = np.mean(lv[1:] - lv[:-1], axis=0).squeeze()  # take visits per day and marginalize over days
+            lv = self._loc_visitor_visits[-1].squeeze()
             lv = lv[indices]
             loc_types = [self._loc_types[i] for i in indices]
             p = []
@@ -185,8 +183,8 @@ class MatplotLibViz(PandemicViz):
                 p.append(plt.bar(x, lv[:, j], color=colors[j], alpha=0.5, bottom=bottom))
                 bottom += lv[:, j]
             plt.xticks(x, loc_types, rotation=60, fontsize=8)
-            plt.title('Location Visitor Visits\n(Per Day Marginalized over days)')
-            plt.ylabel('number of visits')
+            plt.title(f'Location Visitor Visits\n(in {len(self._loc_visitor_visits)} days)')
+            plt.ylabel('num_visits / num_persons')
             plt.ylim([0, None])
             plt.legend(p, self._person_types[::-1])
 
