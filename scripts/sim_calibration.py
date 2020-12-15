@@ -4,38 +4,46 @@ simulator output's time to peak and the difference over the rise of the curve. T
 hyperparameters that are tuned in the script include spread rate and social distancing
 rate
 """
+from dataclasses import dataclass
+from typing import cast
 
 import GPyOpt
+import matplotlib.pyplot as plt
 import numpy as np
 from pandas import read_csv
 from tqdm import trange
-import matplotlib.pyplot as plt
 
-from pandemic_simulator.script_helpers import make_sim, population_params
 from pandemic_simulator.environment import PandemicSimOpts, PandemicSimNonCLIOpts, \
-    PandemicRegulation, InfectionSummary
+    PandemicRegulation, InfectionSummary, Hospital, HospitalState
+from pandemic_simulator.script_helpers import make_sim, population_params
 
 
-def eval_params(params: np.ndarray, max_episode_length: int) -> np.ndarray:
+@dataclass
+class EvalResult:
+    deaths: np.ndarray
+    hospitalizations: np.ndarray
+
+
+def eval_params(params: np.ndarray, max_episode_length: int) -> EvalResult:
     """Perform a single run of the simulator
 
     :param params: spread rate and social distancing rate
-    :type params: np.ndarray
     :param max_episode_length: length of simulation run in days
-    :type max_episode_length: int
-    :returns: an array of cumulative deaths per day in the simulator run
-    :rtype: np.ndarray
+    :returns: EvalResult instance
     """
     spread_rate = params[:, 0][0]
     social_distancing = params[:, 1][0]
     num_seeds = 30
 
     deaths = []
+    hospitalizations = []
     numpy_rng = np.random.RandomState(seed=num_seeds)
     sim_non_cli_opts = PandemicSimNonCLIOpts(population_params.above_medium_town_population_params)
     sim_opts = PandemicSimOpts(infection_spread_rate_mean=spread_rate)
     sim = make_sim(sim_opts, sim_non_cli_opts, numpy_rng=numpy_rng)
     covid_regulations = PandemicRegulation(social_distancing=social_distancing, stage=0)
+
+    hospital_ids = sim.registry.location_ids_of_type(Hospital)
 
     print(f'Running with spread rate: {spread_rate} and social distancing: {social_distancing}')
     for i in trange(max_episode_length, desc='Simulating day'):
@@ -45,14 +53,17 @@ def eval_params(params: np.ndarray, max_episode_length: int) -> np.ndarray:
         state = sim.state
         num_deaths = state.global_infection_summary[InfectionSummary.DEAD]
         deaths.append(num_deaths)
-    return np.asarray(deaths)
+
+        num_hospitalizations = sum([cast(HospitalState, state.id_to_location_state[loc_id]).num_admitted_patients
+                                    for loc_id in hospital_ids])
+        hospitalizations.append(num_hospitalizations)
+    return EvalResult(deaths=np.asarray(deaths), hospitalizations=np.asarray(hospitalizations))
 
 
 def real_world_data() -> np.ndarray:
     """Extract and treat real-world data from WHO
 
     :returns: real-world death data
-    :rtype: np.ndarray
     """
     # using Sweden's death data
     deaths_url = 'https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/ecdc/new_deaths.csv'
@@ -67,11 +78,8 @@ def least_diff(world_data: np.ndarray, sim_data: np.ndarray) -> float:
     """Calculate sum difference over the rises of the two curves
 
     :param world_data: normalized deaths-per-day real-world data
-    :type world_data: np.ndarray
     :param sim_data: normalized deaths-per-day simulator data
-    :type sim_data: np.ndarray
     :returns: the sum of differences between the rises of the two curves
-    rtype: float
     """
     score = 0
     for j in range(min(len(world_data), len(sim_data))):
@@ -79,19 +87,19 @@ def least_diff(world_data: np.ndarray, sim_data: np.ndarray) -> float:
     return score
 
 
-def obj_func(params: np.ndarray) -> np.float64:
+def obj_func(params: np.ndarray) -> float:
     """Objective function calculates fitness score for a given parameter set
 
     :param params: spread rate and social distancing rate to be evaluated
-    :type params: np.ndarray
     :returns: fitness score of parameter set
-    :rtype: float
     """
     # get real world data
     real_data = real_world_data()
 
     # get sim data and extract deaths per day
-    sim_output = eval_params(params, 60)
+    eval_result: EvalResult = eval_params(params, 60)
+    sim_output = eval_result.deaths
+
     sim_data = sim_output[1:] - sim_output[:-1]
 
     # start data at first death
@@ -115,20 +123,21 @@ def obj_func(params: np.ndarray) -> np.float64:
     rise_score = least_diff(world_data=real_data[:real_peak], sim_data=sim_data[:sim_peak])
 
     print('score: ', rise_score + peak_score)
-    return rise_score + peak_score
+    return float(rise_score + peak_score)
 
 
 def make_plots(params: np.ndarray) -> None:
     """Plot final parameter set output against real world data
 
     :param params: resulting spread rate and social distancing rate
-    :type params: np.ndarray
     """
     # get real world data and calibrated simulator output
     real_data = real_world_data()
 
-    sim_data = eval_params(params, 150)
-    sim_data = sim_data[1:] - sim_data[:-1]
+    eval_result: EvalResult = eval_params(params, 150)
+    sim_output = eval_result.deaths
+
+    sim_data = sim_output[1:] - sim_output[:-1]
 
     # treat data
     real_data = np.trim_zeros(real_data, 'f')
