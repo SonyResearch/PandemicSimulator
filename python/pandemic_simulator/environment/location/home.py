@@ -16,9 +16,6 @@ class HomeState(LocationState):
 class Home(BaseLocation[HomeState]):
     """Class that implements a standard Home location. """
 
-    @property
-    def state_type(self) -> Type[CemeteryState]:
-
     def create_state(self) -> HomeState:
         social_event_time = SimTimeTuple(hours=tuple(range(15, 20)),
                                          days=tuple(self._numpy_rng.randint(0, 365, 12)))

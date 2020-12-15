@@ -1,4 +1,5 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
+import dataclasses
 from abc import ABCMeta
 from copy import deepcopy
 from typing import Optional, Type, cast, Generic, TypeVar
@@ -47,7 +48,7 @@ class BaseLocation(Location, Generic[_T], metaclass=ABCMeta):
         self._road_id = road_id
         self._numpy_rng = numpy_rng or default_numpy_rng
 
-        self._init_state = init_state or self.state_type()
+        self._init_state = init_state or self.create_state()
         self._state = deepcopy(self._init_state)
         self._registry.register_location(self)
 

@@ -1,5 +1,5 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
-
+import dataclasses
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional, Type, Generic, TypeVar
@@ -69,16 +69,6 @@ class Location(ABC, Generic[_T]):
 
     @property
     @abstractmethod
-    def state_type(self) -> Type[_T]:
-        """
-        Returns the state type for the location
-
-        :return: state type for the location
-        """
-        pass
-
-    @property
-    @abstractmethod
     def road_id(self) -> Optional[LocationID]:
         """
         Property that returns the id of the road connected to the location.
@@ -87,6 +77,13 @@ class Location(ABC, Generic[_T]):
         """
         pass
 
+    def create_state(self) -> _T:
+        """
+        Creates and returns a new state for the location
+
+        :return: new state for the location
+        """
+        return dataclasses.make_dataclass(_T, )
 
     @abstractmethod
     def sync(self, sim_time: SimTime) -> None:

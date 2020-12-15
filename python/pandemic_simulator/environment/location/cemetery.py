@@ -30,9 +30,8 @@ class Cemetery(BaseLocation[CemeteryState]):
 
     location_rule_type: Type = CemeteryRule
 
-    @property
-    def state_type(self) -> Type[CemeteryState]:
-        return CemeteryState
+    def create_state(self) -> CemeteryState:
+        return CemeteryState()
 
     def update_rules(self, new_rule: LocationRule) -> None:
         rule = cast(CemeteryRule, new_rule)
