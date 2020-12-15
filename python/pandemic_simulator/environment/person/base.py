@@ -200,6 +200,10 @@ class BasePerson(Person):
         loc_ids = self._registry.location_ids_with_social_events
         num_events = len(loc_ids)
         comply_to_regulation = (self._numpy_rng.uniform() < self._regulation_compliance_prob)
+
+        if comply_to_regulation and ags == 0:
+            return None
+
         if num_events != 0:
             for i in self._numpy_rng.permutation(num_events):
                 if (
