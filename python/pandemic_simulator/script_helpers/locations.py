@@ -10,6 +10,7 @@ from ..environment import Home, Location, CityRegistry, GroceryStore, Cemetery, 
 
 __all__ = ['make_standard_locations']
 
+state = Cemetery.state_type()
 
 def make_standard_locations(population_params: PopulationParams,
                             registry: CityRegistry,

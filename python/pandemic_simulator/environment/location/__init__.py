@@ -8,7 +8,6 @@ from .home import *
 from .hospital import *
 from .misc import *
 from .office import *
-from .recreation import *
 from .restaurant import *
 from .road import *
 from .school import *

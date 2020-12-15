@@ -1,13 +1,10 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 
 from dataclasses import dataclass
-from typing import Type, Optional, cast
-from uuid import uuid4
-
-import numpy as np
+from typing import Type, cast
 
 from .base import BaseLocation
-from ..interfaces import LocationID, LocationRule, LocationState, PersonID, Registry, ContactRate, \
+from ..interfaces import LocationRule, LocationState, PersonID, ContactRate, \
     DEFAULT, SimTimeTuple
 
 __all__ = ['Cemetery', 'CemeteryRule', 'CemeteryState']
@@ -22,33 +19,20 @@ class CemeteryRule(LocationRule):
             assert self.contact_rate.fraction_assignees == 0
             assert self.contact_rate.fraction_assignees_visitors == 0
 
+
 @dataclass
 class CemeteryState(LocationState):
     contact_rate: ContactRate = ContactRate(0, 0, 0, 0, 0, 0.05)
 
 
-class Cemetery(BaseLocation):
+class Cemetery(BaseLocation[CemeteryState]):
     """Class that implements a cemetery location. """
 
     location_rule_type: Type = CemeteryRule
-    location_state_type: Type = CemeteryState
 
-    def __init__(self,
-                 loc_id: LocationID = LocationID('cemetery_' + str(uuid4)),
-                 registry: Optional[Registry] = None,
-                 road_id: Optional[LocationID] = None,
-                 numpy_rng: Optional[np.random.RandomState] = None):
-        """
-        :param loc_id: Location ID instance.
-        :param registry: Registry instance to register the location and handle people exit from location
-        :param road_id: id of the road connected to the location
-        :param numpy_rng: Random number generator. Set to default if None
-        """
-        super().__init__(registry=registry,
-                         loc_id=loc_id,
-                         road_id=road_id,
-                         init_state=cast(LocationState, CemeteryState),
-                         numpy_rng=numpy_rng)
+    @property
+    def state_type(self) -> Type[CemeteryState]:
+        return CemeteryState
 
     def update_rules(self, new_rule: LocationRule) -> None:
         rule = cast(CemeteryRule, new_rule)

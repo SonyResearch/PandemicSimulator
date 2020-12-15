@@ -5,14 +5,22 @@ from typing import Optional
 import numpy as np
 
 from .base_business import AgeRestrictedBusinessBaseLocation, NonEssentialBusinessBaseLocation
-from ..interfaces import Registry, LocationID, NonEssentialBusinessLocationState
+from ..interfaces import Registry, LocationID, NonEssentialBusinessLocationState, ContactRate, SimTimeTuple
 
 __all__ = ['Bar', 'Restaurant']
 
 
-class Restaurant(NonEssentialBusinessBaseLocation):
+class RestaurantState(NonEssentialBusinessLocationState):
+    contact_rate: ContactRate = ContactRate(1, 1, 0, 0.3, 0.35, 0.1)
+    open_time: SimTimeTuple = SimTimeTuple(hours=tuple(range(11, 16)) + tuple(range(19, 24)),
+                                           week_days=tuple(range(1, 7)))
+
+
+class Restaurant(NonEssentialBusinessBaseLocation[RestaurantState]):
     """Implements a restaurant location."""
-    pass
+
+    def create_state(self) -> RestaurantState:
+        return RestaurantState()
 
 
 class Bar(AgeRestrictedBusinessBaseLocation):

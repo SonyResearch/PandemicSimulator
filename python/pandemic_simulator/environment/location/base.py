@@ -1,7 +1,7 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
-
+from abc import ABCMeta
 from copy import deepcopy
-from typing import Optional, Type, cast
+from typing import Optional, Type, cast, Generic, TypeVar
 
 import numpy as np
 
@@ -10,18 +10,20 @@ from ..interfaces import Location, LocationState, PersonID, LocationID, Registry
 
 __all__ = ['BaseLocation']
 
+_T = TypeVar('_T', bound=LocationState)
 
-class BaseLocation(Location):
+
+class BaseLocation(Location, Generic[_T], metaclass=ABCMeta):
     """Class that implements a base location."""
 
     location_rule_type: Type = LocationRule
 
     _registry: Registry
-    _init_state: LocationState
+    _init_state: _T
     _numpy_rng: np.random.RandomState
 
     _id: LocationID
-    _state: LocationState
+    _state: _T
     _road_id: Optional[LocationID]
     _current_sim_time: SimTime
 
@@ -29,7 +31,7 @@ class BaseLocation(Location):
                  loc_id: LocationID,
                  registry: Optional[Registry] = None,
                  road_id: Optional[LocationID] = None,
-                 init_state: Optional[LocationState] = None,
+                 init_state: Optional[_T] = None,
                  numpy_rng: Optional[np.random.RandomState] = None):
         """
         :param loc_id: Location ID
@@ -43,11 +45,10 @@ class BaseLocation(Location):
         assert self._registry, 'No registry found. Either pass a registry or set the default repo wide registry.'
         self._id = loc_id
         self._road_id = road_id
-        self._init_state = init_state or LocationState(is_open=True)
         self._numpy_rng = numpy_rng or default_numpy_rng
 
+        self._init_state = init_state or self.state_type()
         self._state = deepcopy(self._init_state)
-
         self._registry.register_location(self)
 
     @property
@@ -55,11 +56,11 @@ class BaseLocation(Location):
         return self._id
 
     @property
-    def state(self) -> LocationState:
+    def state(self) -> _T:
         return self._state
 
     @property
-    def init_state(self) -> LocationState:
+    def init_state(self) -> _T:
         return self._init_state
 
     @property

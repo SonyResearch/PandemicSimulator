@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional, Type
+from typing import Optional, Type, Generic, TypeVar
 
 from .ids import PersonID, LocationID
 from .location_rules import LocationRule
@@ -29,12 +29,13 @@ class LocationSummary:
     """Entries to the location by a visitor"""
 
 
-class Location(ABC):
+_T = TypeVar('_T', bound=LocationState)
+
+
+class Location(ABC, Generic[_T]):
     """Class that implements a location with a pre-defined operating rules"""
 
     location_rule_type: Type = abstract_class_property()  # The type of the location rule used by the location
-
-    location_state_type: Type = abstract_class_property()  # The type of the state used by the location
 
     @property
     @abstractmethod
@@ -48,7 +49,7 @@ class Location(ABC):
 
     @property
     @abstractmethod
-    def state(self) -> LocationState:
+    def state(self) -> _T:
         """
         Property that returns the current state of the location.
 
@@ -58,11 +59,21 @@ class Location(ABC):
 
     @property
     @abstractmethod
-    def init_state(self) -> LocationState:
+    def init_state(self) -> _T:
         """
         Property that returns the init state of the location.
 
         :return: Init state of the location.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def state_type(self) -> Type[_T]:
+        """
+        Returns the state type for the location
+
+        :return: state type for the location
         """
         pass
 
@@ -75,6 +86,7 @@ class Location(ABC):
         :return: ID of the location.
         """
         pass
+
 
     @abstractmethod
     def sync(self, sim_time: SimTime) -> None:

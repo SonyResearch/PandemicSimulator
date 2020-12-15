@@ -26,8 +26,11 @@ class HospitalState(BusinessLocationState):
         return persons
 
 
-class Hospital(BusinessBaseLocation):
+class Hospital(BusinessBaseLocation[HospitalState]):
     """Class that implements a basic hospital location. """
+
+    def create_state(self) -> HospitalState:
+        return HospitalState()
 
     def is_entry_allowed(self, person_id: PersonID) -> bool:
         inf_sum = self._registry.get_person_infection_summary(person_id)
