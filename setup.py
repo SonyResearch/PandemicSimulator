@@ -31,8 +31,9 @@ setup(
         'orderedset>=2.0.3',
         'cachetools>=4.1.0',
         'h5py>=2.10.0',
-        'tqdm>=4.48.0'
-
+        'tqdm>=4.48.0',
+        'GPyOpt',
+        'pandas'
     ],
     tests_require=test_deps,
     extras_require={

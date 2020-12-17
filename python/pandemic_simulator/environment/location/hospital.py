@@ -19,6 +19,8 @@ class HospitalState(BusinessLocationState):
     patients_in_location: Set[PersonID] = field(default_factory=set, init=False)
     """A set of ids of patients who are currently in the location. Default is an empty set."""
 
+    num_admitted_patients: int = field(init=False, default=0)
+
     @property
     def persons_in_location(self) -> Set[PersonID]:
         persons = super().persons_in_location
@@ -46,6 +48,7 @@ class Hospital(BusinessBaseLocation[HospitalState]):
         state = cast(HospitalState, self._state)
         if inf_sum == InfectionSummary.CRITICAL:
             state.patients_in_location.add(person_id)
+            state.num_admitted_patients += 1
         else:
             super().add_person_to_location(person_id)
 
