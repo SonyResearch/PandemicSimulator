@@ -9,6 +9,5 @@ from .hospital import *
 from .misc import *
 from .office import *
 from .restaurant import *
-from .road import *
 from .school import *
 from .store import *

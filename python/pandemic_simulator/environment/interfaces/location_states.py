@@ -3,6 +3,7 @@
 
 from dataclasses import dataclass, field
 from typing import Set
+
 from orderedset import OrderedSet
 
 from .ids import PersonID
@@ -44,8 +45,19 @@ class ContactRate:
 class LocationState:
     """State of the location."""
 
-    is_open: bool = True
-    """A boolean to indicate if the location is open or closed."""
+    contact_rate: ContactRate = ContactRate(1, 1, 0, 0.5, 0., 0.)
+    """Rate at which assignees interact with other persons at that location."""
+
+    visitor_capacity: int = -1
+    """Number of visitors allowed during the visitor_time"""
+
+    visitor_time: SimTimeTuple = SimTimeTuple()
+    """Time when visitors are allowed to enter."""
+
+    # state values that are updated by the simulator
+
+    is_open: bool = field(init=False, default=True)
+    """A boolean that indicates if the location is open or closed."""
 
     assignees: OrderedSet = field(default_factory=OrderedSet, init=False)
     """A set of ids of persons assigned to the location. Default is an empty set where nobody is assigned."""
@@ -53,17 +65,8 @@ class LocationState:
     assignees_in_location: OrderedSet = field(default_factory=OrderedSet, init=False)
     """A set of ids of assignes who are currently in the location. Default is an empty set."""
 
-    visitor_capacity: int = -1
-    """Number of visitors allowed during the visitor_time"""
-
     visitors_in_location: OrderedSet = field(default_factory=OrderedSet, init=False)
     """A set of ids of visitors who are currently in the location. Default is an empty set."""
-
-    contact_rate: ContactRate = ContactRate(1, 1, 0, 0.5, 0., 0.)
-    """Rate at which assignees interact with other persons at that location."""
-
-    visitor_time: SimTimeTuple = SimTimeTuple()
-    """Time when visitors are allowed to enter."""
 
     social_gathering_event: bool = field(default=False, init=False)
     """Set to True to advertise a social gathering at the location."""
@@ -88,9 +91,10 @@ class LocationState:
 @dataclass
 class BusinessLocationState(LocationState):
     open_time: SimTimeTuple = SimTimeTuple(hours=tuple(range(9, 18)), week_days=tuple(range(0, 5)))
+    """Specifies the time during which the location is open, during which the state variable is_open is True."""
 
 
 @dataclass
 class NonEssentialBusinessLocationState(BusinessLocationState):
     locked: bool = False
-    open_time: SimTimeTuple = SimTimeTuple(hours=tuple(range(9, 18)), week_days=tuple(range(0, 5)))
+    """Specifies if the location is locked. When locked, is_open will be False independent of the open_time."""

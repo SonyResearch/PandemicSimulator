@@ -1,11 +1,9 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 from typing import Optional, Sequence, List
 
-import numpy as np
-
 from .base import BasePerson
 from .routine_utils import RoutineWithStatus, execute_routines
-from ..interfaces import PersonState, LocationID, Registry, SimTime, NoOP, SimTimeTuple, NOOP, PersonRoutine, \
+from ..interfaces import PersonState, LocationID, SimTime, NoOP, SimTimeTuple, NOOP, PersonRoutine, \
     ContactTracer, PersonID
 
 __all__ = ['Worker']
@@ -23,24 +21,20 @@ class Worker(BasePerson):
                  person_id: PersonID,
                  home: LocationID,
                  work: LocationID,
-                 registry: Registry,
                  work_time: Optional[SimTimeTuple] = None,
                  during_work_routines: Sequence[PersonRoutine] = (),
                  outside_work_routines: Sequence[PersonRoutine] = (),
                  regulation_compliance_prob: float = 1.0,
-                 init_state: Optional[PersonState] = None,
-                 numpy_rng: Optional[np.random.RandomState] = None):
+                 init_state: Optional[PersonState] = None):
         """
         :param person_id: PersonID instance
         :param home: Home location id
         :param work: Work location id
-        :param registry: Registry instance to register the person and handle peron's entry to a location
         :param work_time: Work time specified in SimTimeTuples. Default - 9am-5pm and Mon-Fri
         :param during_work_routines: A sequence of person routines to run during work time
         :param outside_work_routines: A sequence of person routines to run outside work time
         :param regulation_compliance_prob: probability of complying to a regulation
         :param init_state: Optional initial state of the person
-        :param numpy_rng: Random number generator
         """
         assert person_id.age >= 18, "Workers's age must be >= 18"
         self._work = work
@@ -50,10 +44,8 @@ class Worker(BasePerson):
 
         super().__init__(person_id=person_id,
                          home=home,
-                         registry=registry,
                          regulation_compliance_prob=regulation_compliance_prob,
-                         init_state=init_state,
-                         numpy_rng=numpy_rng)
+                         init_state=init_state)
 
     @property
     def work(self) -> LocationID:
@@ -81,7 +73,7 @@ class Worker(BasePerson):
 
         if sim_time in self._work_time:
             # execute during work routines
-            ret = execute_routines(person=self, routines_with_status=self._during_work_rs, numpy_rng=self._numpy_rng)
+            ret = execute_routines(person=self, routines_with_status=self._during_work_rs)
             if ret != NOOP:
                 return ret
 
@@ -90,7 +82,7 @@ class Worker(BasePerson):
                 return None
         else:
             # execute outside work time routines
-            ret = execute_routines(person=self, routines_with_status=self._outside_work_rs, numpy_rng=self._numpy_rng)
+            ret = execute_routines(person=self, routines_with_status=self._outside_work_rs)
             if ret != NOOP:
                 return ret
 

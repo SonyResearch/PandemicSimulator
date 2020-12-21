@@ -1,11 +1,11 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
-
+import dataclasses
 from dataclasses import dataclass
-from typing import Union, Optional
+from typing import Union, Optional, Type
 
 from .location_states import ContactRate
+from .pandemic_types import Default, DEFAULT
 from .sim_time import SimTimeTuple
-from .pandemic_types import Default
 
 __all__ = ['LocationRule', 'BusinessLocationRule', 'NonEssentialBusinessLocationRule']
 
@@ -16,6 +16,10 @@ class LocationRule:
     contact_rate: Union[ContactRate, Default, None] = None
     visitor_time: Union[SimTimeTuple, Default, None] = None
     visitor_capacity: Union[Default, int, None] = None
+
+    @classmethod
+    def get_default(cls: Type['LocationRule']) -> 'LocationRule':
+        return LocationRule(**{f.name: DEFAULT for f in dataclasses.fields(cls)})
 
 
 @dataclass(frozen=True)

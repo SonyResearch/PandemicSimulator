@@ -5,9 +5,9 @@ from typing import Dict, List, Optional, cast, Set, Type, Mapping, Tuple
 from cachetools import cached
 
 from .interfaces import LocationID, Location, PersonID, Person, Registry, RegistrationError, InfectionSummary, \
-    IndividualInfectionState, BusinessLocationState, PandemicTestResult, LocationSummary, SimTimeTuple, SimTime
+    IndividualInfectionState, BusinessLocationState, PandemicTestResult, LocationSummary, SimTimeTuple, SimTime, \
+    LocationState
 from .location.cemetery import Cemetery
-from .location.road import Road
 
 __all__ = ['CityRegistry']
 
@@ -22,7 +22,6 @@ class CityRegistry(Registry):
     _business_location_ids: Set[LocationID]
     _person_ids: Set[PersonID]
 
-    _road_id: Optional[LocationID]
     _quarantined: Set[PersonID]
 
     _location_ids_with_social_events: List[LocationID]
@@ -30,7 +29,7 @@ class CityRegistry(Registry):
     _location_types: Set[str]
     _person_type_to_count: Dict[str, int]
 
-    IGNORE_LOCS_SUMMARY: Set[Type] = {Road, Cemetery}
+    IGNORE_LOCS_SUMMARY: Set[Type] = {Cemetery}
 
     def __init__(self) -> None:
         self._location_register = {}
@@ -41,18 +40,11 @@ class CityRegistry(Registry):
         self._person_ids = set()
 
         self._quarantined = set()
-        self._road_id = None
         self._global_location_summary = dict()
         self._location_types = set()
         self._person_type_to_count = dict()
 
     def register_location(self, location: Location) -> None:
-        if isinstance(location, Road):
-            if self._road_id is None:
-                self._road_id = location.id
-            else:
-                raise RegistrationError('Only one road location can be registered.')
-
         if location.id in self._location_register:
             raise RegistrationError(f'Location {location.id.name} is already registered.')
         self._location_register[location.id] = location
@@ -163,7 +155,7 @@ class CityRegistry(Registry):
         return [loc_id for loc_id, loc in self._location_register.items() if isinstance(loc, location_type)]
 
     def get_persons_in_location(self, location_id: LocationID) -> Set[PersonID]:
-        return self._location_register[location_id].state.persons_in_location
+        return cast(LocationState, self._location_register[location_id].state).persons_in_location
 
     def location_id_to_type(self, location_id: LocationID) -> Type:
         return type(self._location_register[location_id])

@@ -102,7 +102,7 @@ def plot_global_infection_summary(exp_result: ExperimentResult,
 
 
 def plot_critical_summary(exp_result: ExperimentResult,
-                          max_hospitals_capacity: int,
+                          max_hospital_capacity: int,
                           show_variance: bool = True,
                           annotate_stages: bool = False,
                           ax: Optional[Axes] = None) -> None:
@@ -110,7 +110,7 @@ def plot_critical_summary(exp_result: ExperimentResult,
     Plot critical summary
 
     :param exp_result: ExperimentResult instance
-    :param max_hospitals_capacity: max hospitals capacity
+    :param max_hospital_capacity: max hospital capacity
     :param show_variance: set to True to show variance along n-dim
     :param annotate_stages: set to True to show annotations regarding stages
     :param ax: figure axis handle
@@ -136,8 +136,8 @@ def plot_critical_summary(exp_result: ExperimentResult,
     else:
         ax.plot(critical[:, 0])
 
-    ax.plot(np.arange(critical.shape[0]), np.ones(critical.shape[0]) * max_hospitals_capacity, 'y', label='max_cap')
-    ax.set_ylim([-0.1, max_hospitals_capacity * 3])
+    ax.plot(np.arange(critical.shape[0]), np.ones(critical.shape[0]) * max_hospital_capacity, 'y', label='max_cap')
+    ax.set_ylim([-0.1, max_hospital_capacity * 3])
 
     if annotate_stages:
         plot_annotate_stages(exp_result, ax)

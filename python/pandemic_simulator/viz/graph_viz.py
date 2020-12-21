@@ -36,6 +36,10 @@ class GraphViz(PandemicViz):
         self._day_in_this_interval = 0
         self._graph = None  # will initialize on the first record() call
 
+    @property
+    def num_components_per_interval(self) -> List[int]:
+        return self._num_components_per_interval
+
     def record(self, data: Any, **kwargs: Any) -> None:
         if isinstance(data, PandemicSimState):
             state = checked_cast(PandemicSimState, data)

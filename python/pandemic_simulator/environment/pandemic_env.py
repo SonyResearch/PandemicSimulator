@@ -1,12 +1,11 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
-from typing import List, Optional, Dict, Tuple
+from typing import List, Optional, Dict, Tuple, Mapping
 
 import gym
 
 from .done import DoneFunction
 from .interfaces import LocationID, PandemicObservation, NonEssentialBusinessLocationState, PandemicRegulation
 from .pandemic_sim import PandemicSim
-from .regulation_stages import DEFAULT_REGULATION, austin_regulations
 from .reward import RewardFunction
 
 __all__ = ['PandemicGymEnv']
@@ -16,6 +15,7 @@ class PandemicGymEnv(gym.Env):
     """A gym environment interface wrapper for the Pandemic Simulator."""
 
     _pandemic_sim: PandemicSim
+    _stage_to_regulation: Mapping[int, PandemicRegulation]
     _obs_history_size: int
     _sim_steps_per_regulation: int
     _non_essential_business_loc_ids: Optional[List[LocationID]]
@@ -27,7 +27,7 @@ class PandemicGymEnv(gym.Env):
 
     def __init__(self,
                  pandemic_sim: PandemicSim,
-                 stage_to_regulation: Optional[Dict[int, PandemicRegulation]] = None,
+                 stage_to_regulation: Mapping[int, PandemicRegulation],
                  obs_history_size: int = 1,
                  sim_steps_per_regulation: int = 24,
                  non_essential_business_location_ids: Optional[List[LocationID]] = None,
@@ -35,8 +35,7 @@ class PandemicGymEnv(gym.Env):
                  done_fn: Optional[DoneFunction] = None):
         """
         :param pandemic_sim: Pandemic simulator instance
-        :param stage_to_regulation: A mapping of an integer stage action to a pandemic regulation. If None, a default
-            5 stages mapping is used.
+        :param stage_to_regulation: A mapping of an integer stage action to a pandemic regulation.
         :param obs_history_size: number of latest sim step states to include in the observation
         :param sim_steps_per_regulation: number of sim_steps to run for each regulation
         :param non_essential_business_location_ids: an ordered list of non-essential business location ids
@@ -44,8 +43,7 @@ class PandemicGymEnv(gym.Env):
         :param done_fn: done function
         """
         self._pandemic_sim = pandemic_sim
-        self._stage_to_regulation = (stage_to_regulation if stage_to_regulation is not None
-                                     else {reg.stage: reg for reg in austin_regulations})
+        self._stage_to_regulation = stage_to_regulation
         self._obs_history_size = obs_history_size
         self._sim_steps_per_regulation = sim_steps_per_regulation
 
@@ -61,6 +59,10 @@ class PandemicGymEnv(gym.Env):
         self.action_space = gym.spaces.Discrete(len(self._stage_to_regulation))
 
     @property
+    def pandemic_sim(self) -> PandemicSim:
+        return self._pandemic_sim
+
+    @property
     def observation(self) -> PandemicObservation:
         return self._last_observation
 
@@ -71,14 +73,10 @@ class PandemicGymEnv(gym.Env):
     def step(self, action: int) -> Tuple[PandemicObservation, float, bool, Dict]:
         assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
 
-        # get the regulation
-        if action == 0 and action != self._last_observation.stage:
-            regulation = DEFAULT_REGULATION
-        else:
+        # execute the action if different from the current stage
+        if action != self._last_observation.stage[-1, 0, 0]:  # stage has a TNC layout
             regulation = self._stage_to_regulation[action]
-
-        # execute the given regulation
-        self._pandemic_sim.execute_regulation(regulation=regulation)
+            self._pandemic_sim.execute_regulation(regulation=regulation)
 
         # update the sim until next regulation interval trigger and construct obs from state hist
         obs = PandemicObservation.create_empty(

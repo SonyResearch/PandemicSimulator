@@ -1,11 +1,10 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 
 from dataclasses import dataclass
-from typing import Type, cast
+from typing import cast
 
 from .base import BaseLocation
-from ..interfaces import LocationRule, LocationState, PersonID, ContactRate, \
-    DEFAULT, SimTimeTuple
+from ..interfaces import LocationRule, LocationState, PersonID, ContactRate, DEFAULT, SimTimeTuple
 
 __all__ = ['Cemetery', 'CemeteryRule', 'CemeteryState']
 
@@ -28,10 +27,8 @@ class CemeteryState(LocationState):
 class Cemetery(BaseLocation[CemeteryState]):
     """Class that implements a cemetery location. """
 
-    location_rule_type: Type = CemeteryRule
-
-    def create_state(self) -> CemeteryState:
-        return CemeteryState()
+    location_rule_type = CemeteryRule
+    state_type = CemeteryState
 
     def update_rules(self, new_rule: LocationRule) -> None:
         rule = cast(CemeteryRule, new_rule)

@@ -7,15 +7,17 @@ from tqdm import trange
 
 from .setup_sim_env import make_gym_env
 from ..data.interfaces import ExperimentDataSaver, StageSchedule
-from ..environment import PandemicSimOpts, PandemicSimNonCLIOpts, NoPandemicDone, PandemicRegulation, austin_regulations
+from ..environment import PandemicSimOpts, PandemicSimConfig, NoPandemicDone, PandemicRegulation, init_globals
+from .covid_regulations import austin_regulations
 from ..utils import shallow_asdict
+
 
 __all__ = ['experiment_main', 'seeded_experiment_main']
 
 
 def seeded_experiment_main(exp_id: int,
+                           sim_config: PandemicSimConfig,
                            sim_opts: PandemicSimOpts,
-                           sim_non_cli_opts: PandemicSimNonCLIOpts,
                            data_saver: ExperimentDataSaver,
                            pandemic_regulations: Optional[List[PandemicRegulation]] = None,
                            stages_to_execute: Union[int, Sequence[StageSchedule]] = 0,
@@ -23,10 +25,11 @@ def seeded_experiment_main(exp_id: int,
                            max_episode_length: int = 120,
                            random_seed: int = 0) -> bool:
     """A helper that runs an experiment with the given seed and records data"""
-    rng = np.random.RandomState(random_seed)
-    env = make_gym_env(sim_opts, sim_non_cli_opts,
+    init_globals(seed=random_seed)
+    env = make_gym_env(sim_config=sim_config,
+                       sim_opts=sim_opts,
                        pandemic_regulations=pandemic_regulations or austin_regulations,
-                       done_fn=NoPandemicDone(30), numpy_rng=rng)
+                       done_fn=NoPandemicDone(30))
     env.reset()
 
     stages = ([StageSchedule(stage=stages_to_execute, end_day=None)]
@@ -58,14 +61,14 @@ def seeded_experiment_main(exp_id: int,
     return data_saver.finalize(exp_id=exp_id,
                                seed=random_seed,
                                num_stages_to_execute=len(stages),
-                               num_persons=sim_non_cli_opts.population_params.num_persons,
+                               num_persons=sim_config.num_persons,
                                **stage_dict,
                                **shallow_asdict(sim_opts))
 
 
 def experiment_main(exp_id: int,
                     sim_opts: PandemicSimOpts,
-                    sim_non_cli_opts: PandemicSimNonCLIOpts,
+                    sim_config: PandemicSimConfig,
                     data_saver: ExperimentDataSaver,
                     pandemic_regulations: Optional[List[PandemicRegulation]] = None,
                     stages_to_execute: Union[int, Sequence[StageSchedule]] = 0,
@@ -79,8 +82,8 @@ def experiment_main(exp_id: int,
         seed = rng.randint(0, 100000)
         print(f'Running experiment seed: {seed} - {num_evaluated_seeds + 1}/{num_random_seeds}')
         ret = seeded_experiment_main(exp_id=exp_id,
+                                     sim_config=sim_config,
                                      sim_opts=sim_opts,
-                                     sim_non_cli_opts=sim_non_cli_opts,
                                      data_saver=data_saver,
                                      pandemic_regulations=pandemic_regulations,
                                      stages_to_execute=stages_to_execute,

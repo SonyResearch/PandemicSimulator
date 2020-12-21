@@ -11,7 +11,7 @@ from .infection_model import SEIRModel
 from .interfaces import ContactRate, ContactTracer, PandemicRegulation, PandemicSimState, PandemicTesting, \
     PandemicTestResult, \
     DEFAULT, GlobalTestingState, InfectionModel, InfectionSummary, Location, LocationID, Person, PersonID, Registry, \
-    SimTime, SimTimeInterval, sorted_infection_summary
+    SimTime, SimTimeInterval, sorted_infection_summary, globals
 from .location import Hospital
 from .pandemic_testing_strategies import RandomPandemicTesting
 
@@ -38,7 +38,6 @@ class PandemicSim:
     _state: PandemicSimState
 
     def __init__(self,
-                 registry: Registry,
                  locations: Sequence[Location],
                  persons: Sequence[Person],
                  infection_model: Optional[InfectionModel] = None,
@@ -46,10 +45,8 @@ class PandemicSim:
                  contact_tracer: Optional[ContactTracer] = None,
                  new_time_slot_interval: SimTimeInterval = SimTimeInterval(day=1),
                  infection_update_interval: SimTimeInterval = SimTimeInterval(day=1),
-                 infection_threshold: int = 0,
-                 numpy_rng: Optional[np.random.RandomState] = None):
+                 infection_threshold: int = 0):
         """
-        :param registry: Registry instance.
         :param locations: A sequence of Location instances.
         :param persons: A sequence of Person instances.
         :param infection_model: Infection model instance, if None SEIR default infection model is used.
@@ -59,18 +56,19 @@ class PandemicSim:
         :param infection_update_interval: interval for updating infection states. Default is set once daily.
         :param infection_threshold: If the infection summary is greater than the specified threshold, a
             boolean in PandemicSimState is set to True.
-        :param numpy_rng: Random number generator.
         """
+        assert globals.registry, 'No registry found. Create the repo wide registry first by calling init_globals()'
+        self._registry = globals.registry
+        self._numpy_rng = globals.numpy_rng
+
         self._id_to_person = OrderedDict({p.id: p for p in persons})
         self._id_to_location = OrderedDict({loc.id: loc for loc in locations})
-        self._registry = registry
         self._infection_model = infection_model or SEIRModel()
         self._pandemic_testing = pandemic_testing or RandomPandemicTesting()
         self._contact_tracer = contact_tracer
         self._new_time_slot_interval = new_time_slot_interval
         self._infection_update_interval = infection_update_interval
         self._infection_threshold = infection_threshold
-        self._numpy_rng = numpy_rng if numpy_rng is not None else np.random.RandomState()
 
         self._type_to_locations = defaultdict(list)
         for loc in locations:
@@ -280,7 +278,6 @@ class PandemicSim:
 
         :param regulation: a PandemicRegulation instance
         """
-
         # update location rules
         sd = regulation.social_distancing
         loc_type_rk = regulation.location_type_to_rule_kwargs

@@ -1,18 +1,18 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 from dataclasses import dataclass
 
-from .job_counselor import PopulationParams
-
-__all__ = ['PandemicSimOpts', 'PandemicSimNonCLIOpts']
+__all__ = ['PandemicSimOpts']
 
 
 @dataclass(frozen=True)
 class PandemicSimOpts:
-    """Params for the bounded-gaussian infection spread rate distribution"""
-    infection_spread_rate_mean: float = 0.03
-    infection_spread_rate_sigma: float = 0.01
+    """Parameter options passed to the simulator."""
 
-    infection_threshold: int = 10  # number of persons with infection
+    infection_spread_rate_mean: float = 0.03
+    """Mean for the bounded-gaussian infection spread rate distribution"""
+
+    infection_spread_rate_sigma: float = 0.01
+    """Std for the bounded-gaussian infection spread rate distribution"""
 
     spontaneous_testing_rate: float = 0.02
     """Probability of a person getting tested independent of symptoms shown"""
@@ -44,8 +44,5 @@ class PandemicSimOpts:
     regulation_compliance_prob: float = 0.99
     """The probability that a person complies to regulation every step"""
 
-
-@dataclass(frozen=True)
-class PandemicSimNonCLIOpts:
-    population_params: PopulationParams
-    """Population params"""
+    infection_threshold: int = 5
+    """A threshold used by """

@@ -1,8 +1,7 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
-import dataclasses
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional, Type, Generic, TypeVar
+from typing import Type, Generic, TypeVar, ClassVar
 
 from .ids import PersonID, LocationID
 from .location_rules import LocationRule
@@ -29,13 +28,14 @@ class LocationSummary:
     """Entries to the location by a visitor"""
 
 
-_T = TypeVar('_T', bound=LocationState)
+_State = TypeVar('_State', bound=LocationState)
 
 
-class Location(ABC, Generic[_T]):
+class Location(ABC, Generic[_State]):
     """Class that implements a location with a pre-defined operating rules"""
 
     location_rule_type: Type = abstract_class_property()  # The type of the location rule used by the location
+    state_type: ClassVar[Type[_State]]
 
     @property
     @abstractmethod
@@ -49,7 +49,7 @@ class Location(ABC, Generic[_T]):
 
     @property
     @abstractmethod
-    def state(self) -> _T:
+    def state(self) -> _State:
         """
         Property that returns the current state of the location.
 
@@ -59,31 +59,13 @@ class Location(ABC, Generic[_T]):
 
     @property
     @abstractmethod
-    def init_state(self) -> _T:
+    def init_state(self) -> _State:
         """
         Property that returns the init state of the location.
 
         :return: Init state of the location.
         """
         pass
-
-    @property
-    @abstractmethod
-    def road_id(self) -> Optional[LocationID]:
-        """
-        Property that returns the id of the road connected to the location.
-
-        :return: ID of the location.
-        """
-        pass
-
-    def create_state(self) -> _T:
-        """
-        Creates and returns a new state for the location
-
-        :return: new state for the location
-        """
-        return dataclasses.make_dataclass(_T, )
 
     @abstractmethod
     def sync(self, sim_time: SimTime) -> None:

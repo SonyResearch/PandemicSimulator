@@ -1,13 +1,25 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 from typing import List
 
-from .interfaces import PandemicRegulation, DEFAULT, Risk
-from .location import Office, School, HairSalon, RetailStore, Restaurant, Bar
+from ..environment import PandemicRegulation, DEFAULT, Risk, Office, School, HairSalon, RetailStore, Restaurant, Bar
 
-__all__ = ['DEFAULT_REGULATION', 'austin_regulations', 'italian_regulations', 'swedish_regulations']
+__all__ = ['austin_regulations', 'italian_regulations', 'swedish_regulations']
 
 austin_regulations: List[PandemicRegulation] = [
-    PandemicRegulation(stage=0),
+    PandemicRegulation(stay_home_if_sick=False,
+                       practice_good_hygiene=False,
+                       wear_facial_coverings=False,
+                       social_distancing=DEFAULT,
+                       risk_to_avoid_gathering_size={Risk.LOW: -1, Risk.HIGH: -1},
+                       location_type_to_rule_kwargs={
+                           Office: {'lock': False},
+                           School: {'lock': False},
+                           HairSalon: {'lock': False},
+                           RetailStore: {'lock': False},
+                           Bar: {'lock': False},
+                           Restaurant: {'lock': False},
+                       },
+                       stage=0),
     PandemicRegulation(stay_home_if_sick=True,
                        practice_good_hygiene=True,
                        wear_facial_coverings=False,
@@ -111,7 +123,20 @@ austin_regulations: List[PandemicRegulation] = [
 # banned for non-essential motives. Furthermore, on 25 May swimming pools and gyms could also reopen, and on 15 June
 # theatres and cinemas.
 italian_regulations: List[PandemicRegulation] = [
-    PandemicRegulation(stage=0),
+    PandemicRegulation(stay_home_if_sick=False,
+                       practice_good_hygiene=False,
+                       wear_facial_coverings=False,
+                       social_distancing=DEFAULT,
+                       risk_to_avoid_gathering_size={Risk.LOW: -1, Risk.HIGH: -1},
+                       location_type_to_rule_kwargs={
+                           Office: {'lock': False},
+                           School: {'lock': False},
+                           HairSalon: {'lock': False},
+                           RetailStore: {'lock': False},
+                           Bar: {'lock': False},
+                           Restaurant: {'lock': False},
+                       },
+                       stage=0),
     PandemicRegulation(stay_home_if_sick=True,
                        practice_good_hygiene=True,
                        wear_facial_coverings=False,
@@ -183,26 +208,23 @@ italian_regulations: List[PandemicRegulation] = [
 # Anders Tegnell says his modelling indicates that, on average, Swedes have around 30% of the social interactions they
 # did prior to the pandemic.
 swedish_regulations: List[PandemicRegulation] = [
-    PandemicRegulation(stage=0),
+    PandemicRegulation(stay_home_if_sick=False,
+                       practice_good_hygiene=False,
+                       wear_facial_coverings=False,
+                       social_distancing=DEFAULT,
+                       risk_to_avoid_gathering_size={Risk.LOW: -1, Risk.HIGH: -1},
+                       location_type_to_rule_kwargs={
+                           Office: {'lock': False},
+                           School: {'lock': False},
+                           HairSalon: {'lock': False},
+                           RetailStore: {'lock': False},
+                           Bar: {'lock': False},
+                           Restaurant: {'lock': False},
+                       },
+                       stage=0),
     PandemicRegulation(stay_home_if_sick=True,
                        practice_good_hygiene=True,
                        social_distancing=0.70,
                        risk_to_avoid_gathering_size={Risk.HIGH: 50, Risk.LOW: 50},
                        stage=1),
 ]
-
-DEFAULT_REGULATION = PandemicRegulation(
-    stay_home_if_sick=False,
-    practice_good_hygiene=False,
-    wear_facial_coverings=False,
-    social_distancing=DEFAULT,
-    risk_to_avoid_gathering_size={Risk.LOW: -1, Risk.HIGH: -1},
-    location_type_to_rule_kwargs={
-        Office: {'lock': False},
-        School: {'lock': False},
-        HairSalon: {'lock': False},
-        RetailStore: {'lock': False},
-        Bar: {'lock': False},
-        Restaurant: {'lock': False},
-    },
-    stage=0)

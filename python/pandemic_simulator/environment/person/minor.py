@@ -1,11 +1,9 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 from typing import Optional, Sequence
 
-import numpy as np
-
 from .base import BasePerson
 from .routine_utils import RoutineWithStatus, execute_routines
-from ..interfaces import PersonState, LocationID, Registry, SimTime, NoOP, SimTimeTuple, NOOP, PersonRoutine, \
+from ..interfaces import PersonState, LocationID, SimTime, NoOP, SimTimeTuple, NOOP, PersonRoutine, \
     ContactTracer, PersonID
 
 __all__ = ['Minor']
@@ -23,22 +21,18 @@ class Minor(BasePerson):
                  person_id: PersonID,
                  home: LocationID,
                  school: LocationID,
-                 registry: Registry,
                  school_time: Optional[SimTimeTuple] = None,
                  outside_school_routines: Sequence[PersonRoutine] = (),
                  regulation_compliance_prob: float = 1.0,
-                 init_state: Optional[PersonState] = None,
-                 numpy_rng: Optional[np.random.RandomState] = None):
+                 init_state: Optional[PersonState] = None):
         """
         :param person_id: PersonID instance
         :param home: Home location id
         :param school: school location id
-        :param registry: Registry instance to register the person and handle peron's entry to a location
         :param school_time: school time specified in SimTimeTuples. Default - 9am-5pm and Mon-Fri
         :param outside_school_routines: A sequence of person routines to run outside school time
         :param regulation_compliance_prob: probability of complying to a regulation
         :param init_state: Optional initial state of the person
-        :param numpy_rng: Random number generator
         """
         assert person_id.age <= 18, "A minor's age should be <= 18"
         self._school = school
@@ -47,10 +41,8 @@ class Minor(BasePerson):
 
         super().__init__(person_id=person_id,
                          home=home,
-                         registry=registry,
                          regulation_compliance_prob=regulation_compliance_prob,
-                         init_state=init_state,
-                         numpy_rng=numpy_rng)
+                         init_state=init_state)
 
     @property
     def school(self) -> LocationID:
@@ -82,7 +74,7 @@ class Minor(BasePerson):
                 return None
         else:
             # execute outside school routines
-            ret = execute_routines(person=self, routines_with_status=self._outside_school_rs, numpy_rng=self._numpy_rng)
+            ret = execute_routines(person=self, routines_with_status=self._outside_school_rs)
             if ret != NOOP:
                 return ret
 

@@ -8,8 +8,7 @@ from matplotlib import pyplot as plt
 
 from .mplab_evaluation import inf_colors
 from .pandemic_viz import PandemicViz
-from ..environment import PandemicObservation, InfectionSummary, LocationParams, \
-    PandemicSimState
+from ..environment import PandemicObservation, InfectionSummary, PandemicSimState
 from ..utils import checked_cast
 
 __all__ = ['MatplotLibViz']
@@ -19,7 +18,7 @@ class MatplotLibViz(PandemicViz):
     """Pandemic19 reinforcement learning matplotlib visualization"""
 
     _num_persons: int
-    _max_hospitals_capacity: int
+    _max_hospital_capacity: int
     _num_stages: int
     _show_reward: bool
     _show_stages: bool
@@ -39,19 +38,19 @@ class MatplotLibViz(PandemicViz):
     _stage_indices: np.ndarray
 
     def __init__(self, num_persons: int,
-                 hospital_params: LocationParams,
+                 max_hospital_capacity: int,
                  num_stages: int,
                  show_reward: bool = False,
                  show_stages: bool = True):
         """
         :param num_persons: total number of persons in the simulator
-        :param hospital_params: hospital location params
+        :param max_hospital_capacity: max hospital capacity
         :param num_stages: number of stages in the environment
         :param show_reward: show cumulative reward plot
         :param show_stages: show stages plot
         """
         self._num_persons = num_persons
-        self._max_hospitals_capacity = hospital_params.num * hospital_params.visitor_capacity
+        self._max_hospital_capacity = max_hospital_capacity
         self._num_stages = num_stages
         self._show_reward = show_reward
         self._show_stages = show_stages
@@ -144,9 +143,9 @@ class MatplotLibViz(PandemicViz):
         ax_i += 1
         axs.append(plt.subplot(nrows, ncols, ax_i))
         plt.plot(gis[:, self._critical_index])
-        plt.plot(np.arange(gis.shape[0]), np.ones(gis.shape[0]) * self._max_hospitals_capacity, 'y')
+        plt.plot(np.arange(gis.shape[0]), np.ones(gis.shape[0]) * self._max_hospital_capacity, 'y')
         plt.legend([InfectionSummary.CRITICAL.value, 'Max hospital capacity'], loc=1)
-        plt.ylim([-0.1, self._max_hospitals_capacity * 3])
+        plt.ylim([-0.1, self._max_hospital_capacity * 3])
         plt.title('Critical Summary')
         plt.xlabel('time (days)')
         plt.ylabel('persons')

@@ -2,11 +2,9 @@
 
 from typing import Optional, Sequence
 
-import numpy as np
-
 from .base import BasePerson
 from .routine_utils import RoutineWithStatus, execute_routines
-from ..interfaces import LocationID, SimTime, NoOP, NOOP, Registry, PersonState, PersonRoutine, ContactTracer, PersonID
+from ..interfaces import LocationID, SimTime, NoOP, NOOP, PersonState, PersonRoutine, ContactTracer, PersonID
 
 __all__ = ['Retired']
 
@@ -19,28 +17,22 @@ class Retired(BasePerson):
     def __init__(self,
                  person_id: PersonID,
                  home: LocationID,
-                 registry: Registry,
                  routines: Sequence[PersonRoutine] = (),
                  regulation_compliance_prob: float = 1.0,
-                 init_state: Optional[PersonState] = None,
-                 numpy_rng: Optional[np.random.RandomState] = None):
+                 init_state: Optional[PersonState] = None):
         """
         :param person_id: PersonID instance
         :param home: Home location id
-        :param registry: Registry instance to register the person and handle peron's entry to a location
         :param routines: A sequence of person routines to run
         :param regulation_compliance_prob: probability of complying to a regulation
         :param init_state: Optional initial state of the person
-        :param numpy_rng: Random number generator
         """
         self._routines_with_status = [RoutineWithStatus(routine) for routine in routines]
 
         super().__init__(person_id=person_id,
                          home=home,
-                         registry=registry,
                          regulation_compliance_prob=regulation_compliance_prob,
-                         init_state=init_state,
-                         numpy_rng=numpy_rng)
+                         init_state=init_state)
 
     def _sync(self, sim_time: SimTime) -> None:
         super()._sync(sim_time)
@@ -54,7 +46,7 @@ class Retired(BasePerson):
             return step_ret
 
         # execute routines
-        ret = execute_routines(person=self, routines_with_status=self._routines_with_status, numpy_rng=self._numpy_rng)
+        ret = execute_routines(person=self, routines_with_status=self._routines_with_status)
         if ret != NOOP:
             return ret
 

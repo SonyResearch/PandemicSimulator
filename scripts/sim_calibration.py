@@ -12,10 +12,9 @@ import GPyOpt
 import matplotlib.pyplot as plt
 import numpy as np
 from pandas import read_csv
-from pandemic_simulator.environment import PandemicSimOpts, PandemicSimNonCLIOpts, \
-    InfectionSummary, Hospital, HospitalState, swedish_regulations
-from pandemic_simulator.script_helpers import make_sim, population_params
 from tqdm import trange
+
+import pandemic_simulator as ps
 
 SEED = 30
 MAX_EVAL_TRIALS_TO_VALID = 5
@@ -57,23 +56,23 @@ def eval_params(params: np.ndarray,
     else:
         print(f'Re-Running with a different seed: {seed}')
 
-    numpy_rng = np.random.RandomState(seed=seed)
-    sim_non_cli_opts = PandemicSimNonCLIOpts(population_params.above_medium_town_population_params)
-    sim_opts = PandemicSimOpts(infection_spread_rate_mean=spread_rate)
-    sim = make_sim(sim_opts, sim_non_cli_opts, numpy_rng=numpy_rng)
+    ps.init_globals(seed=seed)
+    sim_config = ps.sh.above_medium_town_config
+    sim_opts = ps.env.PandemicSimOpts(infection_spread_rate_mean=spread_rate)
+    sim = ps.sh.make_sim(sim_config, sim_opts)
 
     # using swedish stage 1 regulation with the given social distancing to calibrate
-    covid_regulation = dataclasses.replace(swedish_regulations[1], social_distancing=social_distancing)
+    covid_regulation = dataclasses.replace(ps.sh.swedish_regulations[1], social_distancing=social_distancing)
     sim.execute_regulation(regulation=covid_regulation)
 
-    hospital_ids = sim.registry.location_ids_of_type(Hospital)
+    hospital_ids = sim.registry.location_ids_of_type(ps.env.Hospital)
 
     for _ in trange(max_episode_length, desc='Simulating day'):
         sim.step_day()
         state = sim.state
-        num_deaths = state.global_infection_summary[InfectionSummary.DEAD]
+        num_deaths = state.global_infection_summary[ps.env.InfectionSummary.DEAD]
         deaths.append(num_deaths)
-        num_hospitalizations = sum([cast(HospitalState, state.id_to_location_state[loc_id]).num_admitted_patients
+        num_hospitalizations = sum([cast(ps.env.HospitalState, state.id_to_location_state[loc_id]).num_admitted_patients
                                     for loc_id in hospital_ids])
         hospitalizations.append(num_hospitalizations)
     eval_result = EvalResult(deaths=np.asarray(deaths), hospitalizations=np.asarray(hospitalizations))

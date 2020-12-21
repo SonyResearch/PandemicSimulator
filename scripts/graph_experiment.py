@@ -1,57 +1,37 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
-from sys import stdout
 from typing import List
 
-import numpy as np
 from matplotlib import pyplot as plt
 from numpy import max
+from tqdm import trange
 
-from pandemic_simulator.environment import austin_regulations, PandemicSimOpts, PandemicSimNonCLIOpts
-from pandemic_simulator.script_helpers import small_town_population_params, make_sim
-from pandemic_simulator.viz import GraphViz
+import pandemic_simulator as ps
 
 
 def run(days: int, stage: int, days_per_interval: int) -> List[int]:
-    # setup rng
-    numpy_rng = np.random.RandomState(seed=100)
+    # init globals
+    ps.init_globals(seed=100)
 
-    # setup simulator options sets
-    sim_opts = PandemicSimOpts(use_contact_tracer=True)
-    sim_non_cli_opts = PandemicSimNonCLIOpts(small_town_population_params)
+    # setup simulator config and options
+    sim_config = ps.sh.small_town_config
+    sim_opts = ps.env.PandemicSimOpts(use_contact_tracer=True)  # use defaults
 
     # make sim
-    sim = make_sim(sim_opts, sim_non_cli_opts, numpy_rng=numpy_rng)
+    sim = ps.sh.make_sim(sim_config, sim_opts)
 
     # setup viz
-    viz = GraphViz(sim, num_stages=len(austin_regulations), days_per_interval=days_per_interval)
+    viz = ps.viz.GraphViz(sim, num_stages=len(ps.sh.austin_regulations), days_per_interval=days_per_interval)
 
-    # run regulation stpes in the simulator
-    stage_to_regulation = {reg.stage: reg for reg in austin_regulations}
+    # execute the given regulation
+    sim.execute_regulation(regulation=ps.sh.austin_regulations[stage])  # stage 0
     print(f'Stage {stage}:')
-    for _ in range(100):
-        print(f'{sim.state.sim_time.day + 1} ', end='')
-        stdout.flush()
 
-        # get the regulation
-        regulation = stage_to_regulation[stage]  # stage 0
+    # run regulation steps in the simulator
+    for _ in trange(days, desc='Simulating day'):
+        sim.step_day()
+        viz.record(sim.state)
 
-        # execute the given regulation
-        sim.execute_regulation(regulation=regulation)
-
-        for i in range(sim_opts.sim_steps_per_regulation):
-            # step sim
-            sim.step()
-
-        # get state
-        state = sim.state
-
-        # visualize
-        viz.record(state)
-
-    # generate plots
-    # viz.plot()
-
-    return viz._num_components_per_interval
+    return viz.num_components_per_interval
 
 
 if __name__ == '__main__':

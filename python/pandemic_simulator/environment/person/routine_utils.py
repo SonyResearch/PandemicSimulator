@@ -2,10 +2,8 @@
 from dataclasses import dataclass
 from typing import Sequence, Optional, cast
 
-import numpy as np
-
 from .base import BasePerson
-from ..interfaces import SimTime, PersonRoutine, NoOP, NOOP, LocationID, SpecialEndLoc
+from ..interfaces import SimTime, PersonRoutine, NoOP, NOOP, LocationID, SpecialEndLoc, globals
 
 __all__ = ['RoutineWithStatus', 'execute_routines']
 
@@ -46,19 +44,17 @@ class RoutineWithStatus:
         self.end_loc_selected = None
 
 
-def execute_routines(person: BasePerson,
-                     routines_with_status: Sequence[RoutineWithStatus],
-                     numpy_rng: np.random.RandomState) -> Optional[NoOP]:
+def execute_routines(person: BasePerson, routines_with_status: Sequence[RoutineWithStatus]) -> Optional[NoOP]:
     """
     Executes the given routines of the person in the simulator.
     Note that this function updates (mutates) status flags in the routines_with_status instances.
 
     :param person: person to execute the routine
     :param routines_with_status: a sequence of RoutineWithStatus instances
-    :param numpy_rng: random number generator
     :return: returns a NOOP if none of the routines were executed (typically happens when the routines
         conditions are not met), otherwise None.
     """
+    numpy_rng = globals.numpy_rng
     # the overall flow is that if a routine is due, start it and block the execution of other routines
     # until it has completed
 

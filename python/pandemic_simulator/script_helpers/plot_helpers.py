@@ -3,17 +3,16 @@ import os
 import string
 import warnings
 from pathlib import Path
-from typing import List, Optional, Sequence, Union, Tuple
+from typing import Optional, Sequence, Union, Tuple
 
 import numpy as np
 from matplotlib import pyplot as plt, gridspec
 from matplotlib.gridspec import GridSpec
 from mpl_toolkits.mplot3d import Axes3D
 
-from .population_params import small_town_population_params
+from .sim_configs import small_town_config
 from ..data import H5DataLoader, ExperimentResult
-from ..environment import Hospital, \
-    sorted_infection_summary, PandemicSimNonCLIOpts
+from ..environment import sorted_infection_summary, PandemicSimConfig
 from ..viz import plot_global_infection_summary, plot_critical_summary, plot_multi_params_summary
 
 __all__ = ['make_evaluation_plots_from_data', 'make_evaluation_plots']
@@ -24,8 +23,7 @@ def make_evaluation_plots_from_data(data: Sequence[ExperimentResult],
                                     param_labels: Sequence[str],
                                     bar_plot_xlabel: str,
                                     fig_save_path: Path = Path('../results/plots'),
-                                    sim_non_cli_opts: Optional[PandemicSimNonCLIOpts] = None,
-                                    max_hospital_capacities: Optional[List[int]] = None,
+                                    sim_config: Optional[PandemicSimConfig] = None,
                                     show_summary_plots: bool = True,
                                     show_cumulative_reward: bool = False,
                                     show_time_to_peak: bool = True,
@@ -37,10 +35,7 @@ def make_evaluation_plots_from_data(data: Sequence[ExperimentResult],
     os.makedirs(str(fig_save_path.absolute()), exist_ok=True)
     annotate_stages = [annotate_stages] * n_params if isinstance(annotate_stages, bool) else annotate_stages
 
-    sim_non_cli_opts = sim_non_cli_opts or PandemicSimNonCLIOpts(small_town_population_params)
-    hp = sim_non_cli_opts.population_params.location_type_to_params[Hospital]
-    max_hospital_capacities = ([hp.num * hp.visitor_capacity] * len(data) if max_hospital_capacities is None else
-                               max_hospital_capacities)
+    sim_config = sim_config or small_town_config
     gis_legend = [summ.value for summ in sorted_infection_summary]
 
     sup_title = f"{' '.join([s.capitalize() for s in exp_name.split(sep='_')])}"
@@ -54,10 +49,7 @@ def make_evaluation_plots_from_data(data: Sequence[ExperimentResult],
         fig = plt.figure(num=sup_title, figsize=figsize)
         gs1 = GridSpec(n_params, 3)
         axs = np.array([fig.add_subplot(sp) for sp in gs1]).reshape(n_params, 3)
-        for i, (exp_result, param_label, max_hospital_capacity, ann_stages) in enumerate(zip(data, param_labels,
-                                                                                             max_hospital_capacities,
-                                                                                             annotate_stages)):
-
+        for i, (exp_result, param_label, ann_stages) in enumerate(zip(data, param_labels, annotate_stages)):
             plot_global_infection_summary(exp_result, ax=axs[i, 0], annotate_stages=ann_stages)
             if show_stage_trials:
                 seed_indices = np.random.permutation(len(exp_result.obs_trajectories.stage.shape[1]))[:3]
@@ -72,7 +64,9 @@ def make_evaluation_plots_from_data(data: Sequence[ExperimentResult],
                 plot_global_infection_summary(exp_result, testing_summary=True, annotate_stages=ann_stages,
                                               ax=axs[i, 1])
 
-            plot_critical_summary(exp_result, max_hospitals_capacity=max_hospital_capacity, annotate_stages=ann_stages,
+            plot_critical_summary(exp_result,
+                                  max_hospital_capacity=sim_config.max_hospital_capacity,
+                                  annotate_stages=ann_stages,
                                   ax=axs[i, 1] if show_stage_trials else axs[i, 2])
 
             for j, ax in enumerate(axs[i]):
@@ -127,8 +121,10 @@ def make_evaluation_plots_from_data(data: Sequence[ExperimentResult],
             axs.append(fig.add_subplot(sp, projection='3d'))
         plot_i += 1
 
-    plot_multi_params_summary(data, param_labels=param_labels, xlabel=bar_plot_xlabel,
-                              max_hospitals_capacities=max_hospital_capacities,
+    plot_multi_params_summary(data,
+                              param_labels=param_labels,
+                              xlabel=bar_plot_xlabel,
+                              max_hospitals_capacities=[sim_config.max_hospital_capacity] * len(data),
                               show_cumulative_reward_plot=show_cumulative_reward,
                               show_time_to_peak=show_time_to_peak,
                               show_pandemic_duration=show_pandemic_duration,
@@ -168,8 +164,7 @@ def make_evaluation_plots(exp_name: str,
                           param_labels: Sequence[str],
                           bar_plot_xlabel: str,
                           data_saver_path: Path = Path('../results'),
-                          sim_non_cli_opts: Optional[PandemicSimNonCLIOpts] = None,
-                          max_hospital_capacities: Optional[List[int]] = None,
+                          sim_config: Optional[PandemicSimConfig] = None,
                           show_summary_plots: bool = True,
                           show_cumulative_reward: bool = False,
                           show_time_to_peak: bool = True,
@@ -184,9 +179,8 @@ def make_evaluation_plots(exp_name: str,
                                     param_labels=param_labels,
                                     bar_plot_xlabel=bar_plot_xlabel,
                                     fig_save_path=data_saver_path / 'plots',
-                                    sim_non_cli_opts=sim_non_cli_opts,
+                                    sim_config=sim_config,
                                     show_summary_plots=show_summary_plots,
-                                    max_hospital_capacities=max_hospital_capacities,
                                     show_cumulative_reward=show_cumulative_reward,
                                     show_time_to_peak=show_time_to_peak,
                                     show_pandemic_duration=show_pandemic_duration,

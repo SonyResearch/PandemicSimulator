@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 
 from .base import BaseLocation
-from ..interfaces import LocationState, ContactRate, SimTime, SimTimeTuple, LocationRule
+from ..interfaces import LocationState, ContactRate, SimTime, SimTimeTuple, LocationRule, globals
 
 __all__ = ['Home', 'HomeState']
 
@@ -11,15 +11,12 @@ __all__ = ['Home', 'HomeState']
 @dataclass
 class HomeState(LocationState):
     contact_rate: ContactRate = ContactRate(0, 1, 0, 0.5, 0.3, 0.3)
+    visitor_time = SimTimeTuple(hours=tuple(range(15, 20)), days=tuple(globals.numpy_rng.randint(0, 365, 12)))
 
 
 class Home(BaseLocation[HomeState]):
     """Class that implements a standard Home location. """
-
-    def create_state(self) -> HomeState:
-        social_event_time = SimTimeTuple(hours=tuple(range(15, 20)),
-                                         days=tuple(self._numpy_rng.randint(0, 365, 12)))
-        return HomeState(visitor_time=social_event_time)
+    state_type = HomeState
 
     def sync(self, sim_time: SimTime) -> None:
         super().sync(sim_time)

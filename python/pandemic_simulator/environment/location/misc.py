@@ -15,6 +15,4 @@ class HairSalonState(NonEssentialBusinessLocationState):
 
 class HairSalon(NonEssentialBusinessBaseLocation[HairSalonState]):
     """Implements a hair salon."""
-
-    def create_state(self) -> HairSalonState:
-        return HairSalonState()
+    state_type = HairSalonState

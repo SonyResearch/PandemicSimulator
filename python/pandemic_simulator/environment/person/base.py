@@ -6,7 +6,7 @@ from typing import Optional, List, Sequence, cast
 import numpy as np
 
 from ..interfaces import Person, PersonID, PersonState, LocationID, Risk, Registry, PandemicRegulation, \
-    SimTime, NoOP, NOOP, SimTimeTuple, PandemicTestResult, ContactTracer
+    SimTime, NoOP, NOOP, SimTimeTuple, PandemicTestResult, ContactTracer, globals
 from ..location import Cemetery, Hospital
 
 __all__ = ['BasePerson']
@@ -32,32 +32,31 @@ class BasePerson(Person):
     def __init__(self,
                  person_id: PersonID,
                  home: LocationID,
-                 registry: Registry,
                  regulation_compliance_prob: float = 1.0,
-                 init_state: Optional[PersonState] = None,
-                 numpy_rng: Optional[np.random.RandomState] = None):
+                 init_state: Optional[PersonState] = None):
         """
         :param person_id: PersonID instance
         :param home: Home location id
-        :param registry: Registry instance to register the person and handle peron's entry to a location
         :param regulation_compliance_prob: probability of complying to a regulation
         :param init_state: Optional initial state of the person
-        :param numpy_rng: Random number generator
         """
+        assert globals.registry, 'No registry found. Create the repo wide registry first by calling init_globals()'
+        self._registry = globals.registry
+        self._numpy_rng = globals.numpy_rng
+
         self._id = person_id
         self._home = home
-        self._registry = registry
-        self._numpy_rng = numpy_rng if numpy_rng is not None else np.random.RandomState()
+        self._regulation_compliance_prob = regulation_compliance_prob
         self._init_state = init_state or PersonState(infection_state=None,
                                                      current_location=home,
-                                                     risk=self._numpy_rng.choice([r for r in Risk]))
+                                                     risk=self._numpy_rng.choice([r for r in Risk]),
+                                                     infection_spread_multiplier=self._regulation_compliance_prob)
 
         self._state = deepcopy(self._init_state)
         self._registry.register_person(self)
+
         self._cemetery_ids = self._registry.location_ids_of_type(Cemetery)
         self._hospital_ids = self._registry.location_ids_of_type(Hospital)
-
-        self._regulation_compliance_prob = regulation_compliance_prob
         self._go_home = False
 
     def enter_location(self, location_id: LocationID) -> bool:

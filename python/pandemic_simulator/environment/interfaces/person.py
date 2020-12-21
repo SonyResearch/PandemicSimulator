@@ -21,6 +21,7 @@ class PersonState:
     current_location: LocationID
     risk: Risk
     infection_state: Optional[IndividualInfectionState] = None
+    infection_spread_multiplier: float = 1.
 
     quarantine: bool = field(init=False, default=False)
     quarantine_if_contact_positive: bool = field(init=False, default=False)
@@ -33,7 +34,6 @@ class PersonState:
     avoid_location_types: List[type] = field(default_factory=list, init=False)
     not_infection_probability: float = field(default=1., init=False)
     not_infection_probability_history: List[Tuple[LocationID, float]] = field(default_factory=list, init=False)
-    infection_spread_multiplier: float = field(default=1., init=False)
 
 
 class Person(ABC):
