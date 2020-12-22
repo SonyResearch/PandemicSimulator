@@ -8,13 +8,12 @@ if __name__ == '__main__':
     # init globals
     ps.init_globals(seed=100)
 
-    # setup simulator config and options
+    # select a simulator config
     sim_config = ps.sh.small_town_config
-    sim_opts = ps.env.PandemicSimOpts()  # use defaults
 
     # make env
     pandemic_regulations = ps.sh.austin_regulations
-    env = ps.sh.make_gym_env(sim_config, sim_opts, pandemic_regulations=pandemic_regulations)
+    env = ps.sh.make_gym_env(sim_config, pandemic_regulations=pandemic_regulations)
 
     # setup viz
     viz = ps.viz.MatplotLibViz(num_persons=sim_config.num_persons,

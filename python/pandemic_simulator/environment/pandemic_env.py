@@ -76,7 +76,7 @@ class PandemicGymEnv(gym.Env):
         # execute the action if different from the current stage
         if action != self._last_observation.stage[-1, 0, 0]:  # stage has a TNC layout
             regulation = self._stage_to_regulation[action]
-            self._pandemic_sim.execute_regulation(regulation=regulation)
+            self._pandemic_sim.impose_regulation(regulation=regulation)
 
         # update the sim until next regulation interval trigger and construct obs from state hist
         obs = PandemicObservation.create_empty(

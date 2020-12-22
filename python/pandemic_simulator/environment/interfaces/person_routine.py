@@ -26,9 +26,9 @@ class PersonRoutine:
     valid_time: SimTimeTuple = SimTimeTuple()
     """Specifies the time during which the routine is available to start."""
 
-    start_time: SimTimeInterval = SimTimeInterval(hour=1)
-    """Start time of the routine specified through SimTimeInterval. The routine will only start during valid_time,
-    and once triggered the routine will be queued to be executed at some point while it remains valid.
+    start_trigger_time: SimTimeInterval = SimTimeInterval(hour=1)
+    """Start trigger time of the routine specified through SimTimeInterval. The routine will only start during
+    valid_time, and once triggered the routine will be queued to be executed at some point while it remains valid.
     Default is set to be triggered to start every hour during valid_time."""
 
     start_hour_probability: float = 0.9

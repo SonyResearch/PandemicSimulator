@@ -14,7 +14,7 @@ class LocationConfig:
     """Location type"""
 
     num: int
-    """Number of locations of a given type"""
+    """Number of locations of the given type"""
 
     num_assignees: int = -1
     """Number of assignees assigned to that location"""
@@ -38,7 +38,7 @@ class PandemicSimConfig:
     """Configs of all locations in the simulator"""
 
     max_hospital_capacity: int = field(init=False, default=-1)
-    """"""
+    """Specifies maximum hospital capacity (inferred from a hospital location if there is one)"""
 
     def __post_init__(self) -> None:
         for config in self.location_configs:

@@ -63,7 +63,7 @@ def eval_params(params: np.ndarray,
 
     # using swedish stage 1 regulation with the given social distancing to calibrate
     covid_regulation = dataclasses.replace(ps.sh.swedish_regulations[1], social_distancing=social_distancing)
-    sim.execute_regulation(regulation=covid_regulation)
+    sim.impose_regulation(regulation=covid_regulation)
 
     hospital_ids = sim.registry.location_ids_of_type(ps.env.Hospital)
 

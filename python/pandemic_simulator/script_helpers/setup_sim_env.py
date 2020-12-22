@@ -13,7 +13,7 @@ from ..environment import SumReward, RewardFunctionFactory, RewardFunctionType, 
 __all__ = ['make_sim', 'make_gym_env']
 
 
-def make_sim(sim_config: PandemicSimConfig, sim_opts: PandemicSimOpts) -> PandemicSim:
+def make_sim(sim_config: PandemicSimConfig, sim_opts: PandemicSimOpts = PandemicSimOpts()) -> PandemicSim:
     """
     A helper that sets up pandemic_simulator simulator
 
@@ -57,7 +57,7 @@ def make_sim(sim_config: PandemicSimConfig, sim_opts: PandemicSimOpts) -> Pandem
 
 
 def make_gym_env(sim_config: PandemicSimConfig,
-                 sim_opts: PandemicSimOpts,
+                 sim_opts: PandemicSimOpts = PandemicSimOpts(),
                  pandemic_regulations: Optional[List[PandemicRegulation]] = None,
                  done_fn: Optional[DoneFunction] = None) -> PandemicGymEnv:
     """

@@ -61,8 +61,11 @@ class PandemicSim:
         self._registry = globals.registry
         self._numpy_rng = globals.numpy_rng
 
-        self._id_to_person = OrderedDict({p.id: p for p in persons})
         self._id_to_location = OrderedDict({loc.id: loc for loc in locations})
+        assert self._registry.location_ids.issuperset(self._id_to_location)
+        self._id_to_person = OrderedDict({p.id: p for p in persons})
+        assert self._registry.person_ids.issuperset(self._id_to_person)
+
         self._infection_model = infection_model or SEIRModel()
         self._pandemic_testing = pandemic_testing or RandomPandemicTesting()
         self._contact_tracer = contact_tracer
@@ -272,7 +275,7 @@ class PandemicSim:
 
         return new_cr
 
-    def execute_regulation(self, regulation: PandemicRegulation) -> None:
+    def impose_regulation(self, regulation: PandemicRegulation) -> None:
         """
         Receive a regulation that updates the simulator dynamics
 

@@ -25,7 +25,7 @@ class RoutineWithStatus:
             # not due if the routine has already started or is completed or is not valid
             return False
 
-        return self.due or self.routine.start_time.trigger_at_interval(sim_time)
+        return self.due or self.routine.start_trigger_time.trigger_at_interval(sim_time)
 
     def sync(self, sim_time: SimTime) -> None:
         """Sync the status variables with time."""

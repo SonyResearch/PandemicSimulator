@@ -37,8 +37,8 @@ def triggered_routine(start_loc: Optional[LocationID],
     end_loc, explorable_end_locs = _get_locations_from_type(end_location_type)
     return PersonRoutine(start_loc=start_loc,
                          end_loc=end_loc,
-                         start_time=SimTimeInterval(day=interval_in_days,
-                                                    offset_day=globals.numpy_rng.randint(0, interval_in_days)),
+                         start_trigger_time=SimTimeInterval(day=interval_in_days,
+                                                            offset_day=globals.numpy_rng.randint(0, interval_in_days)),
                          explorable_end_locs=explorable_end_locs,
                          explore_probability=explore_probability)
 

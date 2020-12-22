@@ -23,7 +23,7 @@ def run(days: int, stage: int, days_per_interval: int) -> List[int]:
     viz = ps.viz.GraphViz(sim, num_stages=len(ps.sh.austin_regulations), days_per_interval=days_per_interval)
 
     # execute the given regulation
-    sim.execute_regulation(regulation=ps.sh.austin_regulations[stage])  # stage 0
+    sim.impose_regulation(regulation=ps.sh.austin_regulations[stage])  # stage 0
     print(f'Stage {stage}:')
 
     # run regulation steps in the simulator

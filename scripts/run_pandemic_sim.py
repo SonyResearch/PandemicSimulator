@@ -7,12 +7,11 @@ if __name__ == '__main__':
     # init globals
     ps.init_globals(seed=100)
 
-    # setup simulator config and options
+    # select a simulator config
     sim_config = ps.sh.small_town_config
-    sim_opts = ps.env.PandemicSimOpts()  # use defaults
 
     # make sim
-    sim = ps.sh.make_sim(sim_config, sim_opts)
+    sim = ps.sh.make_sim(sim_config)
 
     # setup viz
     viz = ps.viz.MatplotLibViz(num_persons=sim_config.num_persons,
@@ -21,7 +20,7 @@ if __name__ == '__main__':
                                show_stages=False)
 
     # execute a regulation
-    sim.execute_regulation(regulation=ps.sh.austin_regulations[0])  # stage 0
+    sim.impose_regulation(regulation=ps.sh.austin_regulations[0])  # stage 0
 
     # run regulation steps in the simulator
     for _ in trange(100, desc='Simulating day'):
