@@ -4,6 +4,7 @@ simulator output's time to peak and the difference over the rise of the curve. T
 hyperparameters that are tuned in the script include spread rate and social distancing
 rate
 """
+import dataclasses
 from dataclasses import dataclass
 from typing import cast
 
@@ -11,11 +12,15 @@ import GPyOpt
 import matplotlib.pyplot as plt
 import numpy as np
 from pandas import read_csv
+from pandemic_simulator.environment import PandemicSimOpts, PandemicSimNonCLIOpts, \
+    InfectionSummary, Hospital, HospitalState, swedish_regulations
+from pandemic_simulator.script_helpers import make_sim, population_params
 from tqdm import trange
 
-from pandemic_simulator.environment import PandemicSimOpts, PandemicSimNonCLIOpts, \
-    PandemicRegulation, InfectionSummary, Hospital, HospitalState
-from pandemic_simulator.script_helpers import make_sim, population_params
+SEED = 30
+MAX_EVAL_TRIALS_TO_VALID = 5
+
+np.random.seed(SEED)
 
 
 @dataclass
@@ -23,44 +28,65 @@ class EvalResult:
     deaths: np.ndarray
     hospitalizations: np.ndarray
 
+    def is_valid(self) -> bool:
+        return bool(np.sum(self.deaths) > 0)
 
-def eval_params(params: np.ndarray, max_episode_length: int) -> EvalResult:
-    """Perform a single run of the simulator
+
+def eval_params(params: np.ndarray,
+                max_episode_length: int,
+                trial_cnt: int = 0) -> EvalResult:
+    """Evaluate the params and return the result
 
     :param params: spread rate and social distancing rate
     :param max_episode_length: length of simulation run in days
+    :param trial_cnt: evaluation trial count
     :returns: EvalResult instance
     """
+    if trial_cnt >= MAX_EVAL_TRIALS_TO_VALID:
+        raise Exception(f'Could not find a valid evaluation for the params: {params} within the specified number'
+                        f'of trials: {MAX_EVAL_TRIALS_TO_VALID}.')
+
     spread_rate = params[:, 0][0]
     social_distancing = params[:, 1][0]
-    num_seeds = 30
-
     deaths = []
     hospitalizations = []
-    numpy_rng = np.random.RandomState(seed=num_seeds)
+    seed = SEED + trial_cnt
+
+    if trial_cnt == 0:
+        print(f'Running with spread rate: {spread_rate} and social distancing: {social_distancing}')
+    else:
+        print(f'Re-Running with a different seed: {seed}')
+
+    numpy_rng = np.random.RandomState(seed=seed)
     sim_non_cli_opts = PandemicSimNonCLIOpts(population_params.above_medium_town_population_params)
     sim_opts = PandemicSimOpts(infection_spread_rate_mean=spread_rate)
     sim = make_sim(sim_opts, sim_non_cli_opts, numpy_rng=numpy_rng)
-    covid_regulations = PandemicRegulation(social_distancing=social_distancing, stage=0)
+
+    # using swedish stage 1 regulation with the given social distancing to calibrate
+    covid_regulation = dataclasses.replace(swedish_regulations[1], social_distancing=social_distancing)
+    sim.execute_regulation(regulation=covid_regulation)
 
     hospital_ids = sim.registry.location_ids_of_type(Hospital)
 
-    print(f'Running with spread rate: {spread_rate} and social distancing: {social_distancing}')
+    hospital_weekly=0
     for i in trange(max_episode_length, desc='Simulating day'):
-        sim.execute_regulation(regulation=covid_regulations)
-        for j in trange(sim_opts.sim_steps_per_regulation):
-            sim.step()
+        sim.step_day()
         state = sim.state
         num_deaths = state.global_infection_summary[InfectionSummary.DEAD]
         deaths.append(num_deaths)
-
         num_hospitalizations = sum([cast(HospitalState, state.id_to_location_state[loc_id]).num_admitted_patients
                                     for loc_id in hospital_ids])
-        hospitalizations.append(num_hospitalizations)
-    return EvalResult(deaths=np.asarray(deaths), hospitalizations=np.asarray(hospitalizations))
+        hospital_weekly += num_hospitalizations
+        if i % 7 is 0:
+            hospitalizations.append(hospital_weekly)
+            hospital_weekly = 0
+        # hospitalizations.append(num_hospitalizations)
+    eval_result = EvalResult(deaths=np.asarray(deaths), hospitalizations=np.asarray(hospitalizations))
+
+    return eval_result if eval_result.is_valid() else eval_params(params, max_episode_length, trial_cnt=trial_cnt + 1)
 
 
-def real_world_data() -> np.ndarray:
+def real_world_data() -> EvalResult:
     """Extract and treat real-world data from WHO
 
     :returns: real-world death data
@@ -68,10 +94,12 @@ def real_world_data() -> np.ndarray:
     # using Sweden's death data
     deaths_url = 'https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/ecdc/new_deaths.csv'
     deaths_df = read_csv(deaths_url, header=0)
-    real_data = deaths_df['Sweden'].values
+    real_deaths = deaths_df['Sweden'].values
+    real_deaths = real_deaths[~np.isnan(real_deaths)]
 
-    real_data = real_data[~np.isnan(real_data)]
-    return real_data
+    real_hosp = [0, 0, 0, 0, 3, 16, 87, 235, 274, 285, 247, 235, 186, 154, 122, 110, 120, 121, 90, 73, 55, 34, 14, 14, 12, 11, 16, 13, 8, 7, 8, 8, 7]
+
+    return EvalResult(deaths=real_deaths, hospitalizations=np.asarray(real_hosp))
 
 
 def least_diff(world_data: np.ndarray, sim_data: np.ndarray) -> float:
@@ -94,13 +122,13 @@ def obj_func(params: np.ndarray) -> float:
     :returns: fitness score of parameter set
     """
     # get real world data
-    real_data = real_world_data()
+    real_data = real_world_data().hospitalizations
 
     # get sim data and extract deaths per day
-    eval_result: EvalResult = eval_params(params, 60)
-    sim_output = eval_result.deaths
+    eval_result: EvalResult = eval_params(params, 180)
+    sim_data = eval_result.hospitalizations
 
-    sim_data = sim_output[1:] - sim_output[:-1]
+    # sim_data = sim_output[1:] - sim_output[:-1]
 
     # start data at first death
     real_data = np.trim_zeros(real_data, 'f')
@@ -120,7 +148,7 @@ def obj_func(params: np.ndarray) -> float:
     sim_data /= sim_data[sim_peak]
 
     # calculate least difference over rise of curve
-    rise_score = least_diff(world_data=real_data[:real_peak], sim_data=sim_data[:sim_peak])
+    rise_score = least_diff(world_data=real_data, sim_data=sim_data)
 
     print('score: ', rise_score + peak_score)
     return float(rise_score + peak_score)
@@ -132,12 +160,12 @@ def make_plots(params: np.ndarray) -> None:
     :param params: resulting spread rate and social distancing rate
     """
     # get real world data and calibrated simulator output
-    real_data = real_world_data()
+    real_data = real_world_data().hospitalizations
 
-    eval_result: EvalResult = eval_params(params, 150)
-    sim_output = eval_result.deaths
+    eval_result: EvalResult = eval_params(params, 200)
+    sim_data = eval_result.hospitalizations
 
-    sim_data = sim_output[1:] - sim_output[:-1]
+    # sim_data = sim_output[1:] - sim_output[:-1]
 
     # treat data
     real_data = np.trim_zeros(real_data, 'f')
