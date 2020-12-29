@@ -9,7 +9,7 @@ __all__ = ['PandemicSimOpts', 'PandemicSimNonCLIOpts']
 @dataclass(frozen=True)
 class PandemicSimOpts:
     """Params for the bounded-gaussian infection spread rate distribution"""
-    infection_spread_rate_mean: float = 0.03
+    infection_spread_rate_mean: float = 0.02056435
     infection_spread_rate_sigma: float = 0.01
 
     infection_threshold: int = 10  # number of persons with infection

@@ -11,7 +11,7 @@ from .location import BusinessBaseLocation
 __all__ = ['JobCounselor', 'LocationParams', 'PopulationParams']
 
 
-@dataclass(frozen=True)
+@dataclass
 class LocationParams:
     num: int
     worker_capacity: int = -1
