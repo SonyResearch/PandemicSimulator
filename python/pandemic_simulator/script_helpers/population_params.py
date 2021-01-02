@@ -18,14 +18,14 @@ town_population_params = PopulationParams(
     num_persons=10000,
     location_type_to_params={
         Home: LocationParams(num=3000),
-        GroceryStore: LocationParams(num=10, worker_capacity=10, visitor_capacity=30),
+        GroceryStore: LocationParams(num=40, worker_capacity=5, visitor_capacity=30),
         Office: LocationParams(num=50, worker_capacity=150, visitor_capacity=0),
-        School: LocationParams(num=30, worker_capacity=4, visitor_capacity=300),
-        Hospital: LocationParams(num=1, worker_capacity=80, visitor_capacity=100),
-        RetailStore: LocationParams(num=15, worker_capacity=10, visitor_capacity=30),
-        HairSalon: LocationParams(num=20, worker_capacity=3, visitor_capacity=5),
+        School: LocationParams(num=100, worker_capacity=4, visitor_capacity=300),
+        Hospital: LocationParams(num=10, worker_capacity=30, visitor_capacity=10),
+        RetailStore: LocationParams(num=40, worker_capacity=5, visitor_capacity=30),
+        HairSalon: LocationParams(num=40, worker_capacity=3, visitor_capacity=5),
         Restaurant: LocationParams(num=20, worker_capacity=6, visitor_capacity=30),
-        Bar: LocationParams(num=10, worker_capacity=8, visitor_capacity=30),
+        Bar: LocationParams(num=20, worker_capacity=5, visitor_capacity=30),
     },
     viz_scale=2)
 
