@@ -106,7 +106,7 @@ def real_world_data() -> CalibrationData:
     real_deaths = deaths_df['Sweden'].values
     real_deaths = real_deaths[~np.isnan(real_deaths)]
 
-    hosp_url = 'https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/ecdc/' \
+    hosp_url = 'https://raw.githubusercontent.com/owid/covid-19-data/master/scripts/grapher/' \
                'COVID-2019%20-%20Hospital%20&%20ICU.csv'
     hosp_df = read_csv(hosp_url, header=0)
     real_hosp = np.array(hosp_df[hosp_df['entity'] == 'Sweden']['Weekly new ICU admissions'])
