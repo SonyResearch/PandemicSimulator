@@ -171,9 +171,9 @@ def make_plots(params: np.ndarray) -> None:
     # plot calibrated simulator run against real-world data
     plt.plot(sim_data)
     plt.plot(real_data)
-    plt.legend(["PANDEMICSIM", "Sweden"])
+    plt.legend(["Simulated", "Real world (Sweden)"])
     plt.xlabel("Weeks Passed")
-    plt.ylabel("Hospitalizations Per Day (normalized)")
+    plt.ylabel("Hospitalizations Per Week (normalized)")
     plt.show()
 
 
