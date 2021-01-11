@@ -31,6 +31,13 @@ class CalibrationData:
         return bool(np.sum(self.deaths) > 0)
 
 
+def reset_patient_capacity(sim_config: ps.env.PandemicSimConfig) -> None:
+    for lc in sim_config.location_configs:
+        if issubclass(lc.location_type, ps.env.Hospital):
+            lc.state_opts['patient_capacity'] = sim_config.num_persons
+    sim_config.__post_init__()
+
+
 def eval_params(params: np.ndarray,
                 max_episode_length: int,
                 trial_cnt: int = 0) -> CalibrationData:
@@ -45,8 +52,9 @@ def eval_params(params: np.ndarray,
         raise Exception(f'Could not find a valid evaluation for the params: {params} within the specified number'
                         f'of trials: {MAX_EVAL_TRIALS_TO_VALID}.')
 
-    spread_rate = params[:, 0][0]
-    social_distancing = params[:, 1][0]
+    spread_rate = np.round(params[:, 0][0], decimals=3)
+    social_distancing = np.round(params[:, 1][0], decimals=3)
+
     deaths = []
     hospitalizations = []
     seed = SEED + trial_cnt
@@ -58,7 +66,7 @@ def eval_params(params: np.ndarray,
 
     ps.init_globals(seed=seed)
     sim_config = ps.sh.small_town_config
-    # sim_config.max_hospital_capacity = 1000  # set a high number for calibration
+    reset_patient_capacity(sim_config)
     sim_opts = ps.env.PandemicSimOpts(infection_spread_rate_mean=spread_rate)
     sim = ps.env.PandemicSim.from_config(sim_config, sim_opts,
                                          person_routine_assignment=ps.sh.DefaultPersonRoutineAssignment())
@@ -176,7 +184,7 @@ def make_plots(params: np.ndarray) -> None:
 
 if __name__ == '__main__':
     bounds2d = [{'name': 'spread rate', 'type': 'continuous', 'domain': (0.005, 0.03)},
-                {'name': 'contact rate', 'type': 'continuous', 'domain': (0., 0.8)}]
+                {'name': 'contact rate', 'type': 'continuous', 'domain': (0., 0.4)}]
     myBopt_2d = GPyOpt.methods.BayesianOptimization(obj_func, domain=bounds2d)
     myBopt_2d.run_optimization()
 

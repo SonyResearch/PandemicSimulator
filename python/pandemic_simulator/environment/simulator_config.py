@@ -1,7 +1,7 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 import dataclasses
 from dataclasses import dataclass, field
-from typing import Sequence, Type, Mapping, Any
+from typing import Sequence, Type, Any, Dict
 
 from .location import BaseLocation, Hospital, HospitalState
 
@@ -19,7 +19,7 @@ class LocationConfig:
     num_assignees: int = -1
     """Number of assignees assigned to that location"""
 
-    state_opts: Mapping[str, Any] = field(default_factory=dict)
+    state_opts: Dict[str, Any] = field(default_factory=dict)
     """Additional options passed to the initial state."""
 
     def __post_init__(self) -> None:
@@ -45,6 +45,6 @@ class PandemicSimConfig:
 
     def __post_init__(self) -> None:
         for config in self.location_configs:
-            if config.location_type == Hospital:
+            if issubclass(config.location_type, Hospital):
                 patient_capacity = config.state_opts.get('patient_capacity', HospitalState.patient_capacity)
                 self.max_hospital_capacity = config.num * patient_capacity
