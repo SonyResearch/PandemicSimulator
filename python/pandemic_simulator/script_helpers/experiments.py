@@ -5,12 +5,11 @@ from typing import List, Optional, Sequence, Union
 import numpy as np
 from tqdm import trange
 
-from .setup_sim_env import make_gym_env
-from ..data.interfaces import ExperimentDataSaver, StageSchedule
-from ..environment import PandemicSimOpts, PandemicSimConfig, NoPandemicDone, PandemicRegulation, init_globals
 from .covid_regulations import austin_regulations
+from ..data.interfaces import ExperimentDataSaver, StageSchedule
+from ..environment import PandemicSimOpts, PandemicSimConfig, NoPandemicDone, PandemicRegulation, init_globals, \
+    PandemicGymEnv
 from ..utils import shallow_asdict
-
 
 __all__ = ['experiment_main', 'seeded_experiment_main']
 
@@ -26,10 +25,10 @@ def seeded_experiment_main(exp_id: int,
                            random_seed: int = 0) -> bool:
     """A helper that runs an experiment with the given seed and records data"""
     init_globals(seed=random_seed)
-    env = make_gym_env(sim_config=sim_config,
-                       sim_opts=sim_opts,
-                       pandemic_regulations=pandemic_regulations or austin_regulations,
-                       done_fn=NoPandemicDone(30))
+    env = PandemicGymEnv.from_config(sim_config=sim_config,
+                                     sim_opts=sim_opts,
+                                     pandemic_regulations=pandemic_regulations or austin_regulations,
+                                     done_fn=NoPandemicDone(30))
     env.reset()
 
     stages = ([StageSchedule(stage=stages_to_execute, end_day=None)]

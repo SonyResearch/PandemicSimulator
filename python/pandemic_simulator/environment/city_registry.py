@@ -7,6 +7,7 @@ from cachetools import cached
 from .interfaces import LocationID, Location, PersonID, Person, Registry, RegistrationError, InfectionSummary, \
     IndividualInfectionState, BusinessLocationState, PandemicTestResult, LocationSummary, SimTimeTuple, SimTime, \
     LocationState
+from .location.base_business import BusinessBaseLocation
 from .location.cemetery import Cemetery
 
 __all__ = ['CityRegistry']
@@ -145,14 +146,18 @@ class CityRegistry(Registry):
         return self._location_ids_with_social_events
 
     @property
+    def location_types(self) -> Set[str]:
+        return self._location_types
+
+    @property
     def global_location_summary(self) -> Mapping[Tuple[str, str], LocationSummary]:
-        return dict(self._global_location_summary)
+        return self._global_location_summary
 
     # ----------------location utility methods-----------------
 
     @cached(cache={})
-    def location_ids_of_type(self, location_type: type) -> List[LocationID]:
-        return [loc_id for loc_id, loc in self._location_register.items() if isinstance(loc, location_type)]
+    def location_ids_of_type(self, location_type: type) -> Tuple[LocationID]:
+        return tuple(loc_id for loc_id, loc in self._location_register.items() if isinstance(loc, location_type))
 
     def get_persons_in_location(self, location_id: LocationID) -> Set[PersonID]:
         return cast(LocationState, self._location_register[location_id].state).persons_in_location
@@ -160,10 +165,9 @@ class CityRegistry(Registry):
     def location_id_to_type(self, location_id: LocationID) -> Type:
         return type(self._location_register[location_id])
 
-    def get_location_open_time(self, location_id: LocationID) -> SimTimeTuple:
-        state = self._location_register[location_id].state
-        assert isinstance(state, BusinessLocationState), 'The given location id is not a business location.'
-        return state.open_time
+    def get_location_work_time(self, location_id: LocationID) -> SimTimeTuple:
+        assert location_id in self._business_location_ids, 'The given location id is not a business location.'
+        return cast(BusinessBaseLocation, self._location_register[location_id]).get_worker_work_time()
 
     def is_location_open_for_visitors(self, location_id: LocationID, sim_time: SimTime) -> bool:
         location_state = self._location_register[location_id].state

@@ -8,7 +8,7 @@ __all__ = ['PandemicSimOpts']
 class PandemicSimOpts:
     """Parameter options passed to the simulator."""
 
-    infection_spread_rate_mean: float = 0.03
+    infection_spread_rate_mean: float = 0.0211
     """Mean for the bounded-gaussian infection spread rate distribution"""
 
     infection_spread_rate_sigma: float = 0.01
@@ -41,8 +41,5 @@ class PandemicSimOpts:
     contact_tracer_history_size: int = 5
     """Contact tracer history size. Only used if use_contact_tracer is True."""
 
-    regulation_compliance_prob: float = 0.99
-    """The probability that a person complies to regulation every step"""
-
-    infection_threshold: int = 5
+    infection_threshold: int = 10
     """A threshold used by """

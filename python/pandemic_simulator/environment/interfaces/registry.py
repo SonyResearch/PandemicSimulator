@@ -81,6 +81,11 @@ class Registry(ABC):
            E.g.: {('School', 'Minor'): LocationSummary(entry_count=10)}
         """
 
+    @property
+    @abstractmethod
+    def location_types(self) -> Set[str]:
+        """Return a set of registered location types (as str)."""
+
     # ----------------location utility methods-----------------
 
     @abstractmethod
@@ -96,7 +101,7 @@ class Registry(ABC):
         """Return the type of location with the given ID."""
 
     @abstractmethod
-    def get_location_open_time(self, location_id: LocationID) -> Optional[SimTimeTuple]:
+    def get_location_work_time(self, location_id: LocationID) -> Optional[SimTimeTuple]:
         """Return the open time for the given location and None if not applicable"""
 
     @abstractmethod

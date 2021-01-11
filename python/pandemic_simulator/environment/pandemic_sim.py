@@ -2,20 +2,30 @@
 
 from collections import defaultdict, OrderedDict
 from itertools import product as cartesianproduct, combinations
-from typing import DefaultDict, Dict, List, Optional, Sequence, cast
+from typing import DefaultDict, Dict, List, Optional, Sequence, cast, Type, Callable, Mapping
 
 import numpy as np
 from orderedset import OrderedSet
 
-from .infection_model import SEIRModel
+from .contact_tracing import MaxSlotContactTracer
+from .infection_model import SEIRModel, SpreadProbabilityParams
 from .interfaces import ContactRate, ContactTracer, PandemicRegulation, PandemicSimState, PandemicTesting, \
     PandemicTestResult, \
     DEFAULT, GlobalTestingState, InfectionModel, InfectionSummary, Location, LocationID, Person, PersonID, Registry, \
-    SimTime, SimTimeInterval, sorted_infection_summary, globals
+    SimTime, SimTimeInterval, sorted_infection_summary, globals, SimTimeTuple, PersonRoutine, PersonRoutineAssignment
 from .location import Hospital
+from .make_population import make_population
 from .pandemic_testing_strategies import RandomPandemicTesting
+from .simulator_config import PandemicSimConfig
+from .simulator_opts import PandemicSimOpts
 
-__all__ = ['PandemicSim']
+__all__ = ['PandemicSim', 'make_locations']
+
+
+def make_locations(sim_config: PandemicSimConfig) -> List[Location]:
+    return [config.location_type(loc_id=f'{config.location_type.__name__}_{i}',
+                                 init_state=config.location_type.state_type(**config.state_opts))
+            for config in sim_config.location_configs for i in range(config.num)]
 
 
 class PandemicSim:
@@ -93,6 +103,60 @@ class PandemicSim:
             regulation_stage=0,
             infection_above_threshold=False
         )
+
+    @classmethod
+    def from_config(cls: Type['PandemicSim'],
+                    sim_config: PandemicSimConfig,
+                    sim_opts: PandemicSimOpts = PandemicSimOpts(),
+                    person_routine_assignment: Optional[PersonRoutineAssignment] = None) -> 'PandemicSim':
+        """
+        Creates an instance using config
+
+        :param sim_config: Simulator config
+        :param sim_opts: Simulator opts
+        :param person_routine_assignment: An optional PersonRoutineAssignment instance that assign PersonRoutines to
+            each person
+        :return: PandemicSim instance
+        """
+        assert globals.registry, 'No registry found. Create the repo wide registry first by calling init_globals()'
+
+        # make locations
+        locations = make_locations(sim_config)
+
+        # make population
+        persons = make_population(sim_config)
+
+        # assign routines
+        if person_routine_assignment is not None:
+            for loc in person_routine_assignment.required_location_types:
+                assert (loc.__name__ in globals.registry.location_types,
+                        f'Required location type {loc.__name__} not found. Modify sim_config to include it.')
+            person_routine_assignment(persons)
+
+        # make infection model
+        infection_model = SEIRModel(
+            spread_probability_params=SpreadProbabilityParams(sim_opts.infection_spread_rate_mean,
+                                                              sim_opts.infection_spread_rate_sigma))
+
+        # setup pandemic testing
+        pandemic_testing = RandomPandemicTesting(spontaneous_testing_rate=sim_opts.spontaneous_testing_rate,
+                                                 symp_testing_rate=sim_opts.symp_testing_rate,
+                                                 critical_testing_rate=sim_opts.critical_testing_rate,
+                                                 testing_false_positive_rate=sim_opts.testing_false_positive_rate,
+                                                 testing_false_negative_rate=sim_opts.testing_false_negative_rate,
+                                                 retest_rate=sim_opts.retest_rate)
+
+        # create contact tracing app (optional)
+        contact_tracer = MaxSlotContactTracer(
+            storage_slots=sim_opts.contact_tracer_history_size) if sim_opts.use_contact_tracer else None
+
+        # setup sim
+        return PandemicSim(persons=persons,
+                           locations=locations,
+                           infection_model=infection_model,
+                           pandemic_testing=pandemic_testing,
+                           contact_tracer=contact_tracer,
+                           infection_threshold=sim_opts.infection_threshold)
 
     @property
     def registry(self) -> Registry:

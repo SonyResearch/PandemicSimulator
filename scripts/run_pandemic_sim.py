@@ -11,7 +11,7 @@ if __name__ == '__main__':
     sim_config = ps.sh.small_town_config
 
     # make sim
-    sim = ps.sh.make_sim(sim_config)
+    sim = ps.env.PandemicSim.from_config(sim_config, person_routine_assignment=ps.sh.DefaultPersonRoutineAssignment())
 
     # setup viz
     viz = ps.viz.MatplotLibViz(num_persons=sim_config.num_persons,

@@ -1,13 +1,20 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
+from dataclasses import dataclass
 from typing import List, Tuple, Optional, Sequence
 
 import numpy as np
 
-from .interfaces import LocationID, globals
+from .interfaces import LocationID, globals, SimTimeTuple
 from .location import BusinessBaseLocation
 from .simulator_config import LocationConfig
 
 __all__ = ['JobCounselor']
+
+
+@dataclass(frozen=True)
+class WorkPackage:
+    work: LocationID
+    work_time: SimTimeTuple
 
 
 class JobCounselor:
@@ -29,8 +36,8 @@ class JobCounselor:
                                          for config in location_configs
                                          if issubclass(config.location_type, BusinessBaseLocation)]
 
-    def next_available_work_id(self) -> Optional[LocationID]:
-        """Return next available work location id"""
+    def next_available_work(self) -> Optional[WorkPackage]:
+        """Return next available work"""
         if len(self._all_work_ids_vacant_pos) == 0:
             return None
 
@@ -44,4 +51,4 @@ class JobCounselor:
             self._all_work_ids_vacant_pos.pop(work_type_index)
         else:
             self._all_work_ids_vacant_pos[work_type_index] = (work_ids, vacant_positions)
-        return work_id
+        return WorkPackage(work_id, self._registry.get_location_work_time(work_id))

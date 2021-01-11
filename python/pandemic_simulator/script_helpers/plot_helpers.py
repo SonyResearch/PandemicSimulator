@@ -102,15 +102,23 @@ def make_evaluation_plots_from_data(data: Sequence[ExperimentResult],
             # handle gridspec automatically. We are going to
             # do that manually so we can filter the warning.
             gs1.tight_layout(fig, rect=[0.01, None, 0.6, None])
+
+        bar_plots_2d = (3 + int(show_time_to_peak) + int(show_pandemic_duration) + int(show_cumulative_reward))
+        bar_plots_3d = 0
+        total_bar_plots = bar_plots_2d + bar_plots_3d
+        n_cols = int(np.round(np.sqrt(total_bar_plots)))
+        n_rows = int(n_cols) if n_cols ** 2 >= total_bar_plots else n_cols + 1
+
     else:
-        figsize = figsize if figsize is not None else (10, 3)
+        bar_plots_2d = (3 + int(show_time_to_peak) + int(show_pandemic_duration) + int(show_cumulative_reward))
+        bar_plots_3d = 0
+        total_bar_plots = bar_plots_2d + bar_plots_3d
+        n_cols = 3 if total_bar_plots > 4 else 2
+        n_rows = np.ceil(total_bar_plots / n_cols).astype('int')
+
+        figsize = figsize if figsize is not None else (10, n_rows * 3)
         fig = plt.figure(num=sup_title, figsize=figsize)
 
-    bar_plots_2d = (3 + int(show_time_to_peak) + int(show_pandemic_duration) + int(show_cumulative_reward))
-    bar_plots_3d = 0
-    total_bar_plots = bar_plots_2d + bar_plots_3d
-    n_cols = int(np.round(np.sqrt(total_bar_plots)))
-    n_rows = int(n_cols) if n_cols ** 2 >= total_bar_plots else n_cols + 1
     gs2 = gridspec.GridSpec(n_rows, n_cols)
     axs = []
     plot_i = 0
@@ -138,7 +146,7 @@ def make_evaluation_plots_from_data(data: Sequence[ExperimentResult],
                         ha='center', va='center', size=14)
             plot_ref_label_i += 1
 
-    if gs1:
+    if gs1 is not None:
         with warnings.catch_warnings():
             # This raises warnings since tight layout cannot
             # handle gridspec automatically. We are going to

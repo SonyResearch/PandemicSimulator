@@ -13,7 +13,9 @@ if __name__ == '__main__':
 
     # make env
     pandemic_regulations = ps.sh.austin_regulations
-    env = ps.sh.make_gym_env(sim_config, pandemic_regulations=pandemic_regulations)
+    env = ps.env.PandemicGymEnv.from_config(sim_config,
+                                            pandemic_regulations=pandemic_regulations,
+                                            person_routine_assignment=ps.sh.DefaultPersonRoutineAssignment())
 
     # setup viz
     viz = ps.viz.MatplotLibViz(num_persons=sim_config.num_persons,

@@ -207,6 +207,7 @@ italian_regulations: List[PandemicRegulation] = [
 
 # Anders Tegnell says his modelling indicates that, on average, Swedes have around 30% of the social interactions they
 # did prior to the pandemic.
+
 swedish_regulations: List[PandemicRegulation] = [
     PandemicRegulation(stay_home_if_sick=False,
                        practice_good_hygiene=False,
@@ -224,7 +225,7 @@ swedish_regulations: List[PandemicRegulation] = [
                        stage=0),
     PandemicRegulation(stay_home_if_sick=True,
                        practice_good_hygiene=True,
-                       social_distancing=0.70,
+                       social_distancing=0.277,  # after calibration
                        risk_to_avoid_gathering_size={Risk.HIGH: 50, Risk.LOW: 50},
                        stage=1),
 ]

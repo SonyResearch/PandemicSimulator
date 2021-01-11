@@ -12,6 +12,7 @@ from .infection_model import *
 from .interfaces import *
 from .job_counselor import *
 from .location import *
+from .make_population import *
 from .pandemic_env import *
 from .pandemic_sim import *
 from .pandemic_testing_strategies import *

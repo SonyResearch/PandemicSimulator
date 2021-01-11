@@ -27,6 +27,13 @@ class BusinessBaseLocation(BaseLocation[_BusinessState], metaclass=ABCMeta):
             self._state.open_time = (self._init_state.open_time if rule.open_time == DEFAULT
                                      else cast(SimTimeTuple, rule.open_time))
 
+    def get_worker_work_time(self) -> SimTimeTuple:
+        """Returns work-time for a new worker to work at the location. For example, a location that is open 24x7
+        can return a shift slot of 8 hours, such that, there is a worker
+        working at all times while the location is open. By default, work_time is set equal to open_time. Subclasses
+        can modify to implement location-specific versions."""
+        return self.state.open_time
+
 
 class EssentialBusinessBaseLocation(BusinessBaseLocation[_BusinessState], metaclass=ABCMeta):
     """Class that implements an essential business location that has finite open hours."""
