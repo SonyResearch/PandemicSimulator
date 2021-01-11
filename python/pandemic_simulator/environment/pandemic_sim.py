@@ -2,7 +2,7 @@
 
 from collections import defaultdict, OrderedDict
 from itertools import product as cartesianproduct, combinations
-from typing import DefaultDict, Dict, List, Optional, Sequence, cast, Type, Callable, Mapping
+from typing import DefaultDict, Dict, List, Optional, Sequence, cast, Type
 
 import numpy as np
 from orderedset import OrderedSet
@@ -12,7 +12,7 @@ from .infection_model import SEIRModel, SpreadProbabilityParams
 from .interfaces import ContactRate, ContactTracer, PandemicRegulation, PandemicSimState, PandemicTesting, \
     PandemicTestResult, \
     DEFAULT, GlobalTestingState, InfectionModel, InfectionSummary, Location, LocationID, Person, PersonID, Registry, \
-    SimTime, SimTimeInterval, sorted_infection_summary, globals, SimTimeTuple, PersonRoutine, PersonRoutineAssignment
+    SimTime, SimTimeInterval, sorted_infection_summary, globals, PersonRoutineAssignment
 from .location import Hospital
 from .make_population import make_population
 from .pandemic_testing_strategies import RandomPandemicTesting
@@ -129,8 +129,8 @@ class PandemicSim:
         # assign routines
         if person_routine_assignment is not None:
             for loc in person_routine_assignment.required_location_types:
-                assert (loc.__name__ in globals.registry.location_types,
-                        f'Required location type {loc.__name__} not found. Modify sim_config to include it.')
+                assert loc.__name__ in globals.registry.location_types, (
+                    f'Required location type {loc.__name__} not found. Modify sim_config to include it.')
             person_routine_assignment(persons)
 
         # make infection model

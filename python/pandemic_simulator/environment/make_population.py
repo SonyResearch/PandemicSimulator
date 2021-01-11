@@ -1,5 +1,5 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
-from typing import List
+from typing import List, cast
 from uuid import uuid4
 
 import numpy as np
@@ -30,7 +30,8 @@ def get_us_age_distribution(num_persons: int) -> List[int]:
 
 
 def infection_risk(age: int) -> Risk:
-    return globals.numpy_rng.choice([Risk.LOW, Risk.HIGH], p=[1 - age / age_group.stop, age / age_group.stop])
+    return cast(Risk,
+                globals.numpy_rng.choice([Risk.LOW, Risk.HIGH], p=[1 - age / age_group.stop, age / age_group.stop]))
 
 
 def make_population(sim_config: PandemicSimConfig) -> List[Person]:

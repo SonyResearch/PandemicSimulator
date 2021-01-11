@@ -51,4 +51,6 @@ class JobCounselor:
             self._all_work_ids_vacant_pos.pop(work_type_index)
         else:
             self._all_work_ids_vacant_pos[work_type_index] = (work_ids, vacant_positions)
-        return WorkPackage(work_id, self._registry.get_location_work_time(work_id))
+        work_time = self._registry.get_location_work_time(work_id)
+        assert work_time
+        return WorkPackage(work_id, work_time)
