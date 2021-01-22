@@ -25,7 +25,7 @@ def get_us_age_distribution(num_persons: int) -> List[int]:
             age_p[i] = (1 + (age - 60) * (0.05 - 1) / (100 - 60)) * globals.numpy_rng.normal(1, 0.05)
     age_p /= np.sum(age_p)
     ages = [globals.numpy_rng.choice(np.arange(1, 101), p=age_p) for _ in range(num_persons)]
-    print(f'Average age: {np.average(ages)}')
+    # print(f'Average age: {np.average(ages)}')
     return ages
 
 

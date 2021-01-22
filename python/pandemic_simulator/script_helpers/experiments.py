@@ -10,6 +10,7 @@ from ..data.interfaces import ExperimentDataSaver, StageSchedule
 from ..environment import PandemicSimOpts, PandemicSimConfig, NoPandemicDone, PandemicRegulation, init_globals, \
     PandemicGymEnv
 from ..utils import shallow_asdict
+from .person_routines import DefaultPersonRoutineAssignment
 
 __all__ = ['experiment_main', 'seeded_experiment_main']
 
@@ -28,6 +29,7 @@ def seeded_experiment_main(exp_id: int,
     env = PandemicGymEnv.from_config(sim_config=sim_config,
                                      sim_opts=sim_opts,
                                      pandemic_regulations=pandemic_regulations or austin_regulations,
+                                     person_routine_assignment=DefaultPersonRoutineAssignment(),
                                      done_fn=NoPandemicDone(30))
     env.reset()
 

@@ -18,7 +18,9 @@ def mypy() -> int:
     paths = [
         Path('bin'),
         Path('python/pandemic_simulator'),
-        Path('scripts'),
+        Path('scripts/tutorials'),
+        Path('scripts/simulator_experiments'),
+        Path('scripts/calibration'),
     ]
     # we need --scripts-are-modules since we specify some files on the command line and they have usages of __main__
     cmd = ['mypy', '--show-absolute-path', '--scripts-are-modules'] + [str(x) for x in paths]

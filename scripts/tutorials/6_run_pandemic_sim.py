@@ -3,7 +3,12 @@ from tqdm import trange
 
 import pandemic_simulator as ps
 
-if __name__ == '__main__':
+
+def run_pandemic_sim() -> None:
+    """Here we execute the simulator using austin regulations, a small town config and default person routines."""
+
+    print('\nA tutorial that runs the simulator using austin regulations and default person routines', flush=True)
+
     # init globals
     ps.init_globals(seed=100)
 
@@ -13,13 +18,13 @@ if __name__ == '__main__':
     # make sim
     sim = ps.env.PandemicSim.from_config(sim_config, person_routine_assignment=ps.sh.DefaultPersonRoutineAssignment())
 
-    # setup viz
+    # setup viz to show plots
     viz = ps.viz.MatplotLibViz(num_persons=sim_config.num_persons,
                                max_hospital_capacity=sim_config.max_hospital_capacity,
                                num_stages=len(ps.sh.austin_regulations),
                                show_stages=False)
 
-    # execute a regulation
+    # impose a regulation
     sim.impose_regulation(regulation=ps.sh.austin_regulations[0])  # stage 0
 
     # run regulation steps in the simulator
@@ -29,3 +34,7 @@ if __name__ == '__main__':
 
     # generate plots
     viz.plot()
+
+
+if __name__ == '__main__':
+    run_pandemic_sim()
