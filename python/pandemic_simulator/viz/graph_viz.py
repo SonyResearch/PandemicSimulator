@@ -12,7 +12,7 @@ __all__ = ['GraphViz']
 
 
 class GraphViz(PandemicViz):
-    """Pandemic19 reinforcement learning matplotlib visualization"""
+    """A visualization for showing graph connectivity"""
 
     _sim: PandemicSim
     _num_stages: int

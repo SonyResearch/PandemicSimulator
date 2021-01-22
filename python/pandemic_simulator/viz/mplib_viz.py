@@ -6,7 +6,7 @@ import numpy as np
 from cycler import cycler
 from matplotlib import pyplot as plt
 
-from .mplab_evaluation import inf_colors
+from .evaluation_plots import inf_colors
 from .pandemic_viz import PandemicViz
 from ..environment import PandemicObservation, InfectionSummary, PandemicSimState
 from ..utils import checked_cast
@@ -15,7 +15,7 @@ __all__ = ['MatplotLibViz']
 
 
 class MatplotLibViz(PandemicViz):
-    """Pandemic19 reinforcement learning matplotlib visualization"""
+    """A basic matplotlib visualization for the simulator"""
 
     _num_persons: int
     _max_hospital_capacity: int

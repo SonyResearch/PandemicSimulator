@@ -3,5 +3,5 @@
 
 from .pandemic_viz import *
 from .mplib_viz import *
-from .mplab_evaluation import *
+from .evaluation_plots import *
 from .graph_viz import *
