@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 Welcome to pandemic simulator's documentation!
-===================================
+==============================================
 
 .. toctree::
    :titlesonly:

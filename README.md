@@ -80,7 +80,8 @@ See `scripts/tutorials/` for in-depth tutorials on how to use the simulator.
 
 ## Project Structure
 
-`/docs` -- API documentation plus hierarchy (build it locally by calling `make html`)
+`/docs` -- API documentation plus hierarchy. Build it locally by calling `make html` inside docs folder. Requires 
+sphinx autodoc package. Installation instructions: https://www.sphinx-doc.org/en/master/usage/installation.html
 
 `/python/pandemic_simulator/` -- Source files
 
