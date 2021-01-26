@@ -56,26 +56,8 @@ def make_population(sim_config: PandemicSimConfig) -> List[Person]:
     - https://www.pewresearch.org
         /fact-tank/2019/12/12/u-s-children-more-likely-than-children-in-other-countries-to-live-with-just-one-parent/
 
-    Assign adults according to the following scheme:
-    requirement: len(adults) >= len(minor_homes)
-
-    if len(adults) < l
-
-    100
-    77 * 2
-    154 adults
-    1.77 * len(minor_homes)
-
-
-
-
-    0.23 * mh + 2 * 0.77 * mh
-
-
     one adult to 23% minor homes,
-    two adults to 67% of minor homes,
-    two adults + 1 or 2 retirees to 10% of minor homes, and
-    distribute the remaining adults and retirees in the remaining non-minor-non-nursing homes
+    distribute the remaining adults and retirees in the remaining minor and non-nursing homes
 
     :param sim_config: PandemicSimConfig instance
     :return: a list of person instances
