@@ -75,16 +75,18 @@ for _ in trange(24, desc='Simulating hour'):
     sim.step()
 ```
 
-See `scripts/tutorials/` for more tutorials on how to use the simulator.
+See `scripts/tutorials/` for in-depth tutorials on how to use the simulator.
 
 
 ## Project Structure
 
-`/docs` -- API documentation plus hierarchy 
+`/docs` -- API documentation plus hierarchy (build it locally by calling `make html`)
 
 `/python/pandemic_simulator/` -- Source files
 
-`/scripts` -- Example scripts to run the simulator and the OpenAI gym environment
+`/scripts` -- Tutorials, calibration-scripts and evaluation scripts
+
+`/test` -- unittests
 
 ## Contact
  
