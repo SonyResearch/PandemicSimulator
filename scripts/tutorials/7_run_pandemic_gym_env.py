@@ -12,7 +12,7 @@ def run_pandemic_gym_env() -> None:
     print('\nA tutorial that runs the OpenAI Gym environment wrapped simulator', flush=True)
 
     # init globals
-    ps.init_globals(seed=100)
+    ps.init_globals(seed=0)
 
     # select a simulator config
     sim_config = ps.sh.small_town_config

@@ -16,7 +16,7 @@ def using_person_routine_assignment() -> None:
 
     # the first thing to do at the start of any experiment is to initialize a few global parameters
     # these parameters are shared across the entire repo
-    ps.init_globals()
+    ps.init_globals(seed=0)
 
     # generate a simulator config (see `python/pandemic_simulator/script_helpers/sim_configs.py` for more configs)
     sim_config = ps.env.PandemicSimConfig(

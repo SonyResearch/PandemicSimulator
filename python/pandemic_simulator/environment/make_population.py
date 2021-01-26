@@ -105,6 +105,7 @@ def make_population(sim_config: PandemicSimConfig) -> List[Person]:
     # b) Cluster minors into 1-3 sized uniform groups and assign each group to a home
     schools = registry.location_ids_of_type(School)
     clustered_minor_ages = cluster_into_random_sized_groups(minor_ages, 1, 3, numpy_rng)
+    assert len(unassigned_homes) >= len(clustered_minor_ages), 'not enough homes to assign all people'
     minor_homes_ages = [(unassigned_homes[_i], _a) for _i, _g in enumerate(clustered_minor_ages) for _a in _g]
     minor_homes = unassigned_homes[:len(clustered_minor_ages)]
     unassigned_homes = unassigned_homes[len(minor_homes):]  # remove assigned minor homes

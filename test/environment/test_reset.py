@@ -4,7 +4,7 @@ import copy
 import pandemic_simulator as ps
 
 
-def test_location_and_person_reset():
+def test_location_and_person_reset() -> None:
     ps.init_globals()
     config = ps.sh.tiny_town_config
 

@@ -23,17 +23,18 @@ from matplotlib import pyplot as plt
 import pandemic_simulator as ps
 
 
-def plot_household_distribution():
+def plot_household_distribution() -> None:
     ps.init_globals()
     config = ps.sh.small_town_config
     cr = ps.env.globals.registry
+    assert cr
 
     ps.env.make_locations(config)
     ps.env.make_population(config)
 
-    retiree_homes = []
-    minor_homes = []
-    adult_homes = []
+    retiree_homes_list = []
+    minor_homes_list = []
+    adult_homes_list = []
 
     homes = cr.location_ids_of_type(ps.env.Home)
 
@@ -52,16 +53,16 @@ def plot_household_distribution():
             else:
                 retirees += 1
         if minors > 0:
-            minor_homes.append([minors, adults, retirees])
+            minor_homes_list.append([minors, adults, retirees])
         elif adults > 0:
-            adult_homes.append([minors, adults, retirees])
+            adult_homes_list.append([minors, adults, retirees])
         elif retirees > 0:
-            retiree_homes.append([minors, adults, retirees])
+            retiree_homes_list.append([minors, adults, retirees])
         tot_persons += len(household)
 
-    minor_homes = np.asarray(minor_homes)
-    adult_homes = np.asarray(adult_homes)
-    retiree_homes = np.asarray(retiree_homes)
+    minor_homes = np.asarray(minor_homes_list)
+    adult_homes = np.asarray(adult_homes_list)
+    retiree_homes = np.asarray(retiree_homes_list)
 
     n_rows = 2
     n_cols = 3
@@ -73,7 +74,7 @@ def plot_household_distribution():
     ylims = [0, max(np.max(minor_homes.sum(axis=0)), np.max(adult_homes.sum(axis=0)),
                     np.max(retiree_homes.sum(axis=0))) * 1.2]
 
-    def plot_percent(n_homes: np.ndarray):
+    def plot_percent(n_homes: np.ndarray) -> None:
         for i, n in enumerate(n_homes):
             if n > 0:
                 plt.text(i, n + 5, f'{n / config.num_persons * 100: 0.2f}%', ha="center", color=colors[i])

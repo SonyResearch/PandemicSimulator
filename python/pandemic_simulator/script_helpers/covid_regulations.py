@@ -225,7 +225,7 @@ swedish_regulations: List[PandemicRegulation] = [
                        stage=0),
     PandemicRegulation(stay_home_if_sick=True,
                        practice_good_hygiene=True,
-                       social_distancing=0.16,  # after calibration
+                       social_distancing=0.139,  # after calibration
                        risk_to_avoid_gathering_size={Risk.HIGH: 50, Risk.LOW: 50},
                        stage=1),
 ]

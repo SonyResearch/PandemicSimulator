@@ -13,13 +13,13 @@ def impose_regulations() -> None:
 
     # the first thing to do at the start of any experiment is to initialize a few global parameters
     # these parameters are shared across the entire repo
-    ps.init_globals()
+    ps.init_globals(seed=0)
 
     # generate a simulator config (see `python/pandemic_simulator/script_helpers/sim_configs.py` for more configs)
     sim_config = ps.env.PandemicSimConfig(
         num_persons=10,
         location_configs=[
-            ps.env.LocationConfig(location_type=ps.env.Home, num=3),
+            ps.env.LocationConfig(location_type=ps.env.Home, num=4),
             ps.env.LocationConfig(location_type=ps.env.GroceryStore, num=1),
             ps.env.LocationConfig(location_type=ps.env.Office, num=1),
             ps.env.LocationConfig(location_type=ps.env.School, num=1)

@@ -3,7 +3,7 @@
 from pandemic_simulator.environment import SimTime, SimTimeInterval
 
 
-def test_sim_time_interval_trigger_hour():
+def test_sim_time_interval_trigger_hour() -> None:
     hour = 5
     interval = SimTimeInterval(hour=hour)
     for i in range(1, 3):
@@ -12,7 +12,7 @@ def test_sim_time_interval_trigger_hour():
         assert not interval.trigger_at_interval(SimTime(hour=hour * i - 1))
 
 
-def test_sim_time_interval_trigger_day():
+def test_sim_time_interval_trigger_day() -> None:
     day = 5
     hour = 6
     interval = SimTimeInterval(day=day, hour=hour)
@@ -23,7 +23,7 @@ def test_sim_time_interval_trigger_day():
         assert not interval.trigger_at_interval(SimTime(day=day, hour=1))
 
 
-def test_sim_time_interval_trigger_offset():
+def test_sim_time_interval_trigger_offset() -> None:
     offset_hour = 2
     offset_day = 1
     hour = 1

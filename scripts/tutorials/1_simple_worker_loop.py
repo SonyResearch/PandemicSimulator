@@ -13,7 +13,7 @@ def simple_worker_loop() -> None:
     # the first thing to do at the start of any experiment is to initialize a few global parameters
     # these parameters are shared across the entire repo
     ps.init_globals(
-        seed=None,  # if None, the experiment is not seeded and would initialized differently each time
+        seed=0,  # if None, the experiment is not seeded and would initialized differently each time
         registry=None,  # if None, a registry is created and used
         # a registry does bookkeeping of all people and locations used in the experiment
     )
