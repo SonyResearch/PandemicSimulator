@@ -363,8 +363,8 @@ def comb2_reduced(l: np.array, idx: list) -> tuple:
 def n_choose_k(n: int, k: int) -> int:
     """
     Calulate the number of combinations in N choose K. 
-    When k is 0 or 1, the answer is returned directly. When k > 1, iterate to compute factoral to compute 
-    nCr formula = n! / (r! (n-r)! by using m as an accumulator
+    When K is 0 or 1, the answer is returned directly. When K > 1, iterate to compute factoral to compute 
+    nCk formula = n! / (k! (n-k)! by using m as an accumulator
     """
     m = 0
     if k == 0:
