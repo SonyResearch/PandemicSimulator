@@ -350,10 +350,12 @@ def prod_reduced(a: np.array, b: np.array, idx: list) -> tuple:
 def comb2_reduced(l: np.array, idx: list) -> tuple:
     """
     Compute combinations of 2 on a subarray of input l given by indicies in input idx
-    Uses the upper triangular matrix on input l to generate 2-combination coordinates which are extracted from l as a vector
-    input: 
-     (vector) l - base array
-     (vector) idx - index values of l that define a subvector for which combinations of 2 will be computed
+    Uses the upper triangular matrix on input l to generate 2-combination coordinates which are extracted from
+    l as a vector
+
+    :param: l, base array
+    :param: idx, index values of l that define a subvector for which combinations of 2 will be computed
+    :return: actual combinations of 2 in l given idx
     """
     triu = np.triu_indices(l.size, 1)
     return l[triu[0][idx]], l[triu[1][idx]]
@@ -362,9 +364,11 @@ def comb2_reduced(l: np.array, idx: list) -> tuple:
 @lru_cache(maxsize=None)
 def n_choose_k(n: int, k: int) -> int:
     """
-    Calulate the number of combinations in N choose K. 
-    When K is 0 or 1, the answer is returned directly. When K > 1, iterate to compute factoral to compute 
+    Calulate the number of combinations in N choose K
+    When K is 0 or 1, the answer is returned directly. When K > 1, iterate to compute factoral to compute
     nCk formula = n! / (k! (n-k)! by using m as an accumulator
+
+    :return: number of ways to choose k from n
     """
     m = 0
     if k == 0:
