@@ -4,9 +4,9 @@ from uuid import uuid4
 
 import numpy as np
 
-from .interfaces import globals, Risk, Person, PersonID, PersonState
+from .interfaces import globals, Risk, Person, PersonID, PersonState, BusinessBaseLocation
 from .job_counselor import JobCounselor
-from .location import Home, School, BusinessBaseLocation
+from .location import Home, School
 from .person import Retired, Worker, Minor
 from .simulator_config import PandemicSimConfig
 from ..utils import cluster_into_random_sized_groups

@@ -4,8 +4,7 @@ from typing import List, Tuple, Optional, Sequence
 
 import numpy as np
 
-from .interfaces import LocationID, globals, SimTimeTuple
-from .location import BusinessBaseLocation
+from .interfaces import LocationID, globals, SimTimeTuple, BusinessBaseLocation
 from .simulator_config import LocationConfig
 
 __all__ = ['JobCounselor']

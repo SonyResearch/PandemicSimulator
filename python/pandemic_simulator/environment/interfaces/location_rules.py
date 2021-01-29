@@ -1,6 +1,5 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 import dataclasses
-from dataclasses import dataclass
 from typing import Union, Optional, Type
 
 from .location_states import ContactRate
@@ -10,7 +9,7 @@ from .sim_time import SimTimeTuple
 __all__ = ['LocationRule', 'BusinessLocationRule', 'NonEssentialBusinessLocationRule']
 
 
-@dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True)
 class LocationRule:
     """A rule to modify the location's operation."""
     contact_rate: Union[ContactRate, Default, None] = None
@@ -22,11 +21,11 @@ class LocationRule:
         return LocationRule(**{f.name: DEFAULT for f in dataclasses.fields(cls)})
 
 
-@dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True)
 class BusinessLocationRule(LocationRule):
     open_time: Union[SimTimeTuple, Default, None] = None
 
 
-@dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True)
 class NonEssentialBusinessLocationRule(BusinessLocationRule):
     lock: Optional[bool] = None

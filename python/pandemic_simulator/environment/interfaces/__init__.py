@@ -6,6 +6,8 @@ from .contact_tracer import *
 from .ids import *
 from .infection_model import *
 from .location import *
+from .location_base import *
+from .location_base_business import *
 from .location_rules import *
 from .location_states import *
 from .pandemic_observation import *

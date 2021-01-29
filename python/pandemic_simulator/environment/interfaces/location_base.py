@@ -6,8 +6,14 @@ from uuid import uuid4
 
 import numpy as np
 
-from ..interfaces import Location, LocationState, PersonID, LocationID, Registry, LocationRule, DEFAULT, \
-    SimTime, ContactRate, SimTimeTuple, globals
+from . import globals
+from .ids import PersonID, LocationID
+from .location import Location
+from .location_rules import LocationRule
+from .location_states import LocationState, ContactRate
+from .pandemic_types import DEFAULT
+from .registry import Registry
+from .sim_time import SimTime, SimTimeTuple
 
 __all__ = ['BaseLocation']
 

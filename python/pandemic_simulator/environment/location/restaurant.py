@@ -2,8 +2,8 @@
 
 from dataclasses import dataclass
 
-from .base_business import AgeRestrictedBusinessBaseLocation, NonEssentialBusinessBaseLocation
-from ..interfaces import NonEssentialBusinessLocationState, ContactRate, SimTimeTuple
+from ..interfaces import NonEssentialBusinessLocationState, ContactRate, SimTimeTuple, \
+    AgeRestrictedBusinessBaseLocation, NonEssentialBusinessBaseLocation
 
 __all__ = ['Bar', 'Restaurant', 'RestaurantState', 'BarState']
 

@@ -3,8 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Set, cast
 
-from .base_business import BusinessBaseLocation
-from ..interfaces import PersonID, InfectionSummary, BusinessLocationState, SimTimeTuple
+from ..interfaces import PersonID, InfectionSummary, BusinessLocationState, SimTimeTuple, BusinessBaseLocation
 
 __all__ = ['Hospital', 'HospitalState']
 

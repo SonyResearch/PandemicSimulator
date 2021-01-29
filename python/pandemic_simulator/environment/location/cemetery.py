@@ -3,8 +3,7 @@
 from dataclasses import dataclass
 from typing import cast
 
-from .base import BaseLocation
-from ..interfaces import LocationRule, LocationState, PersonID, ContactRate, DEFAULT, SimTimeTuple
+from ..interfaces import LocationRule, LocationState, PersonID, ContactRate, DEFAULT, SimTimeTuple, BaseLocation
 
 __all__ = ['Cemetery', 'CemeteryRule', 'CemeteryState']
 

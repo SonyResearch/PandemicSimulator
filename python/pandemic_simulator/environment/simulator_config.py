@@ -3,7 +3,8 @@ import dataclasses
 from dataclasses import dataclass, field
 from typing import Sequence, Type, Any, Dict
 
-from .location import BaseLocation, Hospital, HospitalState
+from .interfaces import BaseLocation
+from .location import Hospital, HospitalState
 
 __all__ = ['LocationConfig', 'PandemicSimConfig']
 
