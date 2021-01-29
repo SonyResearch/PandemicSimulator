@@ -110,7 +110,7 @@ class PandemicSim:
             possible_contacts_y = []
             num_possible_contacts = 0
 
-            num_possible_contacts = nCk(len(grp1), 2) if grp1 == grp2 else len(grp1) * len(grp2)
+            num_possible_contacts = n_choose_k(len(grp1), 2) if grp1 == grp2 else len(grp1) * len(grp2)
 
             if num_possible_contacts == 0:
                 continue
@@ -349,16 +349,22 @@ def prod_reduced(a: np.array, b: np.array, idx: list) -> tuple:
 
 def comb2_reduced(l: np.array, idx: list) -> tuple:
     """
-    return combinations of 2 only at desired indices
+    Compute combinations of 2 on a subarray of input l given by indicies in input idx
+    Uses the upper triangular matrix on input l to generate 2-combination coordinates which are extracted from l as a vector
+    input: 
+     (vector) l - base array
+     (vector) idx - index values of l that define a subvector for which combinations of 2 will be computed
     """
     triu = np.triu_indices(l.size, 1)
     return l[triu[0][idx]], l[triu[1][idx]]
 
 
 @lru_cache(maxsize=None)
-def nCk(n: int, k: int) -> int:
+def n_choose_k(n: int, k: int) -> int:
     """
-    calulate binomial coeffecients
+    Calulate the number of combinations in N choose K. 
+    When K is 0 or 1, the answer is returned directly. When K > 1, iterate to compute factoral to compute 
+    nCk formula = n! / (k! (n-k)! by using m as an accumulator
     """
     m = 0
     if k == 0:
