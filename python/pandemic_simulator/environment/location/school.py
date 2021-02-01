@@ -1,29 +1,18 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
+from dataclasses import dataclass
 
-from typing import Optional
+from ..interfaces import NonEssentialBusinessLocationState, ContactRate, SimTimeTuple, NonEssentialBusinessBaseLocation
 
-import numpy as np
-
-from .base_business import AgeRestrictedBusinessBaseLocation
-from ..interfaces import Registry, LocationID, NonEssentialBusinessLocationState
-
-__all__ = ['School']
+__all__ = ['School', 'SchoolState']
 
 
-class School(AgeRestrictedBusinessBaseLocation):
-    """Implements a school"""
+@dataclass
+class SchoolState(NonEssentialBusinessLocationState):
+    contact_rate: ContactRate = ContactRate(5, 1, 0, 0.1, 0., 0.1)
+    open_time: SimTimeTuple = SimTimeTuple(hours=tuple(range(7, 15)), week_days=tuple(range(0, 5)))
 
-    def __init__(self, registry: Registry,
-                 name: Optional[str] = None,
-                 road_id: Optional[LocationID] = None,
-                 init_state: Optional[NonEssentialBusinessLocationState] = None,
-                 numpy_rng: Optional[np.random.RandomState] = None):
-        """
-        :param registry: Registry instance to register the location and handle people exit from location
-        :param name: Name of the location
-        :param road_id: id of the road connected to the location
-        :param init_state: Optional initial state of the location. Set to default if None
-        :param numpy_rng: Random number generator
-        """
-        super().__init__(age_limits=(2, 18), registry=registry, name=name, road_id=road_id, init_state=init_state,
-                         numpy_rng=numpy_rng)
+
+class School(NonEssentialBusinessBaseLocation[SchoolState]):
+    """Implements a simple school"""
+
+    state_type = SchoolState

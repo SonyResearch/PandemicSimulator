@@ -2,12 +2,11 @@
 import dataclasses
 from copy import deepcopy
 from typing import Optional, List, Sequence, cast
-from uuid import uuid4
 
 import numpy as np
 
 from ..interfaces import Person, PersonID, PersonState, LocationID, Risk, Registry, PandemicRegulation, \
-    SimTime, NoOP, NOOP, SimTimeTuple, PandemicTestResult, ContactTracer
+    SimTime, NoOP, NOOP, SimTimeTuple, PandemicTestResult, ContactTracer, globals
 from ..location import Cemetery, Hospital
 
 __all__ = ['BasePerson']
@@ -28,44 +27,43 @@ class BasePerson(Person):
     _hospital_ids: List[LocationID]
 
     _regulation_compliance_prob: float
+    _go_home: bool
 
-    def __init__(self, age: int,
+    def __init__(self,
+                 person_id: PersonID,
                  home: LocationID,
-                 registry: Registry,
-                 name: Optional[str] = None,
-                 risk: Optional[Risk] = None,
                  regulation_compliance_prob: float = 1.0,
-                 night_hours: SimTimeTuple = SimTimeTuple(hours=tuple(range(0, 6)) + tuple(range(22, 24))),
-                 init_state: Optional[PersonState] = None,
-                 numpy_rng: Optional[np.random.RandomState] = None):
+                 init_state: Optional[PersonState] = None):
         """
-        :param age: Age of the person
+        :param person_id: PersonID instance
         :param home: Home location id
-        :param registry: Registry instance to register the person and handle peron's entry to a location
-        :param name: Optional name of the person
-        :param risk: Optional health risk of the person
-        :param night_hours: night hours - a person by default goes back home and stays at home
         :param regulation_compliance_prob: probability of complying to a regulation
         :param init_state: Optional initial state of the person
-        :param numpy_rng: Random number generator
         """
-        self._id = PersonID(name=name if name is not None else str(uuid4()), age=age)
+        assert globals.registry, 'No registry found. Create the repo wide registry first by calling init_globals()'
+        self._registry = globals.registry
+        self._numpy_rng = globals.numpy_rng
+
+        self._id = person_id
         self._home = home
-        self._registry = registry
-        self._night_hours = night_hours
-        self._numpy_rng = numpy_rng if numpy_rng is not None else np.random.RandomState()
+        self._regulation_compliance_prob = regulation_compliance_prob
         self._init_state = init_state or PersonState(infection_state=None,
                                                      current_location=home,
-                                                     risk=risk if risk else self._numpy_rng.choice([r for r in Risk]))
+                                                     risk=self._numpy_rng.choice([r for r in Risk]),
+                                                     infection_spread_multiplier=self._regulation_compliance_prob)
 
         self._state = deepcopy(self._init_state)
         self._registry.register_person(self)
+
         self._cemetery_ids = self._registry.location_ids_of_type(Cemetery)
         self._hospital_ids = self._registry.location_ids_of_type(Hospital)
-
-        self._regulation_compliance_prob = regulation_compliance_prob
+        self._go_home = False
 
     def enter_location(self, location_id: LocationID) -> bool:
+        if location_id == self._home:
+            self._go_home = False
+        if location_id == self._state.current_location:
+            return True
         return self._registry.register_person_entry_in_location(self.id, location_id)
 
     @property
@@ -90,8 +88,10 @@ class BasePerson(Person):
         return self._home,
 
     def _sync(self, sim_time: SimTime) -> None:
-        """Sync sim time specific variables. Subclasses must implement this"""
-        raise NotImplementedError
+        """Sync sim time specific variables."""
+        if (self._state.current_location not in self.assigned_locations and
+                self._registry.is_location_open_for_visitors(self._state.current_location, sim_time)):
+            self._go_home = True
 
     def _set_is_hospitalized(self, value: bool) -> None:
         inf_state_dict = dataclasses.asdict(self._state.infection_state)
@@ -136,12 +136,6 @@ class BasePerson(Person):
                 self.enter_location(self.home)
                 return None
 
-        # block further ops for night hours by returning None
-        if sim_time in self._night_hours:
-            if not self.at_home:
-                self.enter_location(self.home)
-            return None
-
         comply_to_regulation = self._numpy_rng.uniform() < self._regulation_compliance_prob
         if (
                 not self._registry.get_person_quarantined_state(self._id) and comply_to_regulation and
@@ -164,6 +158,10 @@ class BasePerson(Person):
             self.enter_location(self.home)
             self._registry.quarantine_person(self._id)
             return None
+
+        # if go_home flag is set (see self._sync for example) - then go home
+        if self._go_home:
+            self.enter_location(self.home)
 
         return NOOP
 
@@ -196,12 +194,15 @@ class BasePerson(Person):
 
         return False
 
-    def _get_social_gathering_location(self) -> Optional[LocationID]:
-        # social gathering
+    def get_social_gathering_location(self) -> Optional[LocationID]:
         ags = self._state.avoid_gathering_size
         loc_ids = self._registry.location_ids_with_social_events
         num_events = len(loc_ids)
         comply_to_regulation = (self._numpy_rng.uniform() < self._regulation_compliance_prob)
+
+        if comply_to_regulation and ags == 0:
+            return None
+
         if num_events != 0:
             for i in self._numpy_rng.permutation(num_events):
                 if (
@@ -216,4 +217,4 @@ class BasePerson(Person):
         self._state = deepcopy(self._init_state)
         self._registry.reassign_locations(self)
         self._registry.clear_quarantined(self._id)
-        self.enter_location(self._state.current_location)
+        self._registry.register_person_entry_in_location(self.id, self._state.current_location)

@@ -6,7 +6,7 @@ __all__ = ['PandemicViz']
 
 
 class PandemicViz(ABC):
-    """An interface for Pandemic19 visualization"""
+    """An interface for simulator visualization"""
 
     @abstractmethod
     def record(self, data: Any, **kwargs: Any) -> None:

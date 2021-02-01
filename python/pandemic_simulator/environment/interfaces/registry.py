@@ -1,13 +1,14 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Mapping, Tuple
 
 from .ids import LocationID, PersonID
 from .infection_model import InfectionSummary
-from .location import Location
-from .person import Person
+from .location import Location, LocationSummary
 from .pandemic_testing_result import PandemicTestResult
+from .person import Person
+from .sim_time import SimTimeTuple, SimTime
 
 __all__ = ['Registry', 'RegistrationError']
 
@@ -50,15 +51,21 @@ class Registry(ABC):
     def update_location_specific_information(self) -> None:
         """update any location specific information that is accessed by person."""
 
+    @abstractmethod
+    def reassign_locations(self, person: Person) -> None:
+        """Re-assign locations for the given person."""
+
+    # ----------------public attributes-----------------
+
     @property
     @abstractmethod
-    def person_ids(self) -> List[PersonID]:
+    def person_ids(self) -> Set[PersonID]:
         """Return a list of registered person ids"""
         pass
 
     @property
     @abstractmethod
-    def location_ids(self) -> List[LocationID]:
+    def location_ids(self) -> Set[LocationID]:
         """Return a list of registered location ids"""
         pass
 
@@ -67,10 +74,41 @@ class Registry(ABC):
     def location_ids_with_social_events(self) -> List[LocationID]:
         """Return a list of location ids where there are active social events."""
 
+    @property
+    @abstractmethod
+    def global_location_summary(self) -> Mapping[Tuple[str, str], LocationSummary]:
+        """Return a mapping between (a location type name, person type name) and the location summary
+           E.g.: {('School', 'Minor'): LocationSummary(entry_count=10)}
+        """
+
+    @property
+    @abstractmethod
+    def location_types(self) -> Set[str]:
+        """Return a set of registered location types (as str)."""
+
+    # ----------------location utility methods-----------------
+
     @abstractmethod
     def location_ids_of_type(self, location_type: type) -> List[LocationID]:
         """Return a list of location ids for the given type of location."""
 
+    @abstractmethod
+    def get_persons_in_location(self, location_id: LocationID) -> Set[PersonID]:
+        """Return a list of persons in the given location"""
+
+    @abstractmethod
+    def location_id_to_type(self, location_id: LocationID) -> type:
+        """Return the type of location with the given ID."""
+
+    @abstractmethod
+    def get_location_work_time(self, location_id: LocationID) -> Optional[SimTimeTuple]:
+        """Return the open time for the given location and None if not applicable"""
+
+    @abstractmethod
+    def is_location_open_for_visitors(self, location_id: LocationID, sim_time: SimTime) -> bool:
+        """Return a boolean if the location is open for visitors at the given sim_time."""
+
+    # ----------------person utility methods-----------------
     @abstractmethod
     def get_person_home_id(self, person_id: PersonID) -> LocationID:
         """Return person's home id"""
@@ -86,18 +124,6 @@ class Registry(ABC):
     @abstractmethod
     def get_person_test_result(self, person_id: PersonID) -> PandemicTestResult:
         """Return person's test result"""
-
-    @abstractmethod
-    def get_persons_in_location(self, location_id: LocationID) -> Set[PersonID]:
-        """Return a list of persons in the given location"""
-
-    @abstractmethod
-    def location_id_to_type(self, location_id: LocationID) -> type:
-        """Return the type of location with the given ID."""
-
-    @abstractmethod
-    def reassign_locations(self, person: Person) -> None:
-        """Re-assign locations for the given person."""
 
     @abstractmethod
     def quarantine_person(self, person_id: PersonID) -> None:

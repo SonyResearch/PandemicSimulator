@@ -1,7 +1,7 @@
-Python API Reference
-====================
+pandemic_simulator
+==================
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 4
 
    pandemic_simulator

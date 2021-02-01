@@ -23,7 +23,7 @@ class PandemicRegulation:
 
     social_distancing: Union[float, Default, None] = None
     """A value in [0, 1] that determines how people should interact amongst each other at all locations.
-    1 - zero contacts, 0 - interact with everyone (impractical). """
+    1 - zero contacts, 0 - interact normally. """
 
     quarantine: bool = False
     """A bool to tell all persons to quarantine themselves at home."""

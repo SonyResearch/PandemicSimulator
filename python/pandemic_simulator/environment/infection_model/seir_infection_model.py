@@ -8,7 +8,7 @@ from typing import Any, Dict, Optional, Tuple, cast
 import numpy as np
 from scipy.stats import truncnorm
 
-from ..interfaces import IndividualInfectionState, InfectionModel, InfectionSummary, Risk
+from ..interfaces import IndividualInfectionState, InfectionModel, InfectionSummary, Risk, globals
 from ...utils import required
 
 __all__ = ['SEIRInfectionState', 'SEIRModel', 'SpreadProbabilityParams']
@@ -141,9 +141,9 @@ class SEIRModel(InfectionModel):
                  from_needs_hosp_to_death_rate: float = 0.3,
                  from_hosp_to_death_rate: Optional[float] = None,
                  spread_probability_params: Optional[SpreadProbabilityParams] = None,
-                 pandemic_start_limit: int = 5,
-                 numpy_rng: Optional[np.random.RandomState] = None):
-        self._numpy_rng = numpy_rng if numpy_rng is not None else np.random.RandomState()
+                 pandemic_start_limit: int = 5):
+        self._numpy_rng = globals.numpy_rng
+        assert self._numpy_rng, 'No numpy rng found. Either pass a rng or set the default repo wide rng.'
 
         exposed_rate = 1. / self._numpy_rng.triangular(1.9, 2.9, 3.9) if exposed_rate is None else exposed_rate
         recovery_rate_asymp = 1. / self._numpy_rng.triangular(3.0, 4.0, 5.0) if recovery_rate_asymp is None else \
@@ -215,8 +215,8 @@ class SEIRModel(InfectionModel):
             _SEIRLabel.symp: {
                 (a, r): {
                     _SEIRLabel.symp: 1. - (
-                        symp_transition[(a, r)][_SEIRLabel.needs_hospitalization] +
-                        symp_transition[(a, r)][_SEIRLabel.recovered]
+                            symp_transition[(a, r)][_SEIRLabel.needs_hospitalization] +
+                            symp_transition[(a, r)][_SEIRLabel.recovered]
                     ),
                     _SEIRLabel.needs_hospitalization: symp_transition[(a, r)][_SEIRLabel.needs_hospitalization],
                     _SEIRLabel.recovered: symp_transition[(a, r)][_SEIRLabel.recovered],
@@ -225,8 +225,8 @@ class SEIRModel(InfectionModel):
             _SEIRLabel.needs_hospitalization: {
                 (a, r): {
                     _SEIRLabel.needs_hospitalization: 1. - (
-                        needs_hosp_transition[(a, r)][_SEIRLabel.recovered] +
-                        needs_hosp_transition[(a, r)][_SEIRLabel.deceased]
+                            needs_hosp_transition[(a, r)][_SEIRLabel.recovered] +
+                            needs_hosp_transition[(a, r)][_SEIRLabel.deceased]
                     ),
                     _SEIRLabel.recovered: needs_hosp_transition[(a, r)][_SEIRLabel.recovered],
                     _SEIRLabel.deceased: needs_hosp_transition[(a, r)][_SEIRLabel.deceased]
@@ -235,8 +235,8 @@ class SEIRModel(InfectionModel):
             _SEIRLabel.hospitalized: {
                 (a, r): {
                     _SEIRLabel.hospitalized: 1. - (
-                        hosp_transition[(a, r)][_SEIRLabel.recovered] +
-                        hosp_transition[(a, r)][_SEIRLabel.deceased]
+                            hosp_transition[(a, r)][_SEIRLabel.recovered] +
+                            hosp_transition[(a, r)][_SEIRLabel.deceased]
                     ),
                     _SEIRLabel.recovered: hosp_transition[(a, r)][_SEIRLabel.recovered],
                     _SEIRLabel.deceased: hosp_transition[(a, r)][_SEIRLabel.deceased]

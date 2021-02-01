@@ -12,7 +12,7 @@ __all__ = ['GraphViz']
 
 
 class GraphViz(PandemicViz):
-    """Pandemic19 reinforcement learning matplotlib visualization"""
+    """A visualization for showing graph connectivity"""
 
     _sim: PandemicSim
     _num_stages: int
@@ -36,10 +36,14 @@ class GraphViz(PandemicViz):
         self._day_in_this_interval = 0
         self._graph = None  # will initialize on the first record() call
 
+    @property
+    def num_components_per_interval(self) -> List[int]:
+        return self._num_components_per_interval
+
     def record(self, data: Any, **kwargs: Any) -> None:
         if isinstance(data, PandemicSimState):
             state = checked_cast(PandemicSimState, data)
-            obs = PandemicObservation.create_empty()
+            obs = PandemicObservation.create_empty(len(state.global_location_summary))
             obs.update_obs_with_sim_state(state)
         elif isinstance(data, PandemicObservation):
             obs = data

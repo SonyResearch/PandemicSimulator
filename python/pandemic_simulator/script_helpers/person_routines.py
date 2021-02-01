@@ -1,68 +1,78 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
-from typing import Sequence, Type, Optional
 
-import numpy as np
+"""This helper module contains a few standard routines for persons in the simulator."""
 
-from ..environment import LocationID, PersonRoutine, Registry, SimTimeInterval, GroceryStore, \
-    RetailStore, BarberShop, Retired
+from typing import Sequence, Type
 
-__all__ = ['get_minor_routines', 'get_adult_routines']
+from ..environment import LocationID, PersonRoutine, HairSalon, Restaurant, Bar, \
+    GroceryStore, RetailStore, triggered_routine, weekend_routine, social_routine, mid_day_during_week_routine, \
+    PersonRoutineAssignment, Person, Retired, Minor, Worker, Location
 
+__all__ = ['DefaultPersonRoutineAssignment']
 
-def get_minor_routines(home_id: LocationID,
-                       registry: Registry,
-                       numpy_rng: Optional[np.random.RandomState] = None) -> Sequence[PersonRoutine]:
-    routines = []
-    numpy_rng = numpy_rng if numpy_rng is not None else np.random.RandomState()
+"""
+References:
+https://www.touchbistro.com/blog/how-diners-choose-restaurants/
 
-    barber_shops = registry.location_ids_of_type(BarberShop)
-    if len(barber_shops) > 0:
-        routines.append(PersonRoutine(start_loc=home_id,
-                                      end_loc=barber_shops[numpy_rng.randint(0, len(barber_shops))],
-                                      trigger_interval=SimTimeInterval(day=30)))
-
-    return routines
+"""
 
 
-def get_adult_routines(person_type: Type,
-                       home_id: LocationID,
-                       registry: Registry,
-                       numpy_rng: Optional[np.random.RandomState] = None) -> Sequence[PersonRoutine]:
-    routines = []
-    numpy_rng = numpy_rng if numpy_rng is not None else np.random.RandomState()
+class DefaultPersonRoutineAssignment(PersonRoutineAssignment):
+    """A default person routine assignment"""
 
-    shopping_rate = 1 if isinstance(person_type, Retired) else 1
-    grocery_stores = registry.location_ids_of_type(GroceryStore)
-    if len(grocery_stores) > 0:
-        interval_in_days = int(7 / shopping_rate)
-        routines.append(PersonRoutine(start_loc=None,
-                                      end_loc=grocery_stores[numpy_rng.randint(0, len(grocery_stores))],
-                                      trigger_interval=SimTimeInterval(day=interval_in_days,
-                                                                       offset_day=numpy_rng.randint(0,
-                                                                                                    interval_in_days)),
-                                      end_locs=grocery_stores,
-                                      explore_probability=0.05))
+    @property
+    def required_location_types(self) -> Sequence[Type[Location]]:
+        return HairSalon, Restaurant, Bar, GroceryStore, RetailStore
 
-    retail_stores = registry.location_ids_of_type(RetailStore)
-    if len(retail_stores) > 0:
-        interval_in_days = int(7 / shopping_rate)
-        routines.append(PersonRoutine(start_loc=None,
-                                      end_loc=retail_stores[numpy_rng.randint(0, len(retail_stores))],
-                                      trigger_interval=SimTimeInterval(day=interval_in_days,
-                                                                       offset_day=numpy_rng.randint(0,
-                                                                                                    interval_in_days)),
-                                      end_locs=retail_stores,
-                                      explore_probability=0.05))
+    @staticmethod
+    def get_minor_routines(home_id: LocationID, age: int) -> Sequence[PersonRoutine]:
+        routines = [
+            triggered_routine(home_id, HairSalon, 30),
+            weekend_routine(home_id, Restaurant, explore_probability=0.5),
+        ]
+        if age >= 12:
+            routines.append(social_routine(home_id))
 
-    barber_shops = registry.location_ids_of_type(BarberShop)
-    if len(barber_shops) > 0:
-        interval_in_days = 30
-        routines.append(PersonRoutine(start_loc=home_id,
-                                      end_loc=barber_shops[numpy_rng.randint(0, len(barber_shops))],
-                                      trigger_interval=SimTimeInterval(day=interval_in_days,
-                                                                       offset_day=numpy_rng.randint(0,
-                                                                                                    interval_in_days))
-                                      )
-                        )
+        return routines
 
-    return routines
+    @staticmethod
+    def get_retired_routines(home_id: LocationID) -> Sequence[PersonRoutine]:
+        routines = [
+            triggered_routine(None, GroceryStore, 7),
+            triggered_routine(None, RetailStore, 7),
+            triggered_routine(None, HairSalon, 30),
+            weekend_routine(None, Restaurant, explore_probability=0.5),
+            triggered_routine(home_id, Bar, 2, explore_probability=0.5),
+            social_routine(home_id)
+        ]
+        return routines
+
+    @staticmethod
+    def get_worker_during_work_routines(work_id: LocationID) -> Sequence[PersonRoutine]:
+        routines = [
+            mid_day_during_week_routine(work_id, Restaurant),  # ~cafeteria  during work
+        ]
+
+        return routines
+
+    @staticmethod
+    def get_worker_outside_work_routines(home_id: LocationID) -> Sequence[PersonRoutine]:
+        routines = [
+            triggered_routine(None, GroceryStore, 7),
+            triggered_routine(None, RetailStore, 7),
+            triggered_routine(None, HairSalon, 30),
+            weekend_routine(None, Restaurant, explore_probability=0.5),
+            triggered_routine(home_id, Bar, 3, explore_probability=0.5),
+            social_routine(home_id)
+        ]
+        return routines
+
+    def __call__(self, persons: Sequence[Person]) -> None:
+        for p in persons:
+            if isinstance(p, Retired):
+                p.set_routines(self.get_retired_routines(p.home))
+            elif isinstance(p, Minor):
+                p.set_outside_school_routines(self.get_minor_routines(p.home, p.id.age))
+            elif isinstance(p, Worker):
+                p.set_during_work_routines(self.get_worker_during_work_routines(p.work))
+                p.set_outside_work_routines(self.get_worker_outside_work_routines(p.home))

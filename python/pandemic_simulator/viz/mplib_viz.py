@@ -1,81 +1,103 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 import string
-from typing import Any, Dict, List
+from typing import List, Any, Dict
 
 import numpy as np
 from cycler import cycler
 from matplotlib import pyplot as plt
 
-from .mplab_evaluation import inf_colors
+from .evaluation_plots import inf_colors
 from .pandemic_viz import PandemicViz
-from ..environment import PandemicObservation, sorted_infection_summary, InfectionSummary, LocationParams, \
-    PandemicSimState
+from ..environment import PandemicObservation, InfectionSummary, PandemicSimState
 from ..utils import checked_cast
 
 __all__ = ['MatplotLibViz']
 
 
 class MatplotLibViz(PandemicViz):
-    """Pandemic19 reinforcement learning matplotlib visualization"""
+    """A basic matplotlib visualization for the simulator"""
 
     _num_persons: int
-    _max_hospitals_capacity: int
+    _max_hospital_capacity: int
     _num_stages: int
     _show_reward: bool
     _show_stages: bool
 
     _gis: List[np.ndarray]
     _gts: List[np.ndarray]
-    _location_type_is: Dict[str, int]
+    _loc_assignee_visits: List[np.ndarray]
+    _loc_visitor_visits: List[np.ndarray]
+    _location_type_to_is: Dict[str, int]
     _stages: List[np.ndarray]
     _rewards: List[float]
 
     _gis_legend: List[str]
+    _loc_types: List[str]
+    _person_types: List[str]
     _critical_index: int
     _stage_indices: np.ndarray
-    _ncols: int
-    _nrows: int
 
     def __init__(self, num_persons: int,
-                 hospital_params: LocationParams,
+                 max_hospital_capacity: int,
                  num_stages: int,
                  show_reward: bool = False,
                  show_stages: bool = True):
         """
         :param num_persons: total number of persons in the simulator
-        :param hospital_params: hospital location params
+        :param max_hospital_capacity: max hospital capacity
         :param num_stages: number of stages in the environment
         :param show_reward: show cumulative reward plot
         :param show_stages: show stages plot
         """
         self._num_persons = num_persons
-        self._max_hospitals_capacity = hospital_params.num * hospital_params.visitor_capacity
+        self._max_hospital_capacity = max_hospital_capacity
         self._num_stages = num_stages
         self._show_reward = show_reward
         self._show_stages = show_stages
 
         self._gis = []
         self._gts = []
-        self._location_type_is = {}
+        self._loc_assignee_visits = []
+        self._loc_visitor_visits = []
+        self._location_type_to_is = {}
         self._stages = []
         self._rewards = []
 
-        self._gis_legend = [summ.value for summ in sorted_infection_summary]
-        self._critical_index = self._gis_legend.index(InfectionSummary.CRITICAL.value)
+        self._gis_legend = []
+        self._loc_types = []
+        self._person_types = []
+        self._critical_index = 0
         self._stage_indices = np.arange(num_stages)[..., None]
-        self._ncols = 4
-        self._nrows = 1
 
     def record(self, data: Any, **kwargs: Any) -> None:
         if isinstance(data, PandemicSimState):
             state = checked_cast(PandemicSimState, data)
             obs = PandemicObservation.create_empty()
             obs.update_obs_with_sim_state(state)
-            self._location_type_is = {k.__name__: v for k, v in state.location_type_infection_summary.items()}
+            if len(self._loc_types) == 0:
+                self._loc_types = sorted(set(k[0] for k in state.global_location_summary.keys()))
+                self._person_types = sorted(set(k[1] for k in state.global_location_summary.keys()))
+
+            _av = np.zeros((1, len(self._loc_types), len(self._person_types)))
+            _vv = np.zeros((1, len(self._loc_types), len(self._person_types)))
+            for i in range(len(self._loc_types)):
+                for j in range(len(self._person_types)):
+                    ec = state.global_location_summary[(self._loc_types[i], self._person_types[j])].entry_count
+                    vc = state.global_location_summary[(self._loc_types[i], self._person_types[j])].visitor_count
+                    _av[0, i, j] = ec - vc
+                    _vv[0, i, j] = vc
+            self._loc_assignee_visits.append(_av)
+            self._loc_visitor_visits.append(_vv)
+            self._location_type_to_is = {k.__name__: v for k, v in state.location_type_infection_summary.items()}
+
         elif isinstance(data, PandemicObservation):
             obs = data
         else:
             raise ValueError('Unsupported data type')
+
+        if len(self._gis_legend) == 0:
+            self._gis_legend = list(obs.infection_summary_labels)
+            self._critical_index = self._gis_legend.index(InfectionSummary.CRITICAL.value)
 
         self._gis.append(obs.global_infection_summary)
         self._gts.append(obs.global_testing_summary)
@@ -89,12 +111,19 @@ class MatplotLibViz(PandemicViz):
         gts = np.vstack(self._gts).squeeze()
         stages = np.concatenate(self._stages).squeeze()
 
-        plt.figure(figsize=(12, 4 * self._nrows))
+        ncols = 3
+        nrows = int(np.ceil((3 + 2 * int(len(self._loc_assignee_visits) > 0) +
+                             int(len(self._location_type_to_is) > 0) +
+                             self._show_reward + self._show_stages) / ncols))
+
+        plt.figure(figsize=(4 * ncols, 4 * nrows))
         plt.rc('axes', prop_cycle=cycler(color=inf_colors))
 
-        axs = []
+        axs = list()
+        ax_i = 0
 
-        axs.append(plt.subplot(self._nrows, self._ncols, 1))
+        ax_i += 1
+        axs.append(plt.subplot(nrows, ncols, ax_i))
         plt.plot(gis)
         plt.legend(self._gis_legend, loc=1)
         plt.ylim([-0.1, self._num_persons + 1])
@@ -102,7 +131,8 @@ class MatplotLibViz(PandemicViz):
         plt.xlabel('time (days)')
         plt.ylabel('persons')
 
-        axs.append(plt.subplot(self._nrows, self._ncols, 2))
+        ax_i += 1
+        axs.append(plt.subplot(nrows, ncols, ax_i))
         plt.plot(gts)
         plt.legend(self._gis_legend, loc=1)
         plt.ylim([-0.1, self._num_persons + 1])
@@ -110,33 +140,74 @@ class MatplotLibViz(PandemicViz):
         plt.xlabel('time (days)')
         plt.ylabel('persons')
 
-        axs.append(plt.subplot(self._nrows, self._ncols, 3))
+        ax_i += 1
+        axs.append(plt.subplot(nrows, ncols, ax_i))
         plt.plot(gis[:, self._critical_index])
-        plt.plot(np.arange(gis.shape[0]), np.ones(gis.shape[0]) * self._max_hospitals_capacity, 'y')
+        plt.plot(np.arange(gis.shape[0]), np.ones(gis.shape[0]) * self._max_hospital_capacity, 'y')
         plt.legend([InfectionSummary.CRITICAL.value, 'Max hospital capacity'], loc=1)
-        plt.ylim([-0.1, self._max_hospitals_capacity * 3])
+        plt.ylim([-0.1, self._max_hospital_capacity * 3])
         plt.title('Critical Summary')
         plt.xlabel('time (days)')
         plt.ylabel('persons')
 
-        axs.append(plt.subplot(self._nrows, self._ncols, 4))
-        y = np.arange(len(self._location_type_is.keys()))
-        plt.barh(y, [v/self._num_persons for v in self._location_type_is.values()])
-        plt.yticks(y, list(self._location_type_is.keys()))
-        plt.xlim([-0.1, 1.1])
-        plt.title('% Infections / Location Type')
-        plt.xlabel('% infections')
-        plt.ylabel('location type')
+        loc_types = self._loc_types
+        if len(self._loc_assignee_visits) > 0:
+            ax_i += 1
+            axs.append(plt.subplot(nrows, ncols, ax_i))
+            lv = self._loc_assignee_visits[-1].squeeze()
+            indices = np.argsort(lv.sum(axis=1), axis=0)[::-1]
+            lv = lv[indices]
+            loc_types = [self._loc_types[i] for i in indices]
+            x = np.arange(lv.shape[0])
+            p = []
+            colors = ['g', 'r', 'b']
+            bottom = np.zeros(lv.shape[0])
+            for j in range(lv.shape[1] - 1, -1, -1):
+                p.append(plt.bar(x, lv[:, j], color=colors[j], alpha=0.5, bottom=bottom))
+                bottom += lv[:, j]
+            plt.xticks(x, loc_types, rotation=60, fontsize=8)
+            plt.title(f'Location Assignee Visits\n(in {len(self._loc_assignee_visits)} days)')
+            plt.ylabel('num_visits / num_persons')
+            plt.ylim([0, None])
+            plt.legend(p, self._person_types[::-1])
+
+            ax_i += 1
+            axs.append(plt.subplot(nrows, ncols, ax_i))
+            lv = self._loc_visitor_visits[-1].squeeze()
+            lv = lv[indices]
+            loc_types = [self._loc_types[i] for i in indices]
+            p = []
+            bottom = np.zeros(lv.shape[0])
+            for j in range(lv.shape[1] - 1, -1, -1):
+                p.append(plt.bar(x, lv[:, j], color=colors[j], alpha=0.5, bottom=bottom))
+                bottom += lv[:, j]
+            plt.xticks(x, loc_types, rotation=60, fontsize=8)
+            plt.title(f'Location Visitor Visits\n(in {len(self._loc_visitor_visits)} days)')
+            plt.ylabel('num_visits / num_persons')
+            plt.ylim([0, None])
+            plt.legend(p, self._person_types[::-1])
+
+        if len(self._location_type_to_is) > 0:
+            ax_i += 1
+            axs.append(plt.subplot(nrows, ncols, ax_i))
+            x = np.arange(len(loc_types))
+            plt.bar(x, [self._location_type_to_is[k] / self._num_persons for k in loc_types], color='r', alpha=0.5)
+            plt.xticks(x, loc_types, rotation=60, fontsize=8)
+            plt.ylim([0, None])
+            plt.title('% Infections / Location Type')
+            plt.ylabel('% infections')
 
         if self._show_stages:
-            axs.append(plt.subplot(self._nrows, self._ncols, 4))
+            ax_i += 1
+            axs.append(plt.subplot(nrows, ncols, ax_i))
             plt.plot(stages)
             plt.ylim([-0.1, self._num_stages + 1])
             plt.title('Stage')
             plt.xlabel('time (days)')
 
         if self._show_reward and len(self._rewards) > 0:
-            axs.append(plt.subplot(self._nrows, self._ncols, 5))
+            ax_i += 1
+            axs.append(plt.subplot(nrows, ncols, ax_i))
             plt.plot(np.cumsum(self._rewards))
             plt.title('Cumulative Reward')
             plt.xlabel('time (days)')

@@ -1,9 +1,10 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
-from typing import Optional, cast
+from typing import cast
 
 import numpy as np
 
-from ..interfaces import PersonState, InfectionSummary, IndividualInfectionState, PandemicTestResult, PandemicTesting
+from ..interfaces import PersonState, InfectionSummary, IndividualInfectionState, PandemicTestResult, PandemicTesting, \
+    globals
 
 __all__ = ['RandomPandemicTesting']
 
@@ -25,8 +26,7 @@ class RandomPandemicTesting(PandemicTesting):
                  critical_testing_rate: float = 1.,
                  testing_false_positive_rate: float = 0.01,
                  testing_false_negative_rate: float = 0.01,
-                 retest_rate: float = 0.033,
-                 numpy_rng: Optional[np.random.RandomState] = None):
+                 retest_rate: float = 0.033):
         """
         :param spontaneous_testing_rate: Testing rate for non symptomatic population.
         :param symp_testing_rate: Testing rate for symptomatic population.
@@ -34,7 +34,6 @@ class RandomPandemicTesting(PandemicTesting):
         :param testing_false_negative_rate: False negative rate of testing
         :param testing_false_positive_rate: False positive rate of testing
         :param retest_rate: Rate to retest a peron
-        :param numpy_rng: Random number generator
         """
         self._spontaneous_testing_rate = spontaneous_testing_rate
         self._symp_testing_rate = symp_testing_rate
@@ -42,7 +41,7 @@ class RandomPandemicTesting(PandemicTesting):
         self._testing_false_positive_rate = testing_false_positive_rate
         self._testing_false_negative_rate = testing_false_negative_rate
         self._retest_rate = retest_rate
-        self._numpy_rng = numpy_rng if numpy_rng is not None else np.random.RandomState()
+        self._numpy_rng = globals.numpy_rng
 
     def admit_person(self, person_state: PersonState) -> bool:
         infection_state = cast(IndividualInfectionState, person_state.infection_state)
@@ -56,20 +55,20 @@ class RandomPandemicTesting(PandemicTesting):
 
         rnd = self._numpy_rng.uniform()
         test_person = (
-            # if the person is in a hospital, then retest deterministically
-            infection_state.is_hospitalized or
+                # if the person is in a hospital, then retest deterministically
+                infection_state.is_hospitalized or
 
-            # if the person was tested before, then retest based on retest-probability (independent of symptoms)
-            (person_state.test_result in {PandemicTestResult.CRITICAL,
-                                          PandemicTestResult.POSITIVE} and rnd < self._retest_rate) or
+                # if the person was tested before, then retest based on retest-probability (independent of symptoms)
+                (person_state.test_result in {PandemicTestResult.CRITICAL,
+                                              PandemicTestResult.POSITIVE} and rnd < self._retest_rate) or
 
-            # if the person shows symptoms, then test based on critical/symptomatic-probability
-            (infection_state.shows_symptoms and (
-                (infection_state.summary == InfectionSummary.CRITICAL and rnd < self._critical_testing_rate) or
-                (infection_state.summary != InfectionSummary.CRITICAL and rnd < self._symp_testing_rate))) or
+                # if the person shows symptoms, then test based on critical/symptomatic-probability
+                (infection_state.shows_symptoms and (
+                        (infection_state.summary == InfectionSummary.CRITICAL and rnd < self._critical_testing_rate) or
+                        (infection_state.summary != InfectionSummary.CRITICAL and rnd < self._symp_testing_rate))) or
 
-            # if the person does not show symptoms, then test based on spontaneous-probability
-            (not infection_state.shows_symptoms and rnd < self._spontaneous_testing_rate)
+                # if the person does not show symptoms, then test based on spontaneous-probability
+                (not infection_state.shows_symptoms and rnd < self._spontaneous_testing_rate)
         )
         return test_person
 

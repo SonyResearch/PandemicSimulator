@@ -1,44 +1,42 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 from dataclasses import dataclass
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional, Sequence
 
 import numpy as np
 
-from .city_registry import CityRegistry
-from .interfaces import LocationID
-from .location import BusinessBaseLocation
+from .interfaces import LocationID, globals, SimTimeTuple, BusinessBaseLocation
+from .simulator_config import LocationConfig
 
-__all__ = ['JobCounselor', 'LocationParams', 'PopulationParams']
+__all__ = ['JobCounselor']
 
 
 @dataclass(frozen=True)
-class LocationParams:
-    num: int
-    worker_capacity: int = -1
-    visitor_capacity: int = -1
-
-
-@dataclass
-class PopulationParams:
-    num_persons: int
-    location_type_to_params: Dict[type, LocationParams]
-    viz_scale: int = 2
+class WorkPackage:
+    work: LocationID
+    work_time: SimTimeTuple
 
 
 class JobCounselor:
+    """Generates vacant work ids for working persons."""
+
     _all_work_ids_vacant_pos: List[Tuple[List[LocationID], int]]
     _numpy_rng: np.random.RandomState
 
-    def __init__(self,
-                 population_params: PopulationParams,
-                 registry: CityRegistry,
-                 numpy_rng: Optional[np.random.RandomState] = None):
-        self._all_work_ids_vacant_pos = [(registry.location_ids_of_type(loc_type), params.num * params.worker_capacity)
-                                         for loc_type, params in population_params.location_type_to_params.items()
-                                         if issubclass(loc_type, BusinessBaseLocation)]
-        self._numpy_rng = numpy_rng if numpy_rng is not None else np.random.RandomState()
+    def __init__(self, location_configs: Sequence[LocationConfig]):
+        """
+        :param location_configs: A sequence of LocationConfigs
+        """
+        assert globals.registry, 'No registry found. Create the repo wide registry first by calling init_globals()'
+        self._registry = globals.registry
+        self._numpy_rng = globals.numpy_rng
 
-    def next_available_work_id(self) -> Optional[LocationID]:
+        self._all_work_ids_vacant_pos = [(globals.registry.location_ids_of_type(config.location_type),
+                                          config.num * (config.num_assignees if config.num_assignees != -1 else 1000))
+                                         for config in location_configs
+                                         if issubclass(config.location_type, BusinessBaseLocation)]
+
+    def next_available_work(self) -> Optional[WorkPackage]:
+        """Return next available work"""
         if len(self._all_work_ids_vacant_pos) == 0:
             return None
 
@@ -52,4 +50,6 @@ class JobCounselor:
             self._all_work_ids_vacant_pos.pop(work_type_index)
         else:
             self._all_work_ids_vacant_pos[work_type_index] = (work_ids, vacant_positions)
-        return work_id
+        work_time = self._registry.get_location_work_time(work_id)
+        assert work_time
+        return WorkPackage(work_id, work_time)

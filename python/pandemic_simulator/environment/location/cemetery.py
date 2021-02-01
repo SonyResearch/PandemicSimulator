@@ -1,15 +1,11 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 
 from dataclasses import dataclass
-from typing import Type, Optional, cast
+from typing import cast
 
-import numpy as np
+from ..interfaces import LocationRule, LocationState, PersonID, ContactRate, DEFAULT, SimTimeTuple, BaseLocation
 
-from .base import BaseLocation
-from ..interfaces import LocationID, LocationRule, LocationState, PersonID, Registry, ContactRate, \
-    DEFAULT, SimTimeTuple
-
-__all__ = ['Cemetery', 'CemeteryRule']
+__all__ = ['Cemetery', 'CemeteryRule', 'CemeteryState']
 
 
 @dataclass(frozen=True)
@@ -22,24 +18,16 @@ class CemeteryRule(LocationRule):
             assert self.contact_rate.fraction_assignees_visitors == 0
 
 
-class Cemetery(BaseLocation):
+@dataclass
+class CemeteryState(LocationState):
+    contact_rate: ContactRate = ContactRate(0, 0, 0, 0, 0, 0.05)
+
+
+class Cemetery(BaseLocation[CemeteryState]):
     """Class that implements a cemetery location. """
 
-    location_rule_type: Type = CemeteryRule
-
-    def __init__(self, registry: Registry,
-                 name: Optional[str] = None,
-                 road_id: Optional[LocationID] = None,
-                 numpy_rng: Optional[np.random.RandomState] = None):
-        """
-        :param registry: Registry instance to register the location and handle people exit from location
-        :param name: Name of the location
-        :param road_id: id of the road connected to the location
-        :param numpy_rng: Random number generator
-        """
-        init_state = LocationState(is_open=True, visitor_capacity=-1,
-                                   contact_rate=ContactRate(0, 0, 0, 0, 0, 0.05))
-        super().__init__(registry=registry, name=name, road_id=road_id, init_state=init_state, numpy_rng=numpy_rng)
+    location_rule_type = CemeteryRule
+    state_type = CemeteryState
 
     def update_rules(self, new_rule: LocationRule) -> None:
         rule = cast(CemeteryRule, new_rule)

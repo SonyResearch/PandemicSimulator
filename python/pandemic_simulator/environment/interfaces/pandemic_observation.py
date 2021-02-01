@@ -74,3 +74,8 @@ class PandemicObservation:
         self.infection_above_threshold[hist_index, 0] = int(sim_state.infection_above_threshold)
 
         self.time_day[hist_index, 0] = int(sim_state.sim_time.day)
+
+    @property
+    def infection_summary_labels(self) -> Sequence[str]:
+        """Return the label for each index in global_infection(or testing)_summary observation entry"""
+        return [k.value for k in sorted_infection_summary]

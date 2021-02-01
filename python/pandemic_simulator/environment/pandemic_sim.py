@@ -2,18 +2,30 @@
 
 from collections import defaultdict, OrderedDict
 from itertools import product as cartesianproduct, combinations
-from typing import DefaultDict, Dict, List, Optional, Sequence, cast
+from typing import DefaultDict, Dict, List, Optional, Sequence, cast, Type
 
 import numpy as np
 from orderedset import OrderedSet
 
+from .contact_tracing import MaxSlotContactTracer
+from .infection_model import SEIRModel, SpreadProbabilityParams
 from .interfaces import ContactRate, ContactTracer, PandemicRegulation, PandemicSimState, PandemicTesting, \
     PandemicTestResult, \
     DEFAULT, GlobalTestingState, InfectionModel, InfectionSummary, Location, LocationID, Person, PersonID, Registry, \
-    SimTime, SimTimeInterval, sorted_infection_summary
+    SimTime, SimTimeInterval, sorted_infection_summary, globals, PersonRoutineAssignment
 from .location import Hospital
+from .make_population import make_population
+from .pandemic_testing_strategies import RandomPandemicTesting
+from .simulator_config import PandemicSimConfig
+from .simulator_opts import PandemicSimOpts
 
-__all__ = ['PandemicSim']
+__all__ = ['PandemicSim', 'make_locations']
+
+
+def make_locations(sim_config: PandemicSimConfig) -> List[Location]:
+    return [config.location_type(loc_id=f'{config.location_type.__name__}_{i}',
+                                 init_state=config.location_type.state_type(**config.state_opts))
+            for config in sim_config.location_configs for i in range(config.num)]
 
 
 class PandemicSim:
@@ -32,50 +44,52 @@ class PandemicSim:
 
     _type_to_locations: DefaultDict
     _hospital_ids: List[LocationID]
+    _persons: Sequence[Person]
     _state: PandemicSimState
 
     def __init__(self,
-                 persons: Sequence[Person],
                  locations: Sequence[Location],
-                 infection_model: InfectionModel,
-                 pandemic_testing: PandemicTesting,
-                 registry: Registry,
+                 persons: Sequence[Person],
+                 infection_model: Optional[InfectionModel] = None,
+                 pandemic_testing: Optional[PandemicTesting] = None,
                  contact_tracer: Optional[ContactTracer] = None,
                  new_time_slot_interval: SimTimeInterval = SimTimeInterval(day=1),
                  infection_update_interval: SimTimeInterval = SimTimeInterval(day=1),
-                 infection_threshold: int = 0,
-                 numpy_rng: Optional[np.random.RandomState] = None):
+                 infection_threshold: int = 0):
         """
-        :param persons: A sequence of Person instances.
         :param locations: A sequence of Location instances.
-        :param infection_model: Infection model instance.
-        :param pandemic_testing: PandemicTesting instance.
-        :param registry: Registry instance.
+        :param persons: A sequence of Person instances.
+        :param infection_model: Infection model instance, if None SEIR default infection model is used.
+        :param pandemic_testing: PandemicTesting instance, if None RandomPandemicTesting default instance is used.
         :param contact_tracer: Optional ContactTracer instance.
         :param new_time_slot_interval: interval for updating contact tracer if that is not None. Default is set daily.
         :param infection_update_interval: interval for updating infection states. Default is set once daily.
         :param infection_threshold: If the infection summary is greater than the specified threshold, a
             boolean in PandemicSimState is set to True.
-        :param numpy_rng: Random number generator.
         """
-        self._id_to_person = OrderedDict({p.id: p for p in persons})
+        assert globals.registry, 'No registry found. Create the repo wide registry first by calling init_globals()'
+        self._registry = globals.registry
+        self._numpy_rng = globals.numpy_rng
+
         self._id_to_location = OrderedDict({loc.id: loc for loc in locations})
-        self._infection_model = infection_model
-        self._pandemic_testing = pandemic_testing
-        self._registry = registry
+        assert self._registry.location_ids.issuperset(self._id_to_location)
+        self._id_to_person = OrderedDict({p.id: p for p in persons})
+        assert self._registry.person_ids.issuperset(self._id_to_person)
+
+        self._infection_model = infection_model or SEIRModel()
+        self._pandemic_testing = pandemic_testing or RandomPandemicTesting()
         self._contact_tracer = contact_tracer
         self._new_time_slot_interval = new_time_slot_interval
         self._infection_update_interval = infection_update_interval
         self._infection_threshold = infection_threshold
-        self._numpy_rng = numpy_rng if numpy_rng is not None else np.random.RandomState()
 
         self._type_to_locations = defaultdict(list)
         for loc in locations:
             self._type_to_locations[type(loc)].append(loc)
         self._hospital_ids = [loc.id for loc in locations if isinstance(loc, Hospital)]
 
+        self._persons = persons
         num_persons = len(persons)
-
         self._state = PandemicSimState(
             id_to_person_state={person.id: person.state for person in persons},
             id_to_location_state={location.id: location.state for location in locations},
@@ -84,10 +98,70 @@ class PandemicSim:
             global_testing_state=GlobalTestingState(summary={s: num_persons if s == InfectionSummary.NONE else 0
                                                              for s in sorted_infection_summary},
                                                     num_tests=0),
+            global_location_summary=self._registry.global_location_summary,
             sim_time=SimTime(),
             regulation_stage=0,
             infection_above_threshold=False
         )
+
+    @classmethod
+    def from_config(cls: Type['PandemicSim'],
+                    sim_config: PandemicSimConfig,
+                    sim_opts: PandemicSimOpts = PandemicSimOpts(),
+                    person_routine_assignment: Optional[PersonRoutineAssignment] = None) -> 'PandemicSim':
+        """
+        Creates an instance using config
+
+        :param sim_config: Simulator config
+        :param sim_opts: Simulator opts
+        :param person_routine_assignment: An optional PersonRoutineAssignment instance that assign PersonRoutines to
+            each person
+        :return: PandemicSim instance
+        """
+        assert globals.registry, 'No registry found. Create the repo wide registry first by calling init_globals()'
+
+        # make locations
+        locations = make_locations(sim_config)
+
+        # make population
+        persons = make_population(sim_config)
+
+        # assign routines
+        if person_routine_assignment is not None:
+            for loc in person_routine_assignment.required_location_types:
+                assert loc.__name__ in globals.registry.location_types, (
+                    f'Required location type {loc.__name__} not found. Modify sim_config to include it.')
+            person_routine_assignment(persons)
+
+        # make infection model
+        infection_model = SEIRModel(
+            spread_probability_params=SpreadProbabilityParams(sim_opts.infection_spread_rate_mean,
+                                                              sim_opts.infection_spread_rate_sigma))
+
+        # setup pandemic testing
+        pandemic_testing = RandomPandemicTesting(spontaneous_testing_rate=sim_opts.spontaneous_testing_rate,
+                                                 symp_testing_rate=sim_opts.symp_testing_rate,
+                                                 critical_testing_rate=sim_opts.critical_testing_rate,
+                                                 testing_false_positive_rate=sim_opts.testing_false_positive_rate,
+                                                 testing_false_negative_rate=sim_opts.testing_false_negative_rate,
+                                                 retest_rate=sim_opts.retest_rate)
+
+        # create contact tracing app (optional)
+        contact_tracer = MaxSlotContactTracer(
+            storage_slots=sim_opts.contact_tracer_history_size) if sim_opts.use_contact_tracer else None
+
+        # setup sim
+        return PandemicSim(persons=persons,
+                           locations=locations,
+                           infection_model=infection_model,
+                           pandemic_testing=pandemic_testing,
+                           contact_tracer=contact_tracer,
+                           infection_threshold=sim_opts.infection_threshold)
+
+    @property
+    def registry(self) -> Registry:
+        """Return registry"""
+        return self._registry
 
     def _compute_contacts(self, location: Location) -> OrderedSet:
         assignees = location.state.assignees_in_location
@@ -192,9 +266,9 @@ class PandemicSim:
             location.sync(self._state.sim_time)
         self._registry.update_location_specific_information()
 
-        # call person steps
-        for person in self._id_to_person.values():
-            person.step(self._state.sim_time, self._contact_tracer)
+        # call person steps (randomize order)
+        for i in self._numpy_rng.randint(0, len(self._persons), len(self._persons)):
+            self._persons[i].step(self._state.sim_time, self._contact_tracer)
 
         # update person contacts
         for location in self._id_to_location.values():
@@ -238,11 +312,17 @@ class PandemicSim:
         self._state.infection_above_threshold = (self._state.global_testing_state.summary[InfectionSummary.INFECTED]
                                                  >= self._infection_threshold)
 
+        self._state.global_location_summary = self._registry.global_location_summary
+
         if self._contact_tracer and self._new_time_slot_interval.trigger_at_interval(self._state.sim_time):
             self._contact_tracer.new_time_slot()
 
         # call sim time step
         self._state.sim_time.step()
+
+    def step_day(self, hours_in_a_day: int = 24) -> None:
+        for _ in range(hours_in_a_day):
+            self.step()
 
     @staticmethod
     def _get_cr_from_social_distancing(location: Location,
@@ -259,13 +339,12 @@ class PandemicSim:
 
         return new_cr
 
-    def execute_regulation(self, regulation: PandemicRegulation) -> None:
+    def impose_regulation(self, regulation: PandemicRegulation) -> None:
         """
         Receive a regulation that updates the simulator dynamics
 
         :param regulation: a PandemicRegulation instance
         """
-
         # update location rules
         sd = regulation.social_distancing
         loc_type_rk = regulation.location_type_to_rule_kwargs
@@ -307,14 +386,15 @@ class PandemicSim:
             person.reset()
 
         self._infection_model.reset()
-        num_persons = len(self._id_to_person)
 
+        num_persons = len(self._id_to_person)
         self._state = PandemicSimState(
             id_to_person_state={person_id: person.state for person_id, person in self._id_to_person.items()},
             id_to_location_state={loc_id: loc.state for loc_id, loc in self._id_to_location.items()},
             location_type_infection_summary={type(location): 0 for location in self._id_to_location.values()},
 
             global_infection_summary={s: 0 for s in sorted_infection_summary},
+            global_location_summary=self._registry.global_location_summary,
             global_testing_state=GlobalTestingState(summary={s: num_persons if s == InfectionSummary.NONE else 0
                                                              for s in sorted_infection_summary},
                                                     num_tests=0),

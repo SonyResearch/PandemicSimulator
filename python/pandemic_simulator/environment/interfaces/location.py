@@ -1,7 +1,7 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
-
 from abc import ABC, abstractmethod
-from typing import Optional, Type
+from dataclasses import dataclass
+from typing import Type, Generic, TypeVar, ClassVar
 
 from .ids import PersonID, LocationID
 from .location_rules import LocationRule
@@ -9,7 +9,7 @@ from .location_states import LocationState
 from .sim_time import SimTime
 from ...utils import abstract_class_property
 
-__all__ = ['Location', 'LocationError']
+__all__ = ['Location', 'LocationError', 'LocationSummary']
 
 
 class LocationError(Exception):
@@ -17,10 +17,25 @@ class LocationError(Exception):
     pass
 
 
-class Location(ABC):
+@dataclass(frozen=True)
+class LocationSummary:
+    """Dataclass that holds the location summary stats."""
+
+    entry_count: float = 0
+    """Entries to the location by a person (assignees and visitors)"""
+
+    visitor_count: float = 0
+    """Entries to the location by a visitor"""
+
+
+_State = TypeVar('_State', bound=LocationState)
+
+
+class Location(ABC, Generic[_State]):
     """Class that implements a location with a pre-defined operating rules"""
 
     location_rule_type: Type = abstract_class_property()  # The type of the location rule used by the location
+    state_type: ClassVar[Type[_State]]
 
     @property
     @abstractmethod
@@ -34,7 +49,7 @@ class Location(ABC):
 
     @property
     @abstractmethod
-    def state(self) -> LocationState:
+    def state(self) -> _State:
         """
         Property that returns the current state of the location.
 
@@ -44,21 +59,11 @@ class Location(ABC):
 
     @property
     @abstractmethod
-    def init_state(self) -> LocationState:
+    def init_state(self) -> _State:
         """
         Property that returns the init state of the location.
 
         :return: Init state of the location.
-        """
-        pass
-
-    @property
-    @abstractmethod
-    def road_id(self) -> Optional[LocationID]:
-        """
-        Property that returns the id of the road connected to the location.
-
-        :return: ID of the location.
         """
         pass
 
