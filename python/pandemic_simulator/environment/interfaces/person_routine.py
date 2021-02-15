@@ -20,13 +20,13 @@ class SpecialEndLoc(enum.Enum):
 class RoutineTrigger(metaclass=ABCMeta):
 
     @abstractmethod
-    def trigger(self, sim_time: SimTime, person_state: Optional[PersonState] = None) -> bool:
+    def trigger(self, sim_time: SimTime, person_state: PersonState) -> bool:
         pass
 
 
 class SimTimeRoutineTrigger(RoutineTrigger, SimTimeInterval):
 
-    def trigger(self, sim_time: SimTime, person_state: Optional[PersonState] = None) -> bool:
+    def trigger(self, sim_time: SimTime, person_state: PersonState) -> bool:
         return self.trigger_at_interval(sim_time)
 
 
@@ -77,20 +77,20 @@ class PersonRoutineWithStatus:
     end_loc_selected: Optional[LocationID] = None
     """The final end_loc selected after sampling from routine.explorable_end_locs"""
 
-    def _is_routine_due(self, sim_time: SimTime) -> bool:
+    def _is_routine_due(self, sim_time: SimTime, person_state: PersonState) -> bool:
         if self.started or self.done or sim_time not in self.routine.valid_time:
             # not due if the routine has already started or is completed or is not valid
             return False
 
-        return self.due or self.routine.start_trigger.trigger(sim_time)
+        return self.due or self.routine.start_trigger.trigger(sim_time, person_state)
 
-    def sync(self, sim_time: SimTime) -> None:
+    def sync(self, sim_time: SimTime, person_state: PersonState) -> None:
         """Sync the status variables with time."""
         # if completed check if you need to reset the routine for a repetition
-        if self.done and self.routine.reset_when_done.trigger(sim_time):
+        if self.done and self.routine.reset_when_done.trigger(sim_time, person_state):
             self.reset()
 
-        self.due = self._is_routine_due(sim_time)
+        self.due = self._is_routine_due(sim_time, person_state)
 
     def reset(self) -> None:
         """Reset status variables"""
