@@ -102,7 +102,7 @@ def weekend_routine(start_loc: Optional[LocationID],
                          valid_time=SimTimeTuple(week_days=(5, 6)),
                          explorable_end_locs=explorable_end_locs,
                          explore_probability=explore_probability,
-                         reset_when_done=reset_when_done)
+                         reset_when_done_trigger=reset_when_done)
 
 
 def mid_day_during_week_routine(start_loc: Optional[LocationID],
@@ -121,4 +121,4 @@ def social_routine(start_loc: Optional[LocationID]) -> PersonRoutine:
                          end_loc=SpecialEndLoc.social,
                          valid_time=SimTimeTuple(hours=tuple(range(15, 20))),
                          duration_of_stay_at_end_loc=globals.numpy_rng.randint(1, 3),
-                         reset_when_done=SimTimeRoutineTrigger(day=7))
+                         reset_when_done_trigger=SimTimeRoutineTrigger(day=7))

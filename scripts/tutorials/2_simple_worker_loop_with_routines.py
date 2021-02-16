@@ -64,7 +64,7 @@ def simple_worker_loop_with_routines() -> None:
             # seventh day. Once triggered, it is queued to be executed until it gets triggered again.
             # Advanced tip: SimTimeRoutineTrigger triggers based on sim_time only. If you want to create state
             # based triggers, you can implement it similar to SimTimeRoutineTrigger and use person_state to return
-            # a boolean.
+            # a boolean (see test/environment/test_person_routines.py for an example).
         )
 
     ]
