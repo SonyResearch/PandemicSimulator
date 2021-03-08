@@ -21,6 +21,10 @@ class BusinessBaseLocation(BaseLocation[_BusinessState], metaclass=ABCMeta):
 
     location_rule_type: Type = BusinessLocationRule
 
+    def sync(self, sim_time: SimTime) -> None:
+        super().sync(sim_time)
+        self._state.is_open = sim_time in self._state.open_time
+
     def update_rules(self, new_rule: LocationRule) -> None:
         super().update_rules(new_rule)
         rule = cast(BusinessLocationRule, new_rule)
