@@ -20,7 +20,7 @@ setup(
         'istype>=0.2.0',
         'matplotlib',
         'networkx',  # for graph analysis
-        'numpy',
+        'numpy==1.19.5',    # 1.20 numpy requires mypy fixes #TODO
         'scipy',
         'probabilistic-automata>=0.4.0',  # for probabilistic DFA
         'pyrsistent>=0.15.5',  # for frozen classes

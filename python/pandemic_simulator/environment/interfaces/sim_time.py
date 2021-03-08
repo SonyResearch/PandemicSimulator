@@ -70,13 +70,14 @@ class SimTimeInterval:
     def __post_init__(self) -> None:
         assert self.hour in range(24), 'Set a value in [1, 23] for an interval in hours'
         assert self.day in range(365), 'Set a value in [1, 365] for an interval in days'
+        assert self.hour + self.day + self.year > 0, 'Provide a non-zero value at least for either of hour/day/year'
         object.__setattr__(self, '_trigger_hr', self.in_hours())
         object.__setattr__(self, '_offset_hr', self.offset_day * 24 + self.offset_hour)
 
     def trigger_at_interval(self, sim_time: SimTime) -> bool:
         """Return True at sim time interval and False otherwise."""
         sim_hr = sim_time.year * 365 * 24 + sim_time.day * 24 + sim_time.hour
-        return max(sim_hr - self._offset_hr, 0) % self._trigger_hr == 0
+        return (sim_hr - self._offset_hr) % self._trigger_hr == 0 if sim_hr >= self._offset_hr else False
 
     def in_hours(self) -> int:
         return self.year * 365 * 24 + self.day * 24 + self.hour

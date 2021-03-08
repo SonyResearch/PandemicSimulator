@@ -39,7 +39,7 @@ class Retired(BasePerson):
         super()._sync(sim_time)
 
         for rws in self._routines_with_status:
-            rws.sync(sim_time)
+            rws.sync(sim_time=sim_time, person_state=self.state)
 
     def set_routines(self, routines: Sequence[PersonRoutine]) -> None:
         """A sequence of person routines to execute"""

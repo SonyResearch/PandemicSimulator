@@ -3,7 +3,7 @@ from typing import Sequence, Optional, cast, Type, Tuple
 
 from .base import BasePerson
 from ..interfaces import PersonRoutineWithStatus, NoOP, NOOP, LocationID, SpecialEndLoc, globals, PersonRoutine, \
-    SimTimeInterval, SimTimeTuple
+    SimTimeTuple, SimTimeRoutineTrigger, RoutineTrigger
 
 __all__ = ['execute_routines', 'triggered_routine', 'weekend_routine', 'mid_day_during_week_routine', 'social_routine']
 
@@ -86,8 +86,8 @@ def triggered_routine(start_loc: Optional[LocationID],
     end_loc, explorable_end_locs = _get_locations_from_type(end_location_type)
     return PersonRoutine(start_loc=start_loc,
                          end_loc=end_loc,
-                         start_trigger_time=SimTimeInterval(day=interval_in_days,
-                                                            offset_day=globals.numpy_rng.randint(0, interval_in_days)),
+                         start_trigger=SimTimeRoutineTrigger(day=interval_in_days,
+                                                             offset_day=globals.numpy_rng.randint(0, interval_in_days)),
                          explorable_end_locs=explorable_end_locs,
                          explore_probability=explore_probability)
 
@@ -95,14 +95,14 @@ def triggered_routine(start_loc: Optional[LocationID],
 def weekend_routine(start_loc: Optional[LocationID],
                     end_location_type: type,
                     explore_probability: float = 0.05,
-                    repeat_interval_when_done: SimTimeInterval = SimTimeInterval(day=1)) -> PersonRoutine:
+                    reset_when_done: RoutineTrigger = SimTimeRoutineTrigger(day=1)) -> PersonRoutine:
     end_loc, explorable_end_locs = _get_locations_from_type(end_location_type)
     return PersonRoutine(start_loc=start_loc,
                          end_loc=end_loc,
                          valid_time=SimTimeTuple(week_days=(5, 6)),
                          explorable_end_locs=explorable_end_locs,
                          explore_probability=explore_probability,
-                         repeat_interval_when_done=repeat_interval_when_done)
+                         reset_when_done_trigger=reset_when_done)
 
 
 def mid_day_during_week_routine(start_loc: Optional[LocationID],
@@ -121,4 +121,4 @@ def social_routine(start_loc: Optional[LocationID]) -> PersonRoutine:
                          end_loc=SpecialEndLoc.social,
                          valid_time=SimTimeTuple(hours=tuple(range(15, 20))),
                          duration_of_stay_at_end_loc=globals.numpy_rng.randint(1, 3),
-                         repeat_interval_when_done=SimTimeInterval(day=7))
+                         reset_when_done_trigger=SimTimeRoutineTrigger(day=7))

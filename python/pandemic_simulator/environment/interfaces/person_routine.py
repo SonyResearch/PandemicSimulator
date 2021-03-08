@@ -6,14 +6,28 @@ from typing import Optional, Sequence, Union, Type
 
 from .ids import LocationID
 from .location import Location
-from .person import Person
+from .person import Person, PersonState
 from .sim_time import SimTimeInterval, SimTimeTuple, SimTime
 
-__all__ = ['PersonRoutine', 'SpecialEndLoc', 'PersonRoutineWithStatus', 'PersonRoutineAssignment']
+__all__ = ['PersonRoutine', 'SpecialEndLoc', 'PersonRoutineWithStatus', 'PersonRoutineAssignment',
+           'RoutineTrigger', 'SimTimeRoutineTrigger']
 
 
 class SpecialEndLoc(enum.Enum):
     social = 0
+
+
+class RoutineTrigger(metaclass=ABCMeta):
+
+    @abstractmethod
+    def trigger(self, sim_time: SimTime, person_state: Optional[PersonState] = None) -> bool:
+        pass
+
+
+class SimTimeRoutineTrigger(RoutineTrigger, SimTimeInterval):
+
+    def trigger(self, sim_time: SimTime, person_state: Optional[PersonState] = None) -> bool:
+        return self.trigger_at_interval(sim_time)
 
 
 @dataclass(frozen=True)
@@ -29,8 +43,8 @@ class PersonRoutine:
     valid_time: SimTimeTuple = SimTimeTuple()
     """Specifies the time during which the routine is available to start."""
 
-    start_trigger_time: SimTimeInterval = SimTimeInterval(hour=1)
-    """Start trigger time of the routine specified through SimTimeInterval. The routine will only start during
+    start_trigger: RoutineTrigger = SimTimeRoutineTrigger(hour=1)
+    """Start trigger of the routine. The routine will only start during
     valid_time, and once triggered the routine will be queued to be executed at some point while it remains valid.
     Default is set to be triggered to start every hour during valid_time."""
 
@@ -47,8 +61,8 @@ class PersonRoutine:
     duration_of_stay_at_end_loc: int = 1
     """Specifies the duration (in hours) to stay at the end location."""
 
-    repeat_interval_when_done: SimTimeInterval = SimTimeInterval(day=1)
-    """Specifies the interval to repeat the routine when completed"""
+    reset_when_done_trigger: RoutineTrigger = SimTimeRoutineTrigger(day=1)
+    """Specifies a trigger to reset the routine when completed"""
 
 
 @dataclass
@@ -63,20 +77,20 @@ class PersonRoutineWithStatus:
     end_loc_selected: Optional[LocationID] = None
     """The final end_loc selected after sampling from routine.explorable_end_locs"""
 
-    def _is_routine_due(self, sim_time: SimTime) -> bool:
+    def _is_routine_due(self, sim_time: SimTime, person_state: Optional[PersonState]) -> bool:
         if self.started or self.done or sim_time not in self.routine.valid_time:
             # not due if the routine has already started or is completed or is not valid
             return False
 
-        return self.due or self.routine.start_trigger_time.trigger_at_interval(sim_time)
+        return self.due or self.routine.start_trigger.trigger(sim_time, person_state)
 
-    def sync(self, sim_time: SimTime) -> None:
+    def sync(self, sim_time: SimTime, person_state: Optional[PersonState] = None) -> None:
         """Sync the status variables with time."""
         # if completed check if you need to reset the routine for a repetition
-        if self.done and self.routine.repeat_interval_when_done.trigger_at_interval(sim_time):
+        if self.done and self.routine.reset_when_done_trigger.trigger(sim_time, person_state):
             self.reset()
 
-        self.due = self._is_routine_due(sim_time)
+        self.due = self._is_routine_due(sim_time, person_state)
 
     def reset(self) -> None:
         """Reset status variables"""

@@ -58,10 +58,13 @@ def simple_worker_loop_with_routines() -> None:
 
             end_loc=store.id,  # store id
 
-            start_trigger_time=ps.env.SimTimeInterval(day=7),
-            # notice that we set here start_trigger_time argument instead of valid_time. start_trigger_time specifies
-            # the interval that triggers the start of the routine. In this case, the routine is triggered every
+            start_trigger=ps.env.SimTimeRoutineTrigger(day=7),
+            # notice that we set here start_trigger argument instead of valid_time. start_trigger specifies
+            # a trigger to enable the routine. In this case, the routine is triggered every
             # seventh day. Once triggered, it is queued to be executed until it gets triggered again.
+            # Advanced tip: SimTimeRoutineTrigger triggers based on sim_time only. If you want to create state
+            # based triggers, you can implement it similar to SimTimeRoutineTrigger and use person_state to return
+            # a boolean (see test/environment/test_person_routines.py for an example).
         )
 
     ]
