@@ -29,9 +29,16 @@ def using_sim_config() -> None:
     # Init simulator
     sim = ps.env.PandemicSim.from_config(sim_config)
 
+    # setup viz to show plots
+    viz = ps.viz.SimViz.from_config(sim_config)
+
     # Iterate by advancing in days by calling step_day in the simulator
-    for _ in trange(10, desc='Simulating day'):
+    for _ in trange(20, desc='Simulating day'):
         sim.step_day()
+        viz.record(sim.state)
+
+    # display plots to show the infection summary and assignee (workers assigned to workplace and minors to school)
+    viz.plot([ps.viz.PlotType.global_infection_summary, ps.viz.PlotType.location_assignee_visits])
 
 
 if __name__ == '__main__':

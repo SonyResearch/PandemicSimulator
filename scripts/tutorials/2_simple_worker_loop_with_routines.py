@@ -73,9 +73,16 @@ def simple_worker_loop_with_routines() -> None:
     # Init simulator
     sim = ps.env.PandemicSim(locations=[work, home, restaurant, store], persons=[person])
 
+    # setup viz to show plots
+    viz = ps.viz.SimViz(num_persons=1)
+
     # Iterate by advancing in days by calling step_day in the simulator
     for _ in trange(10, desc='Simulating day'):
         sim.step_day()
+        viz.record(sim.state)
+
+    # show plot
+    viz.plot([ps.viz.PlotType.location_assignee_visits, ps.viz.PlotType.location_visitor_visits])
 
 
 if __name__ == '__main__':

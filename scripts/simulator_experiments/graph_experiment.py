@@ -17,8 +17,7 @@ def run(days: int, stage: int, days_per_interval: int) -> List[int]:
     sim_opts = ps.env.PandemicSimOpts(use_contact_tracer=True)  # use defaults
 
     # make sim
-    sim = ps.env.PandemicSim.from_config(sim_config, sim_opts,
-                                         person_routine_assignment=ps.sh.DefaultPersonRoutineAssignment())
+    sim = ps.env.PandemicSim.from_config(sim_config, sim_opts)
 
     # setup viz
     viz = ps.viz.GraphViz(sim, num_stages=len(ps.sh.austin_regulations), days_per_interval=days_per_interval)

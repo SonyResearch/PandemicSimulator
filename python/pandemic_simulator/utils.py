@@ -6,7 +6,8 @@ from typing import Any, cast, Type, TypeVar, Dict, List
 import istype
 import numpy as np
 
-__all__ = ['required', 'abstract_class_property', 'checked_cast', 'shallow_asdict', 'cluster_into_random_sized_groups']
+__all__ = ['required', 'abstract_class_property', 'checked_cast', 'shallow_asdict', 'cluster_into_random_sized_groups',
+           'integer_partitions']
 
 _T = TypeVar('_T')
 
@@ -50,3 +51,8 @@ def cluster_into_random_sized_groups(orig_list: List[int],
         final_list.append(orig_list[cnt: cnt + size])
         cnt += size
     return final_list
+
+
+def integer_partitions(x: int, n_partitions: int) -> List[int]:
+    _x = x // n_partitions
+    return [_x + 1 if i < x % n_partitions else _x for i in range(n_partitions)]

@@ -18,19 +18,8 @@ def using_person_routine_assignment() -> None:
     # these parameters are shared across the entire repo
     ps.init_globals(seed=0)
 
-    # generate a simulator config (see `python/pandemic_simulator/script_helpers/sim_configs.py` for more configs)
-    sim_config = ps.env.PandemicSimConfig(
-        num_persons=10,
-        location_configs=[
-            ps.env.LocationConfig(location_type=ps.env.Home, num=3),
-            ps.env.LocationConfig(location_type=ps.env.GroceryStore, num=1),
-            ps.env.LocationConfig(location_type=ps.env.Office, num=1),
-            ps.env.LocationConfig(location_type=ps.env.School, num=1)
-        ])
-
     # define an implementation of the PersonRoutineAssignment interface (see also
     # ps.sh.DefaultPersonRoutineAssignment() for a more realistic example)
-
     class MyAssignment(ps.env.PersonRoutineAssignment):
         """This is a callable class that gets used by the simulator to assign a routine for each person."""
 
@@ -39,7 +28,7 @@ def using_person_routine_assignment() -> None:
             """Specify the a tuple of location types that are required for this routine assignment"""
             return ps.env.GroceryStore,
 
-        def __call__(self, persons: Sequence[Person]) -> None:
+        def assign_routines(self, persons: Sequence[Person]) -> None:
             """
             Here, we implement a person routine for each person in the simulator.
 
@@ -68,12 +57,33 @@ def using_person_routine_assignment() -> None:
                     ]
                     p.set_outside_work_routines(routines)  # set as a outside work routine
 
+    # generate a simulator config (see `python/pandemic_simulator/script_helpers/sim_configs.py` for more configs)
+    sim_config = ps.env.PandemicSimConfig(
+        num_persons=20,
+        location_configs=[
+            ps.env.LocationConfig(location_type=ps.env.Home, num=3),
+            ps.env.LocationConfig(location_type=ps.env.GroceryStore, num=1),
+            ps.env.LocationConfig(location_type=ps.env.Office, num=1),
+            ps.env.LocationConfig(location_type=ps.env.School, num=1)
+        ],
+        person_routine_assignment=MyAssignment(),
+    )
+
     # Init simulator by passing the person routine assignment instance
-    sim = ps.env.PandemicSim.from_config(sim_config, person_routine_assignment=MyAssignment())
+    sim = ps.env.PandemicSim.from_config(sim_config)
+
+    # setup viz to show plots
+    viz = ps.viz.SimViz.from_config(sim_config)
 
     # Iterate by advancing in days by calling step_day in the simulator
-    for _ in trange(10, desc='Simulating day'):
+    for _ in trange(20, desc='Simulating day'):
         sim.step_day()
+        viz.record(sim.state)
+
+    # display plots to show grocery store (visitor visits)
+    viz.plot([ps.viz.PlotType.global_infection_summary,
+              ps.viz.PlotType.location_assignee_visits,
+              ps.viz.PlotType.location_visitor_visits])
 
 
 if __name__ == '__main__':
