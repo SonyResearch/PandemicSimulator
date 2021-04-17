@@ -1,5 +1,6 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 
+from .person_routines import DefaultPersonRoutineAssignment
 from ..environment import Home, GroceryStore, Office, School, Hospital, RetailStore, HairSalon, Restaurant, Bar, \
     PandemicSimConfig, LocationConfig
 
@@ -26,8 +27,8 @@ town_config = PandemicSimConfig(
         LocationConfig(HairSalon, num=40, num_assignees=3, state_opts=dict(visitor_capacity=5)),
         LocationConfig(Restaurant, num=20, num_assignees=6, state_opts=dict(visitor_capacity=30)),
         LocationConfig(Bar, num=20, num_assignees=5, state_opts=dict(visitor_capacity=30)),
-
-    ])
+    ],
+    person_routine_assignment=DefaultPersonRoutineAssignment())
 
 above_medium_town_config = PandemicSimConfig(
     num_persons=4000,
@@ -41,7 +42,8 @@ above_medium_town_config = PandemicSimConfig(
         LocationConfig(HairSalon, num=16, num_assignees=3, state_opts=dict(visitor_capacity=5)),
         LocationConfig(Restaurant, num=8, num_assignees=6, state_opts=dict(visitor_capacity=30)),
         LocationConfig(Bar, num=8, num_assignees=4, state_opts=dict(visitor_capacity=30))
-    ])
+    ],
+    person_routine_assignment=DefaultPersonRoutineAssignment())
 
 medium_town_config = PandemicSimConfig(
     num_persons=2000,
@@ -55,7 +57,8 @@ medium_town_config = PandemicSimConfig(
         LocationConfig(HairSalon, num=8, num_assignees=3, state_opts=dict(visitor_capacity=5)),
         LocationConfig(Restaurant, num=4, num_assignees=6, state_opts=dict(visitor_capacity=30)),
         LocationConfig(Bar, num=4, num_assignees=3, state_opts=dict(visitor_capacity=30))
-    ])
+    ],
+    person_routine_assignment=DefaultPersonRoutineAssignment())
 
 small_town_config = PandemicSimConfig(
     num_persons=1000,
@@ -68,8 +71,9 @@ small_town_config = PandemicSimConfig(
         LocationConfig(RetailStore, num=4, num_assignees=5, state_opts=dict(visitor_capacity=30)),
         LocationConfig(HairSalon, num=4, num_assignees=3, state_opts=dict(visitor_capacity=5)),
         LocationConfig(Restaurant, num=2, num_assignees=6, state_opts=dict(visitor_capacity=30)),
-        LocationConfig(Bar, num=2, num_assignees=5, state_opts=dict(visitor_capacity=30))
-    ])
+        LocationConfig(Bar, num=2, num_assignees=5, state_opts=dict(visitor_capacity=30)),
+    ],
+    person_routine_assignment=DefaultPersonRoutineAssignment())
 
 tiny_town_config = PandemicSimConfig(
     num_persons=500,
@@ -83,7 +87,8 @@ tiny_town_config = PandemicSimConfig(
         LocationConfig(HairSalon, num=2, num_assignees=3, state_opts=dict(visitor_capacity=5)),
         LocationConfig(Restaurant, num=1, num_assignees=6, state_opts=dict(visitor_capacity=30)),
         LocationConfig(Bar, num=1, num_assignees=3, state_opts=dict(visitor_capacity=30))
-    ])
+    ],
+    person_routine_assignment=DefaultPersonRoutineAssignment())
 
 test_config = PandemicSimConfig(
     num_persons=100,
@@ -95,4 +100,5 @@ test_config = PandemicSimConfig(
         LocationConfig(Hospital, num=1, num_assignees=30, state_opts=dict(patient_capacity=2)),
         LocationConfig(Restaurant, num=1, num_assignees=3, state_opts=dict(visitor_capacity=10)),
         LocationConfig(Bar, num=1, num_assignees=3, state_opts=dict(visitor_capacity=10)),
-    ])
+    ],
+    person_routine_assignment=DefaultPersonRoutineAssignment())

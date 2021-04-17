@@ -68,8 +68,7 @@ def eval_params(params: np.ndarray,
     sim_config = ps.sh.small_town_config
     reset_patient_capacity(sim_config)
     sim_opts = ps.env.PandemicSimOpts(infection_spread_rate_mean=spread_rate)
-    sim = ps.env.PandemicSim.from_config(sim_config, sim_opts,
-                                         person_routine_assignment=ps.sh.DefaultPersonRoutineAssignment())
+    sim = ps.env.PandemicSim.from_config(sim_config, sim_opts)
 
     # using swedish stage 1 regulation with the given social distancing to calibrate
     covid_regulation = dataclasses.replace(ps.sh.swedish_regulations[1], social_distancing=social_distancing)
