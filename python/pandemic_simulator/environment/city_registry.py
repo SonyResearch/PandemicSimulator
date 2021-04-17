@@ -1,6 +1,6 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 import dataclasses
-from typing import Dict, List, Optional, cast, Set, Type, Mapping, Tuple
+from typing import Dict, List, Optional, cast, Set, Type, Mapping, Tuple, Union
 
 from cachetools import cached
 
@@ -156,7 +156,7 @@ class CityRegistry(Registry):
     # ----------------location utility methods-----------------
 
     @cached(cache={})
-    def location_ids_of_type(self, location_type: type) -> Tuple[LocationID, ...]:
+    def location_ids_of_type(self, location_type: Union[type, Tuple[type, ...]]) -> Tuple[LocationID, ...]:
         return tuple(loc_id for loc_id, loc in self._location_register.items() if isinstance(loc, location_type))
 
     def get_persons_in_location(self, location_id: LocationID) -> Set[PersonID]:

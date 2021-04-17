@@ -1,7 +1,7 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Set, Mapping, Tuple
+from typing import List, Optional, Set, Mapping, Tuple, Union
 
 from .ids import LocationID, PersonID
 from .infection_model import InfectionSummary
@@ -89,8 +89,8 @@ class Registry(ABC):
     # ----------------location utility methods-----------------
 
     @abstractmethod
-    def location_ids_of_type(self, location_type: type) -> List[LocationID]:
-        """Return a list of location ids for the given type of location."""
+    def location_ids_of_type(self, location_type: Union[type, Tuple[type, ...]]) -> Tuple[LocationID, ...]:
+        """Return a tuple of location ids for the given type of location."""
 
     @abstractmethod
     def get_persons_in_location(self, location_id: LocationID) -> Set[PersonID]:

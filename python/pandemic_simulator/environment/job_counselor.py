@@ -30,7 +30,7 @@ class JobCounselor:
         self._registry = globals.registry
         self._numpy_rng = globals.numpy_rng
 
-        self._all_work_ids_vacant_pos = [(globals.registry.location_ids_of_type(config.location_type),
+        self._all_work_ids_vacant_pos = [(list(globals.registry.location_ids_of_type(config.location_type)),
                                           config.num * (config.num_assignees if config.num_assignees != -1 else 1000))
                                          for config in location_configs
                                          if issubclass(config.location_type, BusinessBaseLocation)]
