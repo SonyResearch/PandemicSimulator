@@ -33,7 +33,8 @@ class JobCounselor:
         self._all_work_ids_vacant_pos = [(list(globals.registry.location_ids_of_type(config.location_type)),
                                           config.num * (config.num_assignees if config.num_assignees != -1 else 1000))
                                          for config in location_configs
-                                         if issubclass(config.location_type, BusinessBaseLocation)]
+                                         if issubclass(config.location_type, BusinessBaseLocation) and
+                                         config.num_assignees != 0]
 
     def next_available_work(self) -> Optional[WorkPackage]:
         """Return next available work"""
