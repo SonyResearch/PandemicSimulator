@@ -89,6 +89,11 @@ sphinx autodoc package. Installation instructions: https://www.sphinx-doc.org/en
 
 `/test` -- unittests
 
+## Simulator snapshots
+
+![image](https://user-images.githubusercontent.com/6727235/115275002-3f173900-a10f-11eb-9421-b43c17d3ee6c.png)
+
+
 ## Contact
  
  If you have any questions regarding the code, please feel free to contact
