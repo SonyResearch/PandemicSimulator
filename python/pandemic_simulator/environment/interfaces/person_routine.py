@@ -110,5 +110,8 @@ class PersonRoutineAssignment(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def __call__(self, persons: Sequence[Person]) -> None:
+    def assign_routines(self, persons: Sequence[Person]) -> None:
         pass
+
+    def __call__(self, persons: Sequence[Person]) -> None:
+        self.assign_routines(persons)

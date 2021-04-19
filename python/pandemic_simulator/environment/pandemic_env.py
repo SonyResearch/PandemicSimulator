@@ -5,7 +5,7 @@ import gym
 
 from .done import DoneFunction
 from .interfaces import LocationID, PandemicObservation, NonEssentialBusinessLocationState, PandemicRegulation, \
-    PersonRoutineAssignment, InfectionSummary
+    InfectionSummary
 from .pandemic_sim import PandemicSim
 from .reward import RewardFunction, SumReward, RewardFunctionFactory, RewardFunctionType
 from .simulator_config import PandemicSimConfig
@@ -67,7 +67,6 @@ class PandemicGymEnv(gym.Env):
                     sim_config: PandemicSimConfig,
                     pandemic_regulations: Sequence[PandemicRegulation],
                     sim_opts: PandemicSimOpts = PandemicSimOpts(),
-                    person_routine_assignment: Optional[PersonRoutineAssignment] = None,
                     reward_fn: Optional[RewardFunction] = None,
                     done_fn: Optional[DoneFunction] = None,
                     obs_history_size: int = 1,
@@ -79,14 +78,12 @@ class PandemicGymEnv(gym.Env):
         :param sim_config: Simulator config
         :param pandemic_regulations: A sequence of pandemic regulations
         :param sim_opts: Simulator opts
-        :param person_routine_assignment: An optional PersonRoutineAssignment instance that assign PersonRoutines to
-            each person
         :param reward_fn: reward function
         :param done_fn: done function
         :param obs_history_size: number of latest sim step states to include in the observation
         :param non_essential_business_location_ids: an ordered list of non-essential business location ids
         """
-        sim = PandemicSim.from_config(sim_config, sim_opts, person_routine_assignment)
+        sim = PandemicSim.from_config(sim_config, sim_opts)
 
         if sim_config.max_hospital_capacity == -1:
             raise Exception("Nothing much to optimise if max hospital capacity is -1.")

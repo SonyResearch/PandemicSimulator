@@ -79,7 +79,7 @@ class GraphViz(PandemicViz):
                 # print("Sigma: ", networkx.sigma(self._graph))  # Small world if >1
                 pass
 
-    def plot(self) -> None:
+    def plot(self, *args: Any, **kwargs: Any) -> None:
         plt.figure(figsize=(12, 8))
 
         nrows = 1

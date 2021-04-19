@@ -9,13 +9,12 @@ class PandemicViz(ABC):
     """An interface for simulator visualization"""
 
     @abstractmethod
-    def record(self, data: Any, **kwargs: Any) -> None:
+    def record(self, data: Any) -> None:
         """
         Record data to internals for plotting.
 
         :param data:
-        :param kwargs: other optional keyword args
         """
 
-    def plot(self) -> None:
+    def plot(self, *args: Any, **kwargs: Any) -> None:
         """Make plots"""

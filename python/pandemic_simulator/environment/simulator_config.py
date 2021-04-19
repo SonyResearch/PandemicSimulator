@@ -1,9 +1,9 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 import dataclasses
 from dataclasses import dataclass, field
-from typing import Sequence, Type, Any, Dict
+from typing import Sequence, Type, Any, Dict, Optional
 
-from .interfaces import BaseLocation
+from .interfaces import BaseLocation, PersonRoutineAssignment
 from .location import Hospital, HospitalState
 
 __all__ = ['LocationConfig', 'PandemicSimConfig']
@@ -18,10 +18,13 @@ class LocationConfig:
     """Number of locations of the given type"""
 
     num_assignees: int = -1
-    """Number of assignees assigned to that location"""
+    """Number of assignees assigned to that location (used by JobCounselor)"""
 
     state_opts: Dict[str, Any] = field(default_factory=dict)
     """Additional options passed to the initial state."""
+
+    extra_opts: Dict[str, Any] = field(default_factory=dict)
+    """Additional options passed to the location constructor."""
 
     def __post_init__(self) -> None:
         for k in self.state_opts:
@@ -43,6 +46,9 @@ class PandemicSimConfig:
 
     max_hospital_capacity: int = field(init=False, default=-1)
     """Specifies maximum hospital capacity (inferred from a hospital location if there is one)"""
+
+    person_routine_assignment: Optional[PersonRoutineAssignment] = None
+    """Person routine assignment instance"""
 
     def __post_init__(self) -> None:
         for config in self.location_configs:

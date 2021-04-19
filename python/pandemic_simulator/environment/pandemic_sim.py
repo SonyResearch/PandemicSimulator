@@ -24,7 +24,8 @@ __all__ = ['PandemicSim', 'make_locations']
 
 def make_locations(sim_config: PandemicSimConfig) -> List[Location]:
     return [config.location_type(loc_id=f'{config.location_type.__name__}_{i}',
-                                 init_state=config.location_type.state_type(**config.state_opts))
+                                 init_state=config.location_type.state_type(**config.state_opts),
+                                 **config.extra_opts)  # type: ignore
             for config in sim_config.location_configs for i in range(config.num)]
 
 
@@ -55,6 +56,7 @@ class PandemicSim:
                  contact_tracer: Optional[ContactTracer] = None,
                  new_time_slot_interval: SimTimeInterval = SimTimeInterval(day=1),
                  infection_update_interval: SimTimeInterval = SimTimeInterval(day=1),
+                 person_routine_assignment: Optional[PersonRoutineAssignment] = None,
                  infection_threshold: int = 0):
         """
         :param locations: A sequence of Location instances.
@@ -64,6 +66,8 @@ class PandemicSim:
         :param contact_tracer: Optional ContactTracer instance.
         :param new_time_slot_interval: interval for updating contact tracer if that is not None. Default is set daily.
         :param infection_update_interval: interval for updating infection states. Default is set once daily.
+        :param person_routine_assignment: An optional PersonRoutineAssignment instance that assign PersonRoutines to
+            each person
         :param infection_threshold: If the infection summary is greater than the specified threshold, a
             boolean in PandemicSimState is set to True.
         """
@@ -89,13 +93,20 @@ class PandemicSim:
         self._hospital_ids = [loc.id for loc in locations if isinstance(loc, Hospital)]
 
         self._persons = persons
-        num_persons = len(persons)
+
+        # assign routines
+        if person_routine_assignment is not None:
+            for _loc in person_routine_assignment.required_location_types:
+                assert _loc.__name__ in globals.registry.location_types, (
+                    f'Required location type {_loc.__name__} not found. Modify sim_config to include it.')
+            person_routine_assignment.assign_routines(persons)
+
         self._state = PandemicSimState(
             id_to_person_state={person.id: person.state for person in persons},
             id_to_location_state={location.id: location.state for location in locations},
             location_type_infection_summary={type(location): 0 for location in locations},
             global_infection_summary={s: 0 for s in sorted_infection_summary},
-            global_testing_state=GlobalTestingState(summary={s: num_persons if s == InfectionSummary.NONE else 0
+            global_testing_state=GlobalTestingState(summary={s: len(persons) if s == InfectionSummary.NONE else 0
                                                              for s in sorted_infection_summary},
                                                     num_tests=0),
             global_location_summary=self._registry.global_location_summary,
@@ -107,15 +118,12 @@ class PandemicSim:
     @classmethod
     def from_config(cls: Type['PandemicSim'],
                     sim_config: PandemicSimConfig,
-                    sim_opts: PandemicSimOpts = PandemicSimOpts(),
-                    person_routine_assignment: Optional[PersonRoutineAssignment] = None) -> 'PandemicSim':
+                    sim_opts: PandemicSimOpts = PandemicSimOpts()) -> 'PandemicSim':
         """
         Creates an instance using config
 
         :param sim_config: Simulator config
         :param sim_opts: Simulator opts
-        :param person_routine_assignment: An optional PersonRoutineAssignment instance that assign PersonRoutines to
-            each person
         :return: PandemicSim instance
         """
         assert globals.registry, 'No registry found. Create the repo wide registry first by calling init_globals()'
@@ -125,13 +133,6 @@ class PandemicSim:
 
         # make population
         persons = make_population(sim_config)
-
-        # assign routines
-        if person_routine_assignment is not None:
-            for loc in person_routine_assignment.required_location_types:
-                assert loc.__name__ in globals.registry.location_types, (
-                    f'Required location type {loc.__name__} not found. Modify sim_config to include it.')
-            person_routine_assignment(persons)
 
         # make infection model
         infection_model = SEIRModel(
@@ -156,7 +157,8 @@ class PandemicSim:
                            infection_model=infection_model,
                            pandemic_testing=pandemic_testing,
                            contact_tracer=contact_tracer,
-                           infection_threshold=sim_opts.infection_threshold)
+                           infection_threshold=sim_opts.infection_threshold,
+                           person_routine_assignment=sim_config.person_routine_assignment)
 
     @property
     def registry(self) -> Registry:

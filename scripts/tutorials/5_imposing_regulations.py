@@ -28,6 +28,9 @@ def impose_regulations() -> None:
     # init simulator
     sim = ps.env.PandemicSim.from_config(sim_config)
 
+    # setup viz to show plots
+    viz = ps.viz.SimViz.from_config(sim_config)
+
     # define two custom pandemic regulations (see ps.sh.austin_regulations for realistic regulations)
     regulation_1 = ps.env.PandemicRegulation(  # moderate restriction
         stay_home_if_sick=True,  # stay home if sick
@@ -47,16 +50,22 @@ def impose_regulations() -> None:
     # Iterate with no restrictions
     for _ in trange(3, desc='Simulating day (no restrictions)'):
         sim.step_day()
+        viz.record_state(sim.state)
 
     # Iterate after imposing stage 1 restrictions
     sim.impose_regulation(regulation_1)
     for _ in trange(3, desc='Simulating day (stage 1)'):
         sim.step_day()
+        viz.record_state(sim.state)
 
     # Iterate after imposing stage 2 restrictions
     sim.impose_regulation(regulation_2)
     for _ in trange(3, desc='Simulating day (stage 2)'):
         sim.step_day()
+        viz.record(sim.state)
+
+    # display plots to show grocery store (visitor visits)
+    viz.plot([ps.viz.PlotType.global_infection_summary, ps.viz.PlotType.stages])
 
 
 if __name__ == '__main__':

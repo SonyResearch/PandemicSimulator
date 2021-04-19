@@ -3,6 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Set, cast
 
+from .utils import get_work_time_for_24_7_open_locations
 from ..interfaces import PersonID, InfectionSummary, BusinessLocationState, SimTimeTuple, BusinessBaseLocation
 
 __all__ = ['Hospital', 'HospitalState']
@@ -10,8 +11,6 @@ __all__ = ['Hospital', 'HospitalState']
 
 @dataclass
 class HospitalState(BusinessLocationState):
-    open_time: SimTimeTuple = SimTimeTuple()
-
     patient_capacity: int = -1
     """Number of patients allowed to be admitted to the Hospital"""
 
@@ -19,6 +18,10 @@ class HospitalState(BusinessLocationState):
     """A set of ids of patients who are currently in the location. Default is an empty set."""
 
     num_admitted_patients: int = field(init=False, default=0)
+    """Number of admitted patients"""
+
+    open_time: SimTimeTuple = field(default_factory=SimTimeTuple, init=False)
+    """Always open"""
 
     @property
     def persons_in_location(self) -> Set[PersonID]:
@@ -58,15 +61,4 @@ class Hospital(BusinessBaseLocation[HospitalState]):
             super().remove_person_from_location(person_id)
 
     def get_worker_work_time(self) -> SimTimeTuple:
-        # roll the dice for day shift or night shift
-        if self._numpy_rng.random() < 0.5:
-            # night shift
-            hours = (22, 23) + tuple(range(0, 7))
-        else:
-            # distribute the work hours of the day shifts between 7 am to 10pm
-            start = self._numpy_rng.randint(7, 13)
-            hours = tuple(range(start, start + 9))
-
-        start = self._numpy_rng.randint(0, 2)
-        week_days = tuple(range(start, start + 6))
-        return SimTimeTuple(hours, week_days)
+        return get_work_time_for_24_7_open_locations()

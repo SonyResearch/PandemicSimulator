@@ -67,7 +67,7 @@ class DefaultPersonRoutineAssignment(PersonRoutineAssignment):
         ]
         return routines
 
-    def __call__(self, persons: Sequence[Person]) -> None:
+    def assign_routines(self, persons: Sequence[Person]) -> None:
         for p in persons:
             if isinstance(p, Retired):
                 p.set_routines(self.get_retired_routines(p.home))

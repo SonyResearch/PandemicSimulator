@@ -55,8 +55,8 @@ class BasePerson(Person):
         self._state = deepcopy(self._init_state)
         self._registry.register_person(self)
 
-        self._cemetery_ids = self._registry.location_ids_of_type(Cemetery)
-        self._hospital_ids = self._registry.location_ids_of_type(Hospital)
+        self._cemetery_ids = list(self._registry.location_ids_of_type(Cemetery))
+        self._hospital_ids = list(self._registry.location_ids_of_type(Hospital))
         self._go_home = False
 
     def enter_location(self, location_id: LocationID) -> bool:

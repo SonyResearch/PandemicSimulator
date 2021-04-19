@@ -1,6 +1,6 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 from dataclasses import dataclass, field
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Type, Union
 
 __all__ = ['SimTime', 'SimTimeInterval', 'SimTimeTuple']
 
@@ -42,6 +42,20 @@ class SimTime:
         object.__setattr__(self, 'week_day', w)
         object.__setattr__(self, 'day', d)
         object.__setattr__(self, 'year', y)
+
+    def in_hours(self) -> int:
+        return self.year * 365 * 24 + self.day * 24 + self.hour
+
+    @classmethod
+    def from_hours(cls: Type, hours: int) -> 'SimTime':
+        y = hours // (365 * 24)
+        d = hours % (365 * 24) // 24
+        h = hours % (365 * 24) % 24
+        w = d % 7
+        return SimTime(h, w, d, y)
+
+    def __add__(self, other: Union['SimTime', 'SimTimeInterval']) -> 'SimTime':
+        return SimTime.from_hours(other.in_hours() + self.in_hours())
 
 
 @dataclass(frozen=True)

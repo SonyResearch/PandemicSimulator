@@ -99,7 +99,7 @@ def test_retiree_households() -> None:
         if is_nursing_home:
             retirees_in_nursing_home += len(household)
 
-    assert (retirees_in_nursing_home / all_retirees) > 0.065
+    assert (retirees_in_nursing_home / all_retirees) >= 0.065
 
 
 def test_single_parent_households() -> None:

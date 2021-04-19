@@ -18,21 +18,16 @@ def run_pandemic_gym_env() -> None:
     sim_config = ps.sh.small_town_config
 
     # make env
-    env = ps.env.PandemicGymEnv.from_config(sim_config,
-                                            pandemic_regulations=ps.sh.austin_regulations,
-                                            person_routine_assignment=ps.sh.DefaultPersonRoutineAssignment())
+    env = ps.env.PandemicGymEnv.from_config(sim_config, pandemic_regulations=ps.sh.austin_regulations)
 
     # setup viz
-    viz = ps.viz.MatplotLibViz(num_persons=sim_config.num_persons,
-                               max_hospital_capacity=sim_config.max_hospital_capacity,
-                               num_stages=len(ps.sh.austin_regulations),
-                               show_stages=False)
+    viz = ps.viz.GymViz.from_config(sim_config=sim_config)
 
     # run stage-0 action steps in the environment
     env.reset()
     for _ in trange(100, desc='Simulating day'):
         obs, reward, done, aux = env.step(action=0)  # here the action is the discrete regulation stage identifier
-        viz.record(obs, reward=reward)
+        viz.record((obs, reward))
 
     # generate plots
     viz.plot()
