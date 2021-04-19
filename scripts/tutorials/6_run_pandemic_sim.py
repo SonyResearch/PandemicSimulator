@@ -10,7 +10,7 @@ def run_pandemic_sim() -> None:
     print('\nA tutorial that runs the simulator using austin regulations and default person routines', flush=True)
 
     # init globals
-    ps.init_globals(seed=10)
+    ps.init_globals(seed=1)
 
     # select a simulator config
     sim_config = ps.sh.small_town_config
