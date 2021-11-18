@@ -93,6 +93,7 @@ class PandemicSim:
         self._hospital_ids = [loc.id for loc in locations if isinstance(loc, Hospital)]
 
         self._persons = persons
+        
 
         # assign routines
         if person_routine_assignment is not None:

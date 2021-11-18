@@ -2,6 +2,7 @@
 from typing import List, Optional, Dict, Tuple, Mapping, Type, Sequence
 
 import gym
+from gym import spaces
 
 from .done import DoneFunction
 from .interfaces import LocationID, PandemicObservation, NonEssentialBusinessLocationState, PandemicRegulation, \
@@ -46,6 +47,34 @@ class PandemicGymEnv(gym.Env):
         :param sim_steps_per_regulation: number of sim_steps to run for each regulation
         :param non_essential_business_location_ids: an ordered list of non-essential business location ids
         """
+        
+        #CHANGE BEGIN
+        # Add action_space and observation_space
+
+        self.action_space=spaces.Discrete(2) 
+        '''
+        action=0 --> Reduce level of regulation.
+        action=1 --> Maintain level of regulation.
+        action=2 --> Increase level of regulation.
+        '''
+        self.observation_space=spaces.Tuple([
+            spaces.Discrete(len(pandemic_sim._persons)),         #Global Infection Summary None
+            spaces.Discrete(len(pandemic_sim._persons)),         #Global Infection Summary Infected
+            spaces.Discrete(len(pandemic_sim._persons)),         #Global Infection Summary Critical
+            spaces.Discrete(len(pandemic_sim._persons)),         #Global Infection Summary Recovered
+            spaces.Discrete(len(pandemic_sim._persons)),         #Global Infection Summary Dead
+            spaces.Discrete(len(pandemic_sim._persons)),         #Global Testing Summary None
+            spaces.Discrete(len(pandemic_sim._persons)),         #Global Testing Summary Infected
+            spaces.Discrete(len(pandemic_sim._persons)),         #Global Testing Summary Critical
+            spaces.Discrete(len(pandemic_sim._persons)),         #Global Testing Summary Recovered
+            spaces.Discrete(len(pandemic_sim._persons)),         #Global Testing Summary Dead
+            spaces.Discrete(len(pandemic_regulations)),          #Stage
+            spaces.Discrete(2),                                  #infection above threshold (boolean)
+            spaces.Discrete(len(pandemic_sim._id_to_location)),  #Stage
+        ])
+
+        #CHANGE END
+
         self._pandemic_sim = pandemic_sim
         self._stage_to_regulation = {reg.stage: reg for reg in pandemic_regulations}
         self._obs_history_size = obs_history_size
@@ -129,7 +158,15 @@ class PandemicGymEnv(gym.Env):
 
         # execute the action if different from the current stage
         if action != self._last_observation.stage[-1, 0, 0]:  # stage has a TNC layout
-            regulation = self._stage_to_regulation[action]
+            
+            #CHANGE BEGIN
+            # make action decrease/maintain/increase as per paper
+            
+            #regulation = self._stage_to_regulation[action]
+            regulation = self._stage_to_regulation[max(0,min(4,self._last_observation.stage[-1, 0, 0]+action-1))]
+            
+            #CHANGE END
+            
             self._pandemic_sim.impose_regulation(regulation=regulation)
 
         # update the sim until next regulation interval trigger and construct obs from state hist
