@@ -51,6 +51,9 @@ class PandemicGymEnv(gym.Env):
         #CHANGE BEGIN
         # Add action_space and observation_space
 
+        #Use below to make actions to choose regulation level
+        #self.action_space = gym.spaces.Discrete(len(self._stage_to_regulation))
+
         self.action_space=spaces.Discrete(2) 
         '''
         action=0 --> Reduce level of regulation.
@@ -69,8 +72,8 @@ class PandemicGymEnv(gym.Env):
             spaces.Discrete(len(pandemic_sim._persons)),         #Global Testing Summary Recovered
             spaces.Discrete(len(pandemic_sim._persons)),         #Global Testing Summary Dead
             spaces.Discrete(len(pandemic_regulations)),          #Stage
-            spaces.Discrete(2),                                  #infection above threshold (boolean)
-            spaces.Discrete(len(pandemic_sim._id_to_location)),  #Stage
+            #spaces.Discrete(2),                                  #infection above threshold (boolean)
+            #spaces.Discrete(len(pandemic_sim._id_to_location)),  #List of closed Locations
         ])
 
         #CHANGE END
@@ -89,8 +92,7 @@ class PandemicGymEnv(gym.Env):
         self._reward_fn = reward_fn
         self._done_fn = done_fn
 
-        self.action_space = gym.spaces.Discrete(len(self._stage_to_regulation))
-
+        
     @classmethod
     def from_config(cls: Type['PandemicGymEnv'],
                     sim_config: PandemicSimConfig,
