@@ -165,6 +165,9 @@ class PandemicSim:
         """Return registry"""
         return self._registry
 
+    def num_persons(self) -> int:
+      return len(self._persons)
+
     def _compute_contacts(self, location: Location) -> OrderedSet:
         assignees = location.state.assignees_in_location
         visitors = location.state.visitors_in_location

@@ -60,22 +60,23 @@ class PandemicGymEnv(gym.Env):
 
         #Uncomment below line to make actions to choose regulation level
         #self.action_space = gym.spaces.Discrete(len(self._stage_to_regulation))
-
-        self.observation_space=spaces.Tuple([
-            spaces.Discrete(len(pandemic_sim._persons)),         #Global Infection Summary None
-            spaces.Discrete(len(pandemic_sim._persons)),         #Global Infection Summary Infected
-            spaces.Discrete(len(pandemic_sim._persons)),         #Global Infection Summary Critical
-            spaces.Discrete(len(pandemic_sim._persons)),         #Global Infection Summary Recovered
-            spaces.Discrete(len(pandemic_sim._persons)),         #Global Infection Summary Dead
-            spaces.Discrete(len(pandemic_sim._persons)),         #Global Testing Summary None
-            spaces.Discrete(len(pandemic_sim._persons)),         #Global Testing Summary Infected
-            spaces.Discrete(len(pandemic_sim._persons)),         #Global Testing Summary Critical
-            spaces.Discrete(len(pandemic_sim._persons)),         #Global Testing Summary Recovered
-            spaces.Discrete(len(pandemic_sim._persons)),         #Global Testing Summary Dead
-            spaces.Discrete(len(pandemic_regulations)),          #Stage
-            #spaces.Discrete(2),                                  #infection above threshold (boolean)
-            #spaces.Discrete(len(pandemic_sim._id_to_location)),  #List of closed Locations
-        ])
+        self.observation_space=spaces.Dict({
+            'Global Infection Summary':spaces.Tuple([
+                spaces.Discrete(len(pandemic_sim.num_persons)),         #Global Infection Summary None
+                spaces.Discrete(len(pandemic_sim.num_persons)),         #Global Infection Summary Infected
+                spaces.Discrete(len(pandemic_sim.num_persons)),         #Global Infection Summary Critical
+                spaces.Discrete(len(pandemic_sim.num_persons)),         #Global Infection Summary Recovered
+                spaces.Discrete(len(pandemic_sim.num_persons))         #Global Infection Summary Dead
+            ]),
+            'Global Testing Summary':spaces.Tuple([
+                spaces.Discrete(len(pandemic_sim.num_persons)),         #Global Testing Summary None
+                spaces.Discrete(len(pandemic_sim.num_persons)),         #Global Testing Summary Infected
+                spaces.Discrete(len(pandemic_sim.num_persons)),         #Global Testing Summary Critical
+                spaces.Discrete(len(pandemic_sim.num_persons)),         #Global Testing Summary Recovered
+                spaces.Discrete(len(pandemic_sim.num_persons))         #Global Testing Summary Dead
+            ]),
+            'Stage':spaces.Discrete(len(pandemic_regulations)),     #Stage
+            })
 
         self._pandemic_sim = pandemic_sim
         self._stage_to_regulation = {reg.stage: reg for reg in pandemic_regulations}
