@@ -1,6 +1,5 @@
 # Confidential, Copyright 2020, Sony Corporation of America, All rights reserved.
 from dataclasses import dataclass
-from logging import critical
 from typing import Sequence, Type, cast, Optional
 
 import numpy as np
