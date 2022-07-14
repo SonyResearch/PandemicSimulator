@@ -280,5 +280,8 @@ class GymViz(BaseMatplotLibViz):
             self._rewards.append(reward)
         else:
             obs = data
-        assert isinstance(obs, PandemicObservation)
-        self.record_obs(obs)
+        assert isinstance(obs, PandemicObservation) or isinstance(obs,PandemicSimState)
+        if isinstance(obs, PandemicObservation):
+            self.record_obs(obs)
+        else:
+            self.record_state(obs)

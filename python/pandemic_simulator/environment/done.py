@@ -5,6 +5,7 @@ from abc import ABCMeta, abstractmethod
 from typing import Dict, List, Type, Union, Any
 
 import numpy as np
+from pandemic_simulator.environment.interfaces.sim_state import PandemicSimState
 
 __all__ = ['DoneFunctionType', 'DoneFunctionFactory', 'ORDone', 'DoneFunction',
            'InfectionSummaryAboveThresholdDone', 'NoMoreInfectionsDone', 'NoPandemicDone']
@@ -18,6 +19,9 @@ class DoneFunction(metaclass=ABCMeta):
 
     @abstractmethod
     def calculate_done(self, obs: PandemicObservation, action: int) -> bool:
+        pass
+
+    def calculate_done_from_state(self, state: PandemicSimState, action: int) -> bool:
         pass
 
     def reset(self) -> None:
@@ -73,6 +77,9 @@ class ORDone(DoneFunction):
     def calculate_done(self, obs: PandemicObservation, action: int) -> bool:
         return any([df.calculate_done(obs, action) for df in self._done_fns])
 
+    def calculate_done_from_state(self, state: PandemicSimState, action: int) -> bool:
+        return any([df.calculate_done_from_state(state, action) for df in self._done_fns])
+
     def reset(self) -> None:
         for done_fn in self._done_fns:
             done_fn.reset()
@@ -92,6 +99,9 @@ class InfectionSummaryAboveThresholdDone(DoneFunction):
     def calculate_done(self, obs: PandemicObservation, action: int) -> bool:
         return bool(np.any(obs.global_infection_summary[..., self._index] > self._threshold))
 
+    def calculate_done_from_state(self, state: PandemicSimState, action: int) -> bool:
+        return bool(np.any(list(state.global_infection_summary.values())[self._index] > self._threshold))
+
 
 class NoMoreInfectionsDone(DoneFunction):
     """Returns True if the number of infected and critical becomes zero and all have recovered."""
@@ -106,6 +116,16 @@ class NoMoreInfectionsDone(DoneFunction):
 
     def calculate_done(self, obs: PandemicObservation, action: int) -> bool:
         no_infection = np.sum(obs.global_infection_summary[..., [self._infected_index, self._critical_index]]) == 0
+        if no_infection and self._cnt > 5:
+            return True
+        elif no_infection:
+            self._cnt += 1
+        else:
+            self._cnt = 0
+        return False
+
+    def calculate_done_from_state(self, state: PandemicSimState, action: int) -> bool:
+        no_infection = (list(state.global_infection_summary.values())[self._infected_index]+ list(state.global_infection_summary.values())[self._critical_index] == 0)
         if no_infection and self._cnt > 5:
             return True
         elif no_infection:
@@ -135,6 +155,10 @@ class NoPandemicDone(DoneFunction):
     def calculate_done(self, obs: PandemicObservation, action: int) -> bool:
         self._pandemic_exists = self._pandemic_exists or np.any(obs.infection_above_threshold)
         return obs.time_day[-1].item() > self._num_days and not self._pandemic_exists
+
+    def calculate_done_from_state(self, state: PandemicSimState, action: int) -> bool:
+        self._pandemic_exists = self._pandemic_exists or np.any(state.infection_above_threshold)
+        return state.sim_time.day > self._num_days and not self._pandemic_exists
 
 
 _register_done(DoneFunctionType.INFECTION_SUMMARY_ABOVE_THRESHOLD, InfectionSummaryAboveThresholdDone)
