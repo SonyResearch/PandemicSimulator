@@ -2,9 +2,12 @@
 
 import enum
 from abc import abstractmethod, ABCMeta
-from typing import Any, Dict, List, Optional, Union, Type, Sequence
+from typing import Any, Dict, List, Optional, Union, Type, Sequence, cast
 
 import numpy as np
+from pandemic_simulator.environment.interfaces.ids import LocationID
+from pandemic_simulator.environment.interfaces.sim_state import PandemicSimState
+from pandemic_simulator.environment.interfaces.location_states import NonEssentialBusinessLocationState
 
 __all__ = ['RewardFunction', 'RewardFunctionType', 'RewardFunctionFactory', 'SumReward',
            'UnlockedBusinessLocationsReward', 'InfectionSummaryIncreaseReward',
@@ -20,6 +23,10 @@ class RewardFunction(metaclass=ABCMeta):
 
     @abstractmethod
     def calculate_reward(self, prev_obs: PandemicObservation, action: int, obs: PandemicObservation) -> float:
+        pass
+
+    @abstractmethod
+    def calculate_reward_from_state(self, prev_state: PandemicSimState, action: int, statw: PandemicSimState) -> float:
         pass
 
 
@@ -84,6 +91,10 @@ class SumReward(RewardFunction):
         rewards = np.array([rf.calculate_reward(prev_obs, action, obs) for rf in self._reward_fns])
         return float(np.sum(rewards * self._weights))
 
+    def calculate_reward_from_state(self, prev_state: PandemicSimState, action: int, state: PandemicSimState, business_location_ids: Optional[List[LocationID]] = None,) -> float:
+        rewards = np.array([rf.calculate_reward_from_state(prev_state, action, state) for rf in self._reward_fns])
+        return float(np.sum(rewards * self._weights))
+
 
 class InfectionSummaryIncreaseReward(RewardFunction):
     """Returns a negative reward proportional to the relative increase in the infection summary of the given type."""
@@ -101,6 +112,12 @@ class InfectionSummaryIncreaseReward(RewardFunction):
             return 0
         return -1 * float(np.clip((summary - prev_summary) / prev_summary, 0, np.inf).mean())
 
+    def calculate_reward_from_state(self, prev_state: PandemicSimState, action: int, state: PandemicSimState, business_location_ids: Optional[List[LocationID]] = None,) -> float:
+        prev_summary = list(prev_state.global_infection_summary.values())[self._index]
+        summary = list(state.global_infection_summary.values())[self._index]
+        if np.any(prev_summary == 0):
+            return 0
+        return -1 * float(np.clip((summary - prev_summary) / prev_summary, 0, np.inf).mean())
 
 class InfectionSummaryAbsoluteReward(RewardFunction):
     """Returns a negative reward proportional to the absolute value of the given type of infection summary."""
@@ -114,6 +131,8 @@ class InfectionSummaryAbsoluteReward(RewardFunction):
     def calculate_reward(self, prev_obs: PandemicObservation, action: int, obs: PandemicObservation) -> float:
         return float(-1 * np.mean(obs.global_infection_summary[..., self._index]))
 
+    def calculate_reward_from_state(self, prev_state: PandemicSimState, action: int, state: PandemicSimState, business_location_ids: Optional[List[LocationID]] = None,) -> float:
+        return float(-1 * list(state.global_infection_summary.values())[self._index])
 
 class InfectionSummaryAboveThresholdReward(RewardFunction):
     """Returns a negative reward if the infection summary of the given type is above a threshold."""
@@ -128,6 +147,10 @@ class InfectionSummaryAboveThresholdReward(RewardFunction):
 
     def calculate_reward(self, prev_obs: PandemicObservation, action: int, obs: PandemicObservation) -> float:
         return float(-1 * max(np.mean(obs.global_infection_summary[..., self._index]
+                                      - self._threshold) / self._threshold, 0))
+    
+    def calculate_reward_from_state(self, prev_state: PandemicSimState, action: int, state: PandemicSimState, business_location_ids: Optional[List[LocationID]] = None,) -> float:
+        return float(-1 * max((list(state.global_infection_summary.values())[self._index]
                                       - self._threshold) / self._threshold, 0))
 
 
@@ -151,6 +174,20 @@ class UnlockedBusinessLocationsReward(RewardFunction):
                                   else obs.unlocked_non_essential_business_locations[..., self._obs_indices])
             return float(np.mean(unlocked_locations))
 
+    def calculate_reward_from_state(self, prev_state: PandemicSimState, action: int, state: PandemicSimState, business_location_ids: Optional[List[LocationID]] = None,) -> float:
+        
+        if business_location_ids is None:
+            return 0
+        else:
+            unlocked_non_essential_business_locations = np.asarray([int(not cast(NonEssentialBusinessLocationState,state.id_to_location_state[loc_id]).locked)for loc_id in business_location_ids])
+        
+            if unlocked_non_essential_business_locations is None:
+                return 0.
+            else:
+                unlocked_locations = (unlocked_non_essential_business_locations if self._obs_indices is None
+                                    else unlocked_non_essential_business_locations[ self._obs_indices])
+                return float(np.mean(unlocked_locations))
+
 
 class LowerStageReward(RewardFunction):
     """Returns a positive reward inversely proportional to the regulation stages."""
@@ -167,6 +204,9 @@ class LowerStageReward(RewardFunction):
     def calculate_reward(self, prev_obs: PandemicObservation, action: int, obs: PandemicObservation) -> float:
         return -float(self._stage_rewards[action])
 
+    def calculate_reward_from_state(self, prev_state: PandemicSimState, action: int, state: PandemicSimState, business_location_ids: Optional[List[LocationID]] = None,) -> float:
+        return -float(self._stage_rewards[action])
+
 
 class SmoothStageChangesReward(RewardFunction):
 
@@ -176,6 +216,9 @@ class SmoothStageChangesReward(RewardFunction):
     def calculate_reward(self, prev_obs: PandemicObservation, action: int, obs: PandemicObservation) -> float:
         return float(-1 * np.abs(obs.stage - prev_obs.stage).mean())
 
+
+    def calculate_reward_from_state(self, prev_state: PandemicSimState, action: int, state: PandemicSimState, business_location_ids: Optional[List[LocationID]] = None,) -> float:
+        return float(-1 * abs(state.regulation_stage - prev_state.regulation_stage))
 
 _register_reward(RewardFunctionType.INFECTION_SUMMARY_INCREASE, InfectionSummaryIncreaseReward)
 _register_reward(RewardFunctionType.INFECTION_SUMMARY_ABOVE_THRESHOLD, InfectionSummaryAboveThresholdReward)
