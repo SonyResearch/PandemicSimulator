@@ -11,7 +11,7 @@ from .reward import RewardFunction, SumReward, RewardFunctionFactory, RewardFunc
 from .simulator_config import PandemicSimConfig
 from .simulator_opts import PandemicSimOpts
 
-__all__ = ['PandemicGymEnv']
+__all__ = ['PandemicGymEnv','PandemicGymEnv3Act']
 
 
 class PandemicGymEnv(gym.Env):
@@ -169,3 +169,37 @@ class PandemicGymEnv(gym.Env):
 
     def render(self, mode: str = 'human') -> bool:
         pass
+
+class ReducedActionPandemicGymEnv(gym.ActionWrapper):
+    def __init__(self, env: PandemicGymEnv):
+        super().__init__(env)
+        self.env = env
+
+        self.action_space = gym.spaces.Discrete(3, start=-1)
+
+    @classmethod
+    def from_config(self,
+                    sim_config: PandemicSimConfig,
+                    pandemic_regulations: Sequence[PandemicRegulation],
+                    sim_opts: PandemicSimOpts = PandemicSimOpts(),
+                    reward_fn: Optional[RewardFunction] = None,
+                    done_fn: Optional[DoneFunction] = None,
+                    ) -> 'PandemicGymEnv3Act':
+        env = PandemicGymEnv.from_config(sim_config = sim_config,
+        pandemic_regulations=pandemic_regulations,
+        sim_opts = sim_opts,
+        reward_fn=reward_fn,
+        done_fn=done_fn,
+        )
+
+        return ReducedActionPandemicGymEnv(env=env)
+
+    def step(self, action):
+        return self.env.step(int(self.action(action)))
+
+    def action(self, action):
+        assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
+        return min(4, max(0, self.env._last_observation.stage[-1, 0, 0] + action)) 
+    
+    def reset(self):
+        self.env.reset()
