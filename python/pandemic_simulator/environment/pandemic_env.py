@@ -170,7 +170,7 @@ class PandemicGymEnv(gym.Env):
     def render(self, mode: str = 'human') -> bool:
         pass
 
-class PandemicGymEnv3Act(gym.ActionWrapper):
+class ReducedActionPandemicGymEnv(gym.ActionWrapper):
     def __init__(self, env: PandemicGymEnv):
         super().__init__(env)
         self.env = env
@@ -192,7 +192,7 @@ class PandemicGymEnv3Act(gym.ActionWrapper):
         done_fn=done_fn,
         )
 
-        return PandemicGymEnv3Act(env=env)
+        return ReducedActionPandemicGymEnv(env=env)
 
     def step(self, action):
         return self.env.step(int(self.action(action)))
